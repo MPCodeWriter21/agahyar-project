@@ -44,20 +44,35 @@ agahyar-project/
 │ ├── models.py # Service, UserProfile, FAQ, ServiceCenter
 
 │ ├── views.py # All logic (search, detail, nearby, auth)
+
 │ ├── scraper.py # Nearest centers logic + AI simulation
+
 │ ├── urls.py # App routes
+
 │ └── admin.py # Admin panel registration
+
 ├── templates/services/ # All HTML templates
+
 │ ├── base.html # Main layout
+
 │ ├── home.html # Homepage with search & popular services
+
 │ ├── search.html # Search results
+
 │ ├── detail.html # Service details + nearest center
+
 │ ├── nearby_centers.html # List of all centers with nearest label
+
 │ └── ...
+
 ├── static/ # CSS, JS, images (if any)
+
 ├── db.sqlite3 # SQLite database
+
 ├── manage.py
+
 ├── requirements.txt
+
 └── README.md
 
 ---
