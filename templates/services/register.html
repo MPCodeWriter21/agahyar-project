@@ -5,59 +5,59 @@
 {% block content %}
 
 <div class="register-container">
-    <h2>📝 ثبت‌نام در آگاه‌یار</h2>
-    
-    {% if form.errors %}
-        <div class="form-group">
-            {% for field, errors in form.errors.items %}
-                {% for error in errors %}
-                    <div class="error-message">
-                        ❌ {{ error }}
-                    </div>
-                {% endfor %}
-            {% endfor %}
-        </div>
-    {% endif %}
-    
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>نام کاربری</label>
-            <input type="text" name="username" placeholder="نام کاربری خود را انتخاب کنید" required>
-        </div>
-        <div class="form-group">
-            <label>ایمیل</label>
-            <input type="email" name="email" placeholder="example@email.com" required>
-        </div>
-        <div class="form-group">
-            <label>رمز عبور</label>
-            <input type="password" name="password1" placeholder="حداقل ۸ کاراکتر" required>
-        </div>
-        <div class="form-group">
-            <label>تکرار رمز عبور</label>
-            <input type="password" name="password2" placeholder="رمز را دوباره وارد کنید" required>
-        </div>
-        <div class="form-group">
-            <label>شهر محل سکونت</label>
-            <select name="city" required>
-                {% for value, label in city_choices %}
-                    <option value="{{ value }}"{% if form.city.value == value %} selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group">
-            <label>محله</label>
-            <input type="text" name="neighborhood" placeholder="مثال: سعادت‌آباد، ونک، ..." required>
-        </div>
-        <div class="form-group">
-            <label>شماره تماس (اختیاری)</label>
-            <input type="text" name="phone" placeholder="مثال: 09121234567">
-        </div>
-        <button type="submit" class="btn-register">✅ ثبت‌نام</button>
-    </form>
-    
-    <div class="login-link">
-        <a href="{% url 'login' %}" style="color:#1a5f7a;">قبلاً ثبت‌نام کرده‌اید؟ وارد شوید</a>
-    </div>
+ <h2> ثبت‌نام در آگاه‌یار</h2>
+
+ {% if form.errors %}
+ <div class="form-group">
+ {% for field, errors in form.errors.items %}
+ {% for error in errors %}
+ <div class="error-message">
+ {{ error }}
+ </div>
+ {% endfor %}
+ {% endfor %}
+ </div>
+ {% endif %}
+
+ <form method="post">
+ {% csrf_token %}
+ <div class="form-group">
+ <label>نام کاربری</label>
+ <input type="text" name="username" placeholder="نام کاربری خود را انتخاب کنید" required>
+ </div>
+ <div class="form-group">
+ <label>ایمیل</label>
+ <input type="email" name="email" placeholder="example@email.com" required>
+ </div>
+ <div class="form-group">
+ <label>رمز عبور</label>
+ <input type="password" name="password1" placeholder="حداقل ۸ کاراکتر" required>
+ </div>
+ <div class="form-group">
+ <label>تکرار رمز عبور</label>
+ <input type="password" name="password2" placeholder="رمز را دوباره وارد کنید" required>
+ </div>
+ <div class="form-group">
+ <label>شهر محل سکونت</label>
+ <select name="city" required>
+ {% for value, label in city_choices %}
+ <option value="{{ value }}"{% if form.city.value == value %} selected{% endif %}>{{ label }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="form-group">
+ <label>محله</label>
+ <input type="text" name="neighborhood" placeholder="مثال: سعادت‌آباد، ونک، ..." required>
+ </div>
+ <div class="form-group">
+ <label>شماره تماس (اختیاری)</label>
+ <input type="text" name="phone" placeholder="مثال: 09121234567">
+ </div>
+ <button type="submit" class="btn-register"> ثبت‌نام</button>
+ </form>
+
+ <div class="login-link">
+ <a href="{% url 'login' %}" style="color:#1a5f7a;">قبلاً ثبت‌نام کرده‌اید؟ وارد شوید</a>
+ </div>
 </div>
 {% endblock %}

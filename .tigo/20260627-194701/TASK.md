@@ -1,4 +1,3 @@
 # Move requirements to pyproject.toml
-
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50

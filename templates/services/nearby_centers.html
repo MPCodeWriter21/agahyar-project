@@ -5,58 +5,58 @@
 {% block content %}
 
 <div class="nearby-header">
-    <h1>📍 نزدیک‌ترین مراکز</h1>
-    <p>
-        شهر شما: <span class="city-badge">{{ user_city }}</span>
-        {% if user_neighborhood %}
-        | محله: <span class="neighborhood-badge">{{ user_neighborhood }}</span>
-        {% endif %}
-    </p>
+ <h1> نزدیک‌ترین مراکز</h1>
+ <p>
+ شهر شما: <span class="city-badge">{{ user_city }}</span>
+ {% if user_neighborhood %}
+ | محله: <span class="neighborhood-badge">{{ user_neighborhood }}</span>
+ {% endif %}
+ </p>
 </div>
 
 {% if centers_by_service %}
-    <p>مراکز ارائه خدمات در شهر شما:</p>
-    
-    {% for service_name, centers in centers_by_service.items %}
-    <h3 class="section-title" style="margin: 30px 0 15px;">📋 {{ service_name }}</h3>
-    
-    {% for center in centers %}
-    <div class="center-card {% if center.is_nearest %}nearest{% endif %}">
-        <div class="center-name {% if center.is_nearest %}nearest-name{% endif %}">
-            {{ center.name }}
-            {% if center.is_nearest %}
-            <span class="badge-nearest">⭐ نزدیک‌ترین</span>
-            {% endif %}
-        </div>
-        <div class="center-address">📍 {{ center.address }}</div>
-        {% if center.phone %}
-        <div class="center-phone">📞 {{ center.phone }}</div>
-        {% endif %}
-        
-        <a href="https://www.google.com/maps/search/{{ center.address|urlencode }}" 
-           target="_blank" 
-           class="btn-map">
-            🗺️ مشاهده در نقشه
-        </a>
-        
-        {% if not center.is_nearest %}
-        <span class="badge-near" style="margin-right: 10px;">نزدیک</span>
-        {% endif %}
-    </div>
-    {% empty %}
-    <p style="color: #6c757d;">هیچ مرکزی برای این خدمت در شهر شما یافت نشد.</p>
-    {% endfor %}
-    
-    {% endfor %}
+ <p>مراکز ارائه خدمات در شهر شما:</p>
+
+ {% for service_name, centers in centers_by_service.items %}
+ <h3 class="section-title" style="margin: 30px 0 15px;"> {{ service_name }}</h3>
+
+ {% for center in centers %}
+ <div class="center-card {% if center.is_nearest %}nearest{% endif %}">
+ <div class="center-name {% if center.is_nearest %}nearest-name{% endif %}">
+ {{ center.name }}
+ {% if center.is_nearest %}
+ <span class="badge-nearest"> نزدیک‌ترین</span>
+ {% endif %}
+ </div>
+ <div class="center-address"> {{ center.address }}</div>
+ {% if center.phone %}
+ <div class="center-phone"> {{ center.phone }}</div>
+ {% endif %}
+
+ <a href="https://www.google.com/maps/search/{{ center.address|urlencode }}"
+ target="_blank"
+ class="btn-map">
+ مشاهده در نقشه
+ </a>
+
+ {% if not center.is_nearest %}
+ <span class="badge-near" style="margin-right: 10px;">نزدیک</span>
+ {% endif %}
+ </div>
+ {% empty %}
+ <p style="color: #6c757d;">هیچ مرکزی برای این خدمت در شهر شما یافت نشد.</p>
+ {% endfor %}
+
+ {% endfor %}
 {% else %}
-    <div style="text-align:center; padding:50px 0;">
-        <h3>😞 متأسفیم</h3>
-        <p>هیچ مرکزی در شهر شما ثبت نشده است.</p>
-        <p style="color:#6c757d; font-size:0.9rem;">لطفاً با پشتیبانی تماس بگیرید.</p>
-    </div>
+ <div style="text-align:center; padding:50px 0;">
+ <h3> متأسفیم</h3>
+ <p>هیچ مرکزی در شهر شما ثبت نشده است.</p>
+ <p style="color:#6c757d; font-size:0.9rem;">لطفاً با پشتیبانی تماس بگیرید.</p>
+ </div>
 {% endif %}
 
 <div class="text-center">
-    <a href="#" onclick="history.back(); return false;" class="btn-back">← بازگشت به صفحه قبل</a>
+ <a href="#" onclick="history.back(); return false;" class="btn-back"> بازگشت به صفحه قبل</a>
 </div>
 {% endblock %}

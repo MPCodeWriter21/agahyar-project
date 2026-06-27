@@ -5,40 +5,40 @@
 {% block content %}
 
 <div class="login-container">
-    <h2>🔐 ورود به آگاه‌یار</h2>
-    
-    {% if form.non_field_errors %}
-        <div class="message-box message-error">
-            {% for error in form.non_field_errors %}
-                {{ error }}
-            {% endfor %}
-        </div>
-    {% endif %}
-    
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>نام کاربری</label>
-            <input type="text" name="username" value="{{ form.username.value|default:'' }}" placeholder="نام کاربری خود را وارد کنید" required>
-            {% if form.username.errors %}
-                <div class="message-box message-error">{{ form.username.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group">
-            <label>رمز عبور</label>
-            <input type="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
-            {% if form.password.errors %}
-                <div class="message-box message-error">{{ form.password.errors.0 }}</div>
-            {% endif %}
-        </div>
-        <button type="submit" class="btn-login">🚀 ورود</button>
-    </form>
-    
-    <div class="register-link">
-        <a href="{% url 'register' %}" style="color:#1a5f7a;">ثبت‌نام جدید</a>
-    </div>
-    <div class="register-link" style="margin-top:10px;">
-        <a href="{% url 'password_reset' %}" style="color:#6c757d; font-size:0.9rem;">رمز عبور را فراموش کرده‌اید؟</a>
-    </div>
+ <h2> ورود به آگاه‌یار</h2>
+
+ {% if form.non_field_errors %}
+ <div class="message-box message-error">
+ {% for error in form.non_field_errors %}
+ {{ error }}
+ {% endfor %}
+ </div>
+ {% endif %}
+
+ <form method="post">
+ {% csrf_token %}
+ <div class="form-group">
+ <label>نام کاربری</label>
+ <input type="text" name="username" value="{{ form.username.value|default:'' }}" placeholder="نام کاربری خود را وارد کنید" required>
+ {% if form.username.errors %}
+ <div class="message-box message-error">{{ form.username.errors.0 }}</div>
+ {% endif %}
+ </div>
+ <div class="form-group">
+ <label>رمز عبور</label>
+ <input type="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
+ {% if form.password.errors %}
+ <div class="message-box message-error">{{ form.password.errors.0 }}</div>
+ {% endif %}
+ </div>
+ <button type="submit" class="btn-login"> ورود</button>
+ </form>
+
+ <div class="register-link">
+ <a href="{% url 'register' %}" style="color:#1a5f7a;">ثبت‌نام جدید</a>
+ </div>
+ <div class="register-link" style="margin-top:10px;">
+ <a href="{% url 'password_reset' %}" style="color:#6c757d; font-size:0.9rem;">رمز عبور را فراموش کرده‌اید؟</a>
+ </div>
 </div>
 {% endblock %}

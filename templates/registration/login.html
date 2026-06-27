@@ -5,35 +5,35 @@
 {% block content %}
 
 <div class="login-container">
-    <h2>🔐 ورود به آگاه‌یار</h2>
-    
-    {% if form.errors %}
-    <div class="error-message">
-        ❌ نام کاربری یا رمز عبور اشتباه است.
-    </div>
-    {% endif %}
-    
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>نام کاربری</label>
-            <input type="text" name="username" placeholder="نام کاربری خود را وارد کنید" required>
-        </div>
-        <div class="form-group">
-            <label>رمز عبور</label>
-            <input type="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
-        </div>
-        
-        <button type="submit" class="btn-login">🚀 ورود</button>
-    </form>
-    
-    <div class="register-link">
-        <a href="{% url 'register' %}" style="color:#1a5f7a;">ثبت‌نام جدید</a>
-    </div>
-    <div style="text-align: center; margin-top: 10px;">
-        <a href="{% url 'password_reset' %}" style="color:#6c757d; font-size:0.9rem;">
-            🔑 رمز عبور را فراموش کردید؟
-        </a>
-    </div>
+ <h2> ورود به آگاه‌یار</h2>
+
+ {% if form.errors %}
+ <div class="error-message">
+ نام کاربری یا رمز عبور اشتباه است.
+ </div>
+ {% endif %}
+
+ <form method="post">
+ {% csrf_token %}
+ <div class="form-group">
+ <label>نام کاربری</label>
+ <input type="text" name="username" placeholder="نام کاربری خود را وارد کنید" required>
+ </div>
+ <div class="form-group">
+ <label>رمز عبور</label>
+ <input type="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
+ </div>
+
+ <button type="submit" class="btn-login"> ورود</button>
+ </form>
+
+ <div class="register-link">
+ <a href="{% url 'register' %}" style="color:#1a5f7a;">ثبت‌نام جدید</a>
+ </div>
+ <div style="text-align: center; margin-top: 10px;">
+ <a href="{% url 'password_reset' %}" style="color:#6c757d; font-size:0.9rem;">
+ رمز عبور را فراموش کردید؟
+ </a>
+ </div>
 </div>
 {% endblock %}

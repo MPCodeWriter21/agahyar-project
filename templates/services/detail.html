@@ -5,79 +5,79 @@
 {% block content %}
 
 <div class="detail-header">
-    <h1>{{ service.name }}</h1>
-    
-    <div class="org-address-box">
-        🏢 <strong>سازمان مسئول:</strong> {{ service.organization }}
-    </div>
-    
-    {% if service.organization_address %}
-    <div class="org-address-box">
-        📍 <strong>آدرس سازمان:</strong> {{ service.organization_address }}
-        <a href="https://www.google.com/maps/search/{{ service.organization_address|urlencode }}" 
-           target="_blank" 
-           class="btn-map">
-            🗺️ نقشه
-        </a>
-    </div>
-    {% endif %}
+ <h1>{{ service.name }}</h1>
+
+ <div class="org-address-box">
+ <strong>سازمان مسئول:</strong> {{ service.organization }}
+ </div>
+
+ {% if service.organization_address %}
+ <div class="org-address-box">
+ <strong>آدرس سازمان:</strong> {{ service.organization_address }}
+ <a href="https://www.google.com/maps/search/{{ service.organization_address|urlencode }}"
+ target="_blank"
+ class="btn-map">
+ نقشه
+ </a>
+ </div>
+ {% endif %}
 </div>
 
 <div class="info-card">
-    <h3>📋 مدارک مورد نیاز</h3>
-    <ul class="doc-list">
-        {% for doc in documents %}
-            <li>✅ {{ doc }}</li>
-        {% endfor %}
-    </ul>
+ <h3> مدارک مورد نیاز</h3>
+ <ul class="doc-list">
+ {% for doc in documents %}
+ <li> {{ doc }}</li>
+ {% endfor %}
+ </ul>
 </div>
 
 <div class="info-card">
-    <h3>📝 مراحل انجام (گام به گام)</h3>
-    <ol class="step-list">
-        {% for step in steps %}
-            <li>{{ step }}</li>
-        {% endfor %}
-    </ol>
+ <h3> مراحل انجام (گام به گام)</h3>
+ <ol class="step-list">
+ {% for step in steps %}
+ <li>{{ step }}</li>
+ {% endfor %}
+ </ol>
 </div>
 
 <div class="meta-grid">
-    <div class="meta-item">
-        <strong>💰 هزینه تقریبی</strong><br>
-        {{ service.cost }}
-    </div>
-    <div class="meta-item">
-        <strong>⏱ مدت زمان تقریبی</strong><br>
-        {{ service.duration }}
-    </div>
+ <div class="meta-item">
+ <strong> هزینه تقریبی</strong><br>
+ {{ service.cost }}
+ </div>
+ <div class="meta-item">
+ <strong> مدت زمان تقریبی</strong><br>
+ {{ service.duration }}
+ </div>
 </div>
 
 {% if nearest_center %}
 <div class="info-card nearest-card">
-    <h3>📍 نزدیک‌ترین مرکز به شما</h3>
-    <div class="nearest-box">
-        <div class="center-name">⭐ {{ nearest_center.name }}</div>
-        <div style="color: #2c3e50; margin-top: 8px;">📍 {{ nearest_center.address }}</div>
-        {% if nearest_center.phone %}
-        <div style="color: #6c757d; margin-top: 5px;">📞 {{ nearest_center.phone }}</div>
-        {% endif %}
-        <a href="https://www.google.com/maps/search/{{ nearest_center.address|urlencode }}" 
-           target="_blank" 
-           style="display: inline-block; margin-top: 10px; background: #28a745; color: white; padding: 6px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem;">
-            🗺️ مشاهده در نقشه
-        </a>
-    </div>
-    <p style="color: #6c757d; font-size: 0.85rem; margin-top: 10px;">
-        💡 بر اساس محله شما ({{ user_neighborhood }}) نزدیک‌ترین مرکز معرفی شده است.
-    </p>
+ <h3> نزدیک‌ترین مرکز به شما</h3>
+ <div class="nearest-box">
+ <div class="center-name"> {{ nearest_center.name }}</div>
+ <div style="color: #2c3e50; margin-top: 8px;"> {{ nearest_center.address }}</div>
+ {% if nearest_center.phone %}
+ <div style="color: #6c757d; margin-top: 5px;"> {{ nearest_center.phone }}</div>
+ {% endif %}
+ <a href="https://www.google.com/maps/search/{{ nearest_center.address|urlencode }}"
+ target="_blank"
+ style="display: inline-block; margin-top: 10px; background: #28a745; color: white; padding: 6px 16px; border-radius: 20px; text-decoration: none; font-size: 0.85rem;">
+ مشاهده در نقشه
+ </a>
+ </div>
+ <p style="color: #6c757d; font-size: 0.85rem; margin-top: 10px;">
+ بر اساس محله شما ({{ user_neighborhood }}) نزدیک‌ترین مرکز معرفی شده است.
+ </p>
 </div>
 {% endif %}
 
 <div class="alert-note">
-    💡 <strong>نکته مهم:</strong> قبل از مراجعه حضوری، تمام مدارک بالا را کامل آماده کنید و با {{ service.organization }} تماس بگیرید.
+ <strong>نکته مهم:</strong> قبل از مراجعه حضوری، تمام مدارک بالا را کامل آماده کنید و با {{ service.organization }} تماس بگیرید.
 </div>
 
 <div class="text-center">
-    <a href="#" onclick="history.back(); return false;" class="btn-back">← بازگشت به صفحه قبل</a>
+ <a href="#" onclick="history.back(); return false;" class="btn-back"> بازگشت به صفحه قبل</a>
 </div>
 {% endblock %}

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import logging
 from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup
+from log21 import get_logger
 
 from .models import ServiceCenter
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 NEAREST_CENTERS: dict = {
     "تهران": {
@@ -122,7 +122,7 @@ def scrape_passport_info() -> dict:
                     "info": "اطلاعات پاسپورت در سایت پلیس+۱۰ موجود است.",
                 }
     except Exception as e:
-        logger.error(f"خطا در اسکرپ: {e}")
+        logger.error(f"Scrape failed: {e}")
 
     return {
         "source": "دیتابیس داخلی",
