@@ -1,6 +1,7 @@
 import pytest
 from django.test import Client
 from django.contrib.auth.models import User
+from django.urls import reverse
 from services.models import Service, UserProfile, FAQ, ServiceCenter
 from services.views import save_user_profile
 
@@ -221,6 +222,31 @@ class TestAboutAndContactViews:
         client.login(username="contactuser", password="pass12345")
         response = client.get("/contact/")
         assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestPasswordReset:
+
+    def test_password_reset_page_loads(self):
+        client = Client()
+        response = client.get(reverse("password_reset"))
+        assert response.status_code == 200
+
+    def test_password_reset_done_page_loads(self):
+        client = Client()
+        response = client.get(reverse("password_reset_done"))
+        assert response.status_code == 200
+
+    def test_password_reset_submit_sends_email(self):
+        user = User.objects.create_user(
+            username="resetuser", email="reset@example.com", password="oldpass"
+        )
+        client = Client()
+        response = client.post(
+            reverse("password_reset"), {"email": "reset@example.com"}
+        )
+        assert response.status_code == 302
+        assert response.url == reverse("password_reset_done")
 
 
 @pytest.mark.django_db

@@ -1,4 +1,4 @@
-from django.urls import path, include  # ← include را اضافه کن
+from django.urls import path, include
 from . import views
 
 urlpatterns = [
@@ -21,7 +21,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
-    # ===== بازیابی رمز عبور (اختیاری) =====
-#path('password-reset/', include('django.contrib.auth.urls')),
+    # ===== بازیابی رمز عبور =====
+    path('password-reset/', include('django.contrib.auth.urls')),
 
 ]

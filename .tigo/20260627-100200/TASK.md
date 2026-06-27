@@ -1,5 +1,5 @@
 # Fix password reset feature (uncomment and configure)
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 90
 - TAGS: feature, auth
 
