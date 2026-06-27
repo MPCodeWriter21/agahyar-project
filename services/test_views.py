@@ -131,6 +131,16 @@ class TestSearchView:
         assert response.status_code == 200
         assert "smart card" in str(response.content)
 
+    def test_search_pagination_context(self):
+        user = User.objects.create_user("searchpag", password="pass12345")
+        for i in range(15):
+            Service.objects.create(name=f"result{i}", organization="o", documents="d", steps="s")
+        client = Client()
+        client.login(username="searchpag", password="pass12345")
+        response = client.get("/search/", {"q": "result"})
+        assert response.status_code == 200
+        assert "page_obj" in response.context
+
     def test_search_empty_query_returns_empty(self):
         user = User.objects.create_user("searchuser2", password="pass12345")
         client = Client()
@@ -157,6 +167,17 @@ class TestServiceListView:
         assert response.status_code == 200
         content = str(response.content)
         assert content.index("alpha") < content.index("beta")
+
+    def test_list_pagination_context(self):
+        user = User.objects.create_user("paguser", password="pass12345")
+        for i in range(15):
+            Service.objects.create(name=f"svc{i}", organization="o", documents="d", steps="s")
+        client = Client()
+        client.login(username="paguser", password="pass12345")
+        response = client.get("/services/")
+        assert response.status_code == 200
+        assert "page_obj" in response.context
+        assert response.context["page_obj"].paginator.per_page == 12
 
 
 @pytest.mark.django_db

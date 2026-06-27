@@ -115,7 +115,7 @@
         </div>
     {% else %}
         <h2 style="margin-bottom: 24px;">{{ count }} نتیجه برای "{{ query }}"</h2>
-        {% for service in results %}
+        {% for service in page_obj %}
         <div class="result-card">
             <h3>{{ service.name }}</h3>
             <div class="org-badge">🏢 {{ service.organization }}</div>
@@ -133,6 +133,20 @@
             <a href="{% url 'service_detail' service.id %}" class="btn-outline-custom">مشاهده جزئیات →</a>
         </div>
         {% endfor %}
+
+        {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pagination" style="text-align:center; margin-top:30px;">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&page=1" style="margin:0 4px; color:#1a5f7a;">&laquo; اول</a>
+                <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}" style="margin:0 4px; color:#1a5f7a;">قبلی</a>
+            {% endif %}
+            <span style="margin:0 8px; color:#6c757d;">صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&page={{ page_obj.next_page_number }}" style="margin:0 4px; color:#1a5f7a;">بعدی</a>
+                <a href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}" style="margin:0 4px; color:#1a5f7a;">آخر &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
     {% endif %}
 {% else %}
     <div class="no-results">
@@ -142,6 +156,6 @@
 {% endif %}
 
 <div class="text-center">
-    <a href="#" onclick="history.back(); return false;" class="btn-back">← بازگشت به صفحه قبل</a>
+    <a href="{% url 'home' %}" class="btn-back">← بازگشت به خانه</a>
 </div>
 {% endblock %}

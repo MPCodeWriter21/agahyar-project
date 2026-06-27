@@ -3,6 +3,7 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import Service, UserProfile, FAQ, ServiceCenter, ContactMessage
 from .forms import LoginForm, RegisterForm, ContactForm, CITY_CHOICES
@@ -84,11 +85,14 @@ def search(request):
             Q(name__icontains=query) |
             Q(keywords__icontains=query) |
             Q(organization__icontains=query)
-        )
+        ).order_by('id')
+    paginator = Paginator(results, 12)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
     return render(request, 'services/search.html', {
         'query': query,
-        'results': results,
-        'count': results.count()
+        'page_obj': page_obj,
+        'count': paginator.count
     })
 
 
@@ -128,7 +132,10 @@ def services_list(request):
     if not request.user.is_authenticated:
         return redirect('login')
     all_services = Service.objects.all().order_by('name')
-    return render(request, 'services/list.html', {'services': all_services})
+    paginator = Paginator(all_services, 12)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'services/list.html', {'page_obj': page_obj})
 
 
 def faq_view(request):

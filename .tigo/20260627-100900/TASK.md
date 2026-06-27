@@ -1,5 +1,5 @@
 # Add pagination to services list and search results
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 75
 - TAGS: feature, ux
 
