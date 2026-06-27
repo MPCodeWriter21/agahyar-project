@@ -1,5 +1,5 @@
 # Use Django form validation for login
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 75
 - TAGS: quality, refactor
 

@@ -52,19 +52,20 @@ def login_view(request):
         return redirect('home')
     
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            messages.success(request, f'خوش آمدید {user.username}!')
-            return redirect('home')
-        else:
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.success(request, f'خوش آمدید {user.username}!')
+                return redirect('home')
             messages.error(request, 'نام کاربری یا رمز عبور اشتباه است.')
-            return render(request, 'services/login.html')
+    else:
+        form = LoginForm()
     
-    return render(request, 'services/login.html')
+    return render(request, 'services/login.html', {'form': form})
 
 
 def logout_view(request):
