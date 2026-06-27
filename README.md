@@ -75,7 +75,7 @@ agahyar-project/
 *(You can place your screenshots here – just replace the placeholder links)*
 
 | Home |  | Login |  | Search Results | Service Details |
-| ![Homepage](screenshots/homepage.png) | ![Search](screenshots/search.png) | ![Detail](screenshots/detail.png) |
+| ![Homepage](images/homepage.png) | ![Search](screenshots/search.png) | ![Detail](screenshots/detail.png) |
 
 > 💡 *Tip: Upload your images to the `screenshots/` folder and link them here.*
 
