@@ -1,5 +1,5 @@
 # Create pyproject.toml and migrate to uv build system
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 85
 - TAGS: config, build
 

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "agahyar"
+version = "0.1.0"
+description = "Smart Citizen Information System for Government Services"
+requires-python = ">=3.12"
+dependencies = [
+    "Django>=6.0.6",
+    "requests>=2.34.2",
+    "beautifulsoup4>=4.15.0",
+    "lxml>=6.1.1",
+    "sqlparse>=0.5.5",
+    "tzdata>=2026.2",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "agahyar_project.settings"
+python_files = ["tests.py", "test_*.py"]
+testpaths = ["services"]
