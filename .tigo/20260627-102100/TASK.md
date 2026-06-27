@@ -1,5 +1,5 @@
 # Configure pytest with pytest-django
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 80
 - TAGS: testing, config
 

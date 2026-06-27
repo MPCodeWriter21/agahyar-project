@@ -16,6 +16,12 @@ dependencies = [
     "tzdata>=2026.2",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-django>=4.9.0",
+]
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "agahyar_project.settings"
 python_files = ["tests.py", "test_*.py"]
