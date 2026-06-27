@@ -77,7 +77,7 @@ def search(request):
     if not request.user.is_authenticated:
         return redirect('login')
     query = request.GET.get('q', '').strip()
-    results = []
+    results = Service.objects.none()
     if query:
         results = Service.objects.filter(
             Q(name__icontains=query) |

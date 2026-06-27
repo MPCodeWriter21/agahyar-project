@@ -1,5 +1,5 @@
 # Write automated tests
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 90
 - TAGS: quality, testing
 
