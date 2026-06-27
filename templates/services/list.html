@@ -3,55 +3,16 @@
 {% block title %}همه خدمات | آگاه‌یار{% endblock %}
 
 {% block content %}
-<style>
-.services-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 28px;
-    margin-top: 20px;
-}
-.service-card {
-    background: white;
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    transition: 0.2s;
-}
-.service-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 20px rgba(0,0,0,0.08);
-}
-.btn-back {
-    background: #1a5f7a;
-    color: white;
-    padding: 12px 28px;
-    border-radius: 40px;
-    text-decoration: none;
-    display: inline-block;
-    margin-top: 16px;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    transition: 0.2s;
-}
-.btn-back:hover {
-    background: #0e4a60;
-    transform: translateY(-2px);
-}
-.text-center {
-    text-align: center;
-}
-</style>
 
-<h1 style="margin-bottom: 32px;">📌 همه خدمات دولتی</h1>
+<h1>📌 همه خدمات دولتی</h1>
 
 <div class="services-grid">
     {% for service in page_obj %}
     <div class="service-card">
-        <div style="font-size: 2rem;">📄</div>
-        <h3 style="margin: 12px 0 8px;">{{ service.name }}</h3>
-        <p style="color: #6c757d;">{{ service.organization }}</p>
-        <a href="{% url 'service_detail' service.id %}" style="display:inline-block; margin-top:16px; color:#1a5f7a; font-weight:500;">مشاهده جزئیات →</a>
+        <div class="service-icon" style="font-size: 2rem;">📄</div>
+        <h3>{{ service.name }}</h3>
+        <p class="org-name">{{ service.organization }}</p>
+        <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات →</a>
     </div>
     {% empty %}
     <p>هیچ خدمتی یافت نشد.</p>
@@ -59,15 +20,15 @@
 </div>
 
 {% if page_obj.paginator.num_pages > 1 %}
-<div class="pagination" style="text-align:center; margin-top:30px;">
+<div class="pagination">
     {% if page_obj.has_previous %}
-        <a href="?page=1" style="margin:0 4px; color:#1a5f7a;">&laquo; اول</a>
-        <a href="?page={{ page_obj.previous_page_number }}" style="margin:0 4px; color:#1a5f7a;">قبلی</a>
+        <a href="?page=1">&laquo; اول</a>
+        <a href="?page={{ page_obj.previous_page_number }}">قبلی</a>
     {% endif %}
-    <span style="margin:0 8px; color:#6c757d;">صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+    <span>صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" style="margin:0 4px; color:#1a5f7a;">بعدی</a>
-        <a href="?page={{ page_obj.paginator.num_pages }}" style="margin:0 4px; color:#1a5f7a;">آخر &raquo;</a>
+        <a href="?page={{ page_obj.next_page_number }}">بعدی</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">آخر &raquo;</a>
     {% endif %}
 </div>
 {% endif %}

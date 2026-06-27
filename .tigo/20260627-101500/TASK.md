@@ -1,6 +1,8 @@
 # Consolidate inline CSS into a proper static CSS file
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 55
 - TAGS: quality, ux
 
-Each template has its own full-page <style> block duplicating many styles. Create a single style.css in static/ and include it via base.html.
+Created static/services/css/style.css with all template styles deduplicated.
+Removed <style> blocks from all 14 child templates.
+Replaced inline styles with CSS classes where practical.

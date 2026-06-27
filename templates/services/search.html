@@ -3,102 +3,6 @@
 {% block title %}نتایج جستجو | آگاه‌یار{% endblock %}
 
 {% block content %}
-<style>
-.search-header {
-    background: white;
-    padding: 20px;
-    border-radius: 24px;
-    margin-bottom: 32px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-.search-form-row {
-    display: flex;
-    gap: 12px;
-    max-width: 550px;
-}
-.search-form-row input {
-    flex: 1;
-    padding: 12px 18px;
-    border: 1px solid #ddd;
-    border-radius: 40px;
-    font-size: 1rem;
-    font-family: inherit;
-}
-.search-form-row button {
-    background: #1a5f7a;
-    color: white;
-    border: none;
-    padding: 12px 28px;
-    border-radius: 40px;
-    cursor: pointer;
-    font-family: inherit;
-    font-weight: bold;
-}
-.result-card {
-    background: white;
-    border-radius: 24px;
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    transition: 0.2s;
-    border: 1px solid #eef2f5;
-}
-.result-card h3 {
-    font-size: 1.5rem;
-    color: #1a5f7a;
-    margin-bottom: 12px;
-}
-.org-badge {
-    background: #e8f4f8;
-    padding: 8px 16px;
-    border-radius: 20px;
-    display: inline-block;
-    margin-bottom: 16px;
-    font-size: 0.85rem;
-}
-.docs-preview {
-    background: #f8f9fa;
-    padding: 12px 16px;
-    border-radius: 16px;
-    margin: 16px 0;
-}
-.btn-outline-custom {
-    background: transparent;
-    border: 1px solid #1a5f7a;
-    color: #1a5f7a;
-    padding: 8px 20px;
-    border-radius: 30px;
-    text-decoration: none;
-    display: inline-block;
-    margin-top: 12px;
-}
-.no-results {
-    text-align: center;
-    background: white;
-    padding: 50px;
-    border-radius: 28px;
-}
-.btn-back {
-    background: #1a5f7a;
-    color: white;
-    padding: 12px 28px;
-    border-radius: 40px;
-    text-decoration: none;
-    display: inline-block;
-    margin-top: 16px;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    transition: 0.2s;
-}
-.btn-back:hover {
-    background: #0e4a60;
-    transform: translateY(-2px);
-}
-.text-center {
-    text-align: center;
-}
-</style>
 
 <div class="search-header">
     <form action="{% url 'search' %}" method="get" class="search-form-row">
@@ -114,7 +18,7 @@
             <p>نتیجه‌ای برای "{{ query }}" پیدا نشد.</p>
         </div>
     {% else %}
-        <h2 style="margin-bottom: 24px;">{{ count }} نتیجه برای "{{ query }}"</h2>
+        <h2 class="section-title" style="margin-bottom: 24px;">{{ count }} نتیجه برای "{{ query }}"</h2>
         {% for service in page_obj %}
         <div class="result-card">
             <h3>{{ service.name }}</h3>
@@ -135,15 +39,15 @@
         {% endfor %}
 
         {% if page_obj.paginator.num_pages > 1 %}
-        <div class="pagination" style="text-align:center; margin-top:30px;">
+        <div class="pagination">
             {% if page_obj.has_previous %}
-                <a href="?q={{ query }}&page=1" style="margin:0 4px; color:#1a5f7a;">&laquo; اول</a>
-                <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}" style="margin:0 4px; color:#1a5f7a;">قبلی</a>
+                <a href="?q={{ query }}&page=1">&laquo; اول</a>
+                <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">قبلی</a>
             {% endif %}
-            <span style="margin:0 8px; color:#6c757d;">صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+            <span>صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-                <a href="?q={{ query }}&page={{ page_obj.next_page_number }}" style="margin:0 4px; color:#1a5f7a;">بعدی</a>
-                <a href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}" style="margin:0 4px; color:#1a5f7a;">آخر &raquo;</a>
+                <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">بعدی</a>
+                <a href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}">آخر &raquo;</a>
             {% endif %}
         </div>
         {% endif %}

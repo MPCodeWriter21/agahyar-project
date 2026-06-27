@@ -3,28 +3,6 @@
 {% block title %}لیست کاربران | آگاه‌یار{% endblock %}
 
 {% block content %}
-<style>
-.user-table {
-    width: 100%;
-    background: white;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-.user-table th {
-    background: #1a5f7a;
-    color: white;
-    padding: 15px;
-    text-align: right;
-}
-.user-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-}
-.user-table tr:hover {
-    background: #f8f9fa;
-}
-</style>
 
 <h1>📋 لیست کاربران</h1>
 
@@ -51,7 +29,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="6" style="text-align:center;">هیچ کاربری یافت نشد</td>
+            <td colspan="6" class="text-center">هیچ کاربری یافت نشد</td>
         </tr>
         {% endfor %}
     </tbody>

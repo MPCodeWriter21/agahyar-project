@@ -1,152 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', 'Vazir', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #fdf6ec;
-            color: #2c3e50;
-            line-height: 1.5;
-        }
-
-        .header {
-            background: white;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 70px;
-        }
-
-        .logo h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #1a5f7a, #2c8faa);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .logo p {
-            font-size: 0.7rem;
-            color: #6c757d;
-            margin-top: -4px;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 32px;
-            align-items: center;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #495057;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: #1a5f7a;
-        }
-
-        .mobile-menu-btn {
-            display: none;
-            font-size: 1.8rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #1a5f7a;
-        }
-
-        .main-content {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 40px 24px;
-            min-height: 60vh;
-        }
-
-        .footer {
-            background: #1a1a2e;
-            color: #adb5bd;
-            padding: 40px 24px 20px;
-            margin-top: 60px;
-        }
-
-        .footer-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 30px;
-        }
-
-        .footer-section h4 {
-            color: white;
-            margin-bottom: 12px;
-        }
-
-        .footer-section a {
-            color: #adb5bd;
-            text-decoration: none;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .footer-section a:hover {
-            color: white;
-        }
-
-        .footer-bottom {
-            text-align: center;
-            padding-top: 30px;
-            border-top: 1px solid #2c3e50;
-            margin-top: 30px;
-            font-size: 0.8rem;
-        }
-
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-                flex-direction: column;
-                position: absolute;
-                top: 70px;
-                left: 0;
-                right: 0;
-                background: white;
-                padding: 20px;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            }
-            .nav-links.show {
-                display: flex;
-            }
-            .mobile-menu-btn {
-                display: block;
-            }
-            .header-container {
-                padding: 0 16px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -163,9 +22,7 @@
             <a href="{% url 'contact' %}">تماس با ما</a>
             <a href="{% url 'about' %}">درباره ما</a>
             {% if user.is_authenticated %}
-                <a href="{% url 'logout' %}" style="color: #e74c3c; font-weight: bold; border-right: 2px solid #e74c3c; padding-right: 15px;">
-                    🚪 خروج
-                </a>
+                <a href="{% url 'logout' %}" class="logout-link">خروج</a>
             {% endif %}
         </nav>
         <button class="mobile-menu-btn" onclick="toggleMenu()">☰</button>
@@ -174,36 +31,12 @@
 
 <main class="main-content">
     {% if messages and request.resolver_match.url_name == 'home' %}
-        <div id="message-container" style="max-width: 1280px; margin: 0 auto 20px; padding: 0 24px;">
+        <div id="message-container">
             {% for message in messages %}
                 {% if message.tags == 'success' %}
-                    <div class="message-box message-success" 
-                         style="
-                            display: inline-block;
-                            padding: 8px 20px;
-                            border-radius: 16px;
-                            transition: opacity 0.5s ease;
-                            background: #e8f5e9;
-                            color: #2e7d32;
-                            border-right: 4px solid #2e7d32;
-                            font-size: 0.95rem;
-                         ">
-                        ✅ {{ message }}
-                    </div>
+                    <div class="message-box message-success">{{ message }}</div>
                 {% elif message.tags == 'error' %}
-                    <div class="message-box message-error" 
-                         style="
-                            display: inline-block;
-                            padding: 8px 20px;
-                            border-radius: 16px;
-                            transition: opacity 0.5s ease;
-                            background: #fde8e8;
-                            color: #c62828;
-                            border-right: 4px solid #c62828;
-                            font-size: 0.95rem;
-                         ">
-                        ❌ {{ message }}
-                    </div>
+                    <div class="message-box message-error">{{ message }}</div>
                 {% endif %}
             {% endfor %}
         </div>
