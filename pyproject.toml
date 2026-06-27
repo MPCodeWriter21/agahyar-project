@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "agahyar"
@@ -21,6 +21,9 @@ dev = [
     "pytest>=8.0.0",
     "pytest-django>=4.9.0",
 ]
+
+[tool.setuptools.packages.find]
+include = ["agahyar_project*", "services*"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "agahyar_project.settings"

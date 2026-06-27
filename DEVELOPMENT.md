@@ -28,6 +28,9 @@ uv venv
 
 # Install dependencies
 uv pip install -r requirements.txt
+
+# Install the project package in editable mode (with dev extras)
+uv pip install -e ".[dev]"
 ```
 
 Database
