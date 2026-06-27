@@ -71,29 +71,29 @@ agahyar-project/
 ---
 ## 🖼️ Project Preview
 
-### 🔐 | Login |
+### 🔐  Login 
 <img src="images/loginpage.png" width="500">
 
-### 🏠 | Home | 
+### 🏠  Home  
 <img src="images/homepage.png" width="500">
 
-### 📋 | Services |
+### 📋  Services 
 <img src="images/servicepage.png" width="500">
 
-### 📄 | Service Details |
+### 📄  Service Details 
 <img src="images/servicedetails_1.png" width="500">
 <img src="images/servicedetails_2.png" width="500">
 
-### ℹ️ | About |
+### ℹ️  About 
 <img src="images/about.png" width="500">
 
-### ❓ | FAQ |
+### ❓  FAQ 
 <img src="images/commonquestions.png" width="500">
 
-### 📞 | Contact |
+### 📞  Contact 
 <img src="images/contact.png" width="500">
 
-### 📍 | Nearest Centers |
+### 📍  Nearest Centers 
 <img src="images/nearestplace.png" width="500">
 ---
 
