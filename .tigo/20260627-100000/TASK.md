@@ -1,6 +1,6 @@
 # Move SECRET_KEY to environment variables
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 100
-- TAGS: security, critical
+- TAGS: security, env
 
-The Django SECRET_KEY is hardcoded in settings.py and exposed in the repository. Use python-decouple or django-environ to load it from a .env file.
+Moved SECRET_KEY to .env file using python-decouple. Added .env to .gitignore.

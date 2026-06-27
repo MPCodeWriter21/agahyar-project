@@ -1,6 +1,6 @@
 # Configure static and media files properly
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 65
-- TAGS: config, deployment
+- TAGS: static, media
 
-STATIC_ROOT, STATICFILES_DIRS, MEDIA_ROOT, and MEDIA_URL are not defined in settings.py. Configure them and collect static files into a proper static directory.
+Added STATICFILES_DIRS, STATIC_ROOT, MEDIA_URL, MEDIA_ROOT to settings.py.
