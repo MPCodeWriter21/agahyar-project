@@ -1,102 +1,102 @@
-# 🏛️ Aghahyar (آگاه‌یار)
+# ️ Aghahyar (آگاه‌یار)
 
 **Smart Citizen Information System for Government Services**
 
 ---
 
-## 📖 About the Project
+## About the Project
 
 **Aghahyar** is a web-based platform designed to help citizens easily access accurate information about government services before visiting offices in person.
 
 It provides clear details about **required documents**, **steps**, **costs**, **estimated time**, and the **nearest service centers** – all in one place.
 
-> **Problem:** Millions of unsuccessful office visits happen every year due to a lack of awareness.  
+> **Problem:** Millions of unsuccessful office visits happen every year due to a lack of awareness. 
 > **Solution:** Aghahyār empowers citizens with knowledge, saving time, money, and reducing frustration for both people and government employees.
 
 ---
 
-## 👁️ Vision
+## ️ Vision
 
 To become the **leading citizen‑friendly information hub** for all public services in Iran, bridging the gap between people and government with transparency, simplicity, and intelligence.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-- **🔍 Smart Search** – Find any government service by name or keyword  
-- **📋 Service Details** – View required documents, steps, cost, and duration  
-- **📍 Nearest Centers** – Automatically shows the closest service center based on the user’s city and neighborhood  
-- **🗺️ Google Maps Integration** – Direct link to the center’s location  
-- **👤 User Authentication** – Sign up / Login with city & neighborhood storage  
-- **🧠 AI‑Powered Suggestions** – Simulated intelligence for recommending nearby centers  
-- **📱 Fully Responsive** – Works perfectly on mobile, tablet, and desktop  
-- **🖥️ Admin Panel** – Manage services, FAQs, and centers easily via Django admin
+- ** Smart Search** – Find any government service by name or keyword 
+- ** Service Details** – View required documents, steps, cost, and duration 
+- ** Nearest Centers** – Automatically shows the closest service center based on the user’s city and neighborhood 
+- **️ Google Maps Integration** – Direct link to the center’s location 
+- ** User Authentication** – Sign up / Login with city & neighborhood storage 
+- **🧠 AI‑Powered Suggestions** – Simulated intelligence for recommending nearby centers 
+- ** Fully Responsive** – Works perfectly on mobile, tablet, and desktop 
+- **️ Admin Panel** – Manage services, FAQs, and centers easily via Django admin
 
 ---
 
 ## 🧱 Project Structure
 agahyar-project/
 
-├── agahyar_project/ # Django project settings   
-├── services/ # Main application  
-│ ├── models.py # Service, UserProfile, FAQ, ServiceCenter  
-│ ├── views.py # All logic (search, detail, nearby, auth)  
-│ ├── scraper.py # Nearest centers logic + AI simulation  
-│ ├── urls.py # App routes  
-│ └── admin.py # Admin panel registration  
-├── templates/services/ # All HTML templates  
-│ ├── base.html # Main layout  
-│ ├── home.html # Homepage with search & popular services  
-│ ├── search.html # Search results  
-│ ├── detail.html # Service details + nearest center  
-│ ├── nearby_centers.html # List of all centers with nearest label  
-│ └── ...  
-├── static/ # CSS, JS, images (if any)  
-├── db.sqlite3 # SQLite database  
-├── manage.py  
-└── README.md  
+├── agahyar_project/ # Django project settings 
+├── services/ # Main application 
+│ ├── models.py # Service, UserProfile, FAQ, ServiceCenter 
+│ ├── views.py # All logic (search, detail, nearby, auth) 
+│ ├── scraper.py # Nearest centers logic + AI simulation 
+│ ├── urls.py # App routes 
+│ └── admin.py # Admin panel registration 
+├── templates/services/ # All HTML templates 
+│ ├── base.html # Main layout 
+│ ├── home.html # Homepage with search & popular services 
+│ ├── search.html # Search results 
+│ ├── detail.html # Service details + nearest center 
+│ ├── nearby_centers.html # List of all centers with nearest label 
+│ └── ... 
+├── static/ # CSS, JS, images (if any) 
+├── db.sqlite3 # SQLite database 
+├── manage.py 
+└── README.md 
 
 ---
 
-## 🛠️ Technologies Used
+## ️ Technologies Used
 
-- **🐍 Python 3.12** – Core programming language  
-- **🧩 Django 6.0** – High‑level web framework  
-- **🗄️ SQLite** – Lightweight database (development)  
-- **🎨 HTML5 / CSS3 / JavaScript** – Frontend UI  
-- **📦 Git & GitHub** – Version control and collaboration  
-- **☁️ Render / PythonAnywhere** – Planned deployment platforms  
+- ** Python 3.12** – Core programming language 
+- **🧩 Django 6.0** – High‑level web framework 
+- **️ SQLite** – Lightweight database (development) 
+- ** HTML5 / CSS3 / JavaScript** – Frontend UI 
+- ** Git & GitHub** – Version control and collaboration 
+- **️ Render / PythonAnywhere** – Planned deployment platforms 
 
 ---
-## 🖼️ Project Preview
+## ️ Project Preview
 
-### 🔐  Login 
+### Login 
 <img src="images/loginpage.png" width="500">
 
-### 🏠  Home  
+### Home 
 <img src="images/homepage.png" width="500">
 
-### 📋  Services 
+### Services 
 <img src="images/servicepage.png" width="500">
 
-### 📄  Service Details 
+### Service Details 
 <img src="images/servicedetails_1.png" width="500">
 <img src="images/servicedetails_2.png" width="500">
 
-### ℹ️  About 
+### ℹ️ About 
 <img src="images/about.png" width="500">
 
-### ❓  FAQ 
+### FAQ 
 <img src="images/commonquestions.png" width="500">
 
-### 📞  Contact 
+### Contact 
 <img src="images/contact.png" width="500">
 
-### 📍  Nearest Centers 
+### Nearest Centers 
 <img src="images/nearestplace.png" width="500">
 ---
 
-## 🚀 How to Run the Project (Local Setup)
+## How to Run the Project (Local Setup)
 
 Follow these steps to run the project on your own machine:
 
@@ -111,8 +111,8 @@ cd agahyar-project
 python -m venv venv
 
 # 4. Activate the virtual environment
-venv\Scripts\activate        # On Windows
-# source venv/bin/activate   # On Mac / Linux
+venv\Scripts\activate # On Windows
+# source venv/bin/activate # On Mac / Linux
 
 # 5. Install dependencies (from pyproject.toml)
 pip install -e .
@@ -129,22 +129,22 @@ python manage.py runserver
 ---
 
 Then open your browser and visit:
-👉 http://127.0.0.1:8000
+ http://127.0.0.1:8000
 
-## 🗺️ Future Plans & Roadmap
-#### We are committed to continuously improving Aghahyar. Here are our goals for the coming months:  
-- Real AI Integration – Use OpenAI / Google Maps API for dynamic nearest-center detection  
-- Mobile App – Develop a native Android / iOS app for wider accessibility  
-- Multi-City Support – Add service centers for all major cities in Iran  
-- Admin Dashboard – Visual analytics for user activity and service popularity  
-- User Feedback System – Allow citizens to rate services and leave comments  
-- Advanced Security – OAuth2 login, password recovery, and two-factor authentication  
-- Multi-Language – Support English and other languages for international users  
+## ️ Future Plans & Roadmap
+- We are committed to continuously improving Aghahyār. Here are our goals for the coming months: 
+- Real AI Integration – Use OpenAI / Google Maps API for dynamic nearest-center detection 
+- Mobile App – Develop a native Android / iOS app for wider accessibility 
+- Multi-City Support – Add service centers for all major cities in Iran 
+- Admin Dashboard – Visual analytics for user activity and service popularity 
+- User Feedback System – Allow citizens to rate services and leave comments 
+- Advanced Security – OAuth2 login, password recovery, and two-factor authentication 
+- Multi-Language – Support English and other languages for international users 
 
 ---
 
 ## 🤝 Team Members
-- Fatemeh Mohammadganji – Project Manager & Frontend Developer  
-- Zahra Kamalian – Backend Developer  
-- Mohsen Ali Ahmadi – Database Developer & Organization Liaison  
+- Fatemeh Mohammadganji – Project Manager & Frontend Developer 
+- Zahra Kamalian – Backend Developer 
+- Mohsen Ali Ahmadi – Database Developer & Organization Liaison 
 
