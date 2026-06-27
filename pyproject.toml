@@ -1,26 +1,32 @@
 [build-system]
-requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools",
+]
 
 [project]
 name = "agahyar"
 version = "0.1.0"
 description = "Smart Citizen Information System for Government Services"
 requires-python = ">=3.12"
-dependencies = [
-    "Django>=6.0.6",
-    "python-decouple>=3.8",
-    "requests>=2.34.2",
-    "beautifulsoup4>=4.15.0",
-    "lxml>=6.1.1",
-    "sqlparse>=0.5.5",
-    "tzdata>=2026.2",
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
 ]
-
+dependencies = [
+  "beautifulsoup4>=4.15",
+  "Django>=6.0.6",
+  "lxml>=6.1.1",
+  "python-decouple>=3.8",
+  "requests>=2.34.2",
+  "sqlparse>=0.5.5",
+  "tzdata>=2026.2",
+]
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
-    "pytest-django>=4.9.0",
+  "pre-commit>=4.2",
+  "pytest>=8",
+  "pytest-django>=4.9",
 ]
 
 [tool.setuptools.packages.find]

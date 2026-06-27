@@ -1,12 +1,7 @@
 # Add pre-commit
-
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 60
 - TAGS: pre-commit
 
-ruff
-ruff-format
-isort
-docformatter
-
-Also run tests
+Added .pre-commit-config.yaml with ruff, ruff-format, isort, pyproject-fmt, and local pytest hook.
+pre-commit installed in git hooks.
