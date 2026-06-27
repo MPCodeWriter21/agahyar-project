@@ -1,5 +1,5 @@
 # Remove bare except:pass in scraper.py
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 85
 - TAGS: quality, bug
 

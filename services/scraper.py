@@ -128,8 +128,8 @@ def get_ai_suggestion(service_name, user_city):
                 'phone': c.phone,
                 'distance': 'نزدیک'
             } for c in centers]
-    except:
-        pass
+    except Exception as e:
+        logger.error(f"Error getting AI suggestion for '{service_name}' in '{user_city}': {e}")
     
     return [
         {'name': f'دفتر پیشخوان {user_city}', 'address': f'خیابان اصلی - {user_city}', 'phone': '---', 'distance': 'نزدیک'},
