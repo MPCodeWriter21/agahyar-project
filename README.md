@@ -69,27 +69,18 @@ agahyar-project/
 - **☁️ Render / PythonAnywhere** – Planned deployment platforms  
 
 ---
-
 ## 🖼️ Project Preview
-### 🔐 Login
-![Login Page](images/loginpage.png) 
-### 🏠 Home
-![Homepage](images/homepage.png)
-### 📋 Services
-![Services Page](images/servicepage.png)
-### 📄 Service Details
-![Service Details 1](images/servicedetails_1.png)
-![Service Details 2](images/servicedetails_2.png)
-### ℹ️ About 
-![About Page](images/about.png)
-### ❓ FAQ 
-![FAQ Page](images/commonquestions.png)
-### 📞  Contact
-![Contact Page](images/contact.png)
-### 📍 Nearest Centers
-![Nearest Centers](images/nearestplace.png)
 
-
+| Page | Screenshot |
+|------|------------|
+| **🔐 Login** | <img src="images/loginpage.png" width="400"> |
+| **🏠 Home** | <img src="images/homepage.png" width="400"> |
+| **📋 Services** | <img src="images/servicepage.png" width="400"> |
+| **📄 Service Details** | <img src="images/servicedetails_1.png" width="400"><br><img src="images/servicedetails_2.png" width="400"> |
+| **ℹ️ About** | <img src="images/about.png" width="400"> |
+| **❓ FAQ** | <img src="images/commonquestions.png" width="400"> |
+| **📞 Contact** | <img src="images/contact.png" width="400"> |
+| **📍 Nearest Centers** | <img src="images/nearestplace.png" width="400"> |
 ---
 
 ## 🚀 How to Run the Project (Local Setup)
