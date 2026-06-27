@@ -1,6 +1,6 @@
 # Somethings must be English only
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 80
 - TAGS: CLI, bug, enhancement
 
