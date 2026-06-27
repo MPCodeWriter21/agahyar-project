@@ -1,5 +1,5 @@
 # Implement contact form POST handler
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 85
 - TAGS: feature, bug
 

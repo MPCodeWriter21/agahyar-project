@@ -72,3 +72,17 @@ class ServiceCenter(models.Model):
     class Meta:
         verbose_name = 'مرکز ارائه خدمت'
         verbose_name_plural = 'مراکز ارائه خدمت'
+
+
+class ContactMessage(models.Model):
+    name = models.CharField('نام', max_length=200)
+    email = models.EmailField('ایمیل')
+    message = models.TextField('پیام')
+    created_at = models.DateTimeField('تاریخ', auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.email}"
+
+    class Meta:
+        verbose_name = 'پیام تماس'
+        verbose_name_plural = 'پیام‌های تماس'

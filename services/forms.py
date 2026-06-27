@@ -56,3 +56,19 @@ class RegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'email', 'password1', 'password2', 'city', 'neighborhood', 'phone']
+
+
+class ContactForm(forms.Form):
+    name = forms.CharField(
+        label='نام و نام خانوادگی',
+        max_length=200,
+        widget=forms.TextInput(attrs={'placeholder': 'نام خود را وارد کنید'})
+    )
+    email = forms.EmailField(
+        label='ایمیل',
+        widget=forms.EmailInput(attrs={'placeholder': 'example@email.com'})
+    )
+    message = forms.CharField(
+        label='پیام شما',
+        widget=forms.Textarea(attrs={'rows': 5, 'placeholder': 'پیام خود را بنویسید...'})
+    )

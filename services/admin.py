@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Service, UserProfile, FAQ, ServiceCenter
+from .models import Service, UserProfile, FAQ, ServiceCenter, ContactMessage
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
@@ -27,3 +27,9 @@ class ServiceCenterAdmin(admin.ModelAdmin):
     list_display = ('name', 'service', 'city', 'phone')
     search_fields = ('name', 'address', 'city')
     list_filter = ('service', 'city')
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'created_at')
+    search_fields = ('name', 'email', 'message')
+    readonly_fields = ('name', 'email', 'message', 'created_at')

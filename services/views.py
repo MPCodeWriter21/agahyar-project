@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Service, UserProfile, FAQ, ServiceCenter
-from .forms import LoginForm, RegisterForm, CITY_CHOICES
+from .models import Service, UserProfile, FAQ, ServiceCenter, ContactMessage
+from .forms import LoginForm, RegisterForm, ContactForm, CITY_CHOICES
 from .scraper import scrape_passport_info, get_ai_suggestion, get_nearest_center
 
 
@@ -192,4 +192,18 @@ def about(request):
 def contact(request):
     if not request.user.is_authenticated:
         return redirect('login')
-    return render(request, 'services/contact.html')
+
+    if request.method == 'POST':
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            ContactMessage.objects.create(
+                name=form.cleaned_data['name'],
+                email=form.cleaned_data['email'],
+                message=form.cleaned_data['message'],
+            )
+            messages.success(request, 'پیام شما با موفقیت ارسال شد.')
+            return redirect('contact')
+    else:
+        form = ContactForm()
+
+    return render(request, 'services/contact.html', {'form': form})

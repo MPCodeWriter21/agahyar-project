@@ -3,6 +3,7 @@ from django.test import Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from services.models import Service, UserProfile, FAQ, ServiceCenter
+from services.models import ContactMessage
 from services.views import save_user_profile
 
 
@@ -216,12 +217,44 @@ class TestAboutAndContactViews:
         response = client.get("/contact/")
         assert response.status_code == 302
 
-    def test_contact_renders_when_logged_in(self):
-        user = User.objects.create_user("contactuser", password="pass12345")
+
+@pytest.mark.django_db
+class TestContactView:
+
+    def test_contact_renders_form_when_logged_in(self):
+        user = User.objects.create_user("contactuser2", password="pass12345")
         client = Client()
-        client.login(username="contactuser", password="pass12345")
+        client.login(username="contactuser2", password="pass12345")
         response = client.get("/contact/")
         assert response.status_code == 200
+        assert "form" in response.context
+
+    def test_contact_post_saves_message(self):
+        user = User.objects.create_user("contactuser3", password="pass12345")
+        client = Client()
+        client.login(username="contactuser3", password="pass12345")
+        response = client.post("/contact/", {
+            "name": "Test User",
+            "email": "test@example.com",
+            "message": "Hello, this is a test message.",
+        })
+        assert response.status_code == 302
+        assert ContactMessage.objects.count() == 1
+        msg = ContactMessage.objects.first()
+        assert msg.name == "Test User"
+        assert msg.email == "test@example.com"
+
+    def test_contact_post_invalid_form(self):
+        user = User.objects.create_user("contactuser4", password="pass12345")
+        client = Client()
+        client.login(username="contactuser4", password="pass12345")
+        response = client.post("/contact/", {
+            "name": "",
+            "email": "not-an-email",
+            "message": "",
+        })
+        assert response.status_code == 200
+        assert ContactMessage.objects.count() == 0
 
 
 @pytest.mark.django_db
