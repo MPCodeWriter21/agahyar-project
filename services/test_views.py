@@ -67,6 +67,22 @@ class TestRegisterView:
         assert response.status_code == 302
         assert User.objects.filter(username="newuser").exists()
 
+    def test_register_with_phone(self):
+        client = Client()
+        data = {
+            "username": "phonetest",
+            "email": "phone@example.com",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": "09121234567",
+        }
+        response = client.post("/register/", data)
+        assert response.status_code == 302
+        user = User.objects.get(username="phonetest")
+        assert user.profile.phone == "09121234567"
+
     def test_register_requires_login_redirect_when_authenticated(self):
         User.objects.create_user("loggedin", password="pass12345")
         client = Client()

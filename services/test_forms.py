@@ -31,6 +31,11 @@ class TestRegisterForm:
         assert 'تهران' in html
         assert 'مشهد' in html
 
+    def test_form_has_phone_field(self):
+        form = RegisterForm()
+        assert 'phone' in form.fields
+        assert not form.fields['phone'].required
+
 
 class TestLoginForm:
 

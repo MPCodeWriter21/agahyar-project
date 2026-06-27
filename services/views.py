@@ -26,7 +26,8 @@ def register_view(request):
             user = form.save()
             city = form.cleaned_data['city']
             neighborhood = form.cleaned_data['neighborhood']
-            save_user_profile(user.id, city, neighborhood)
+            phone = form.cleaned_data.get('phone', '')
+            save_user_profile(user.id, city, neighborhood, phone)
             login(request, user)
             messages.success(request, f'خوش آمدید {user.username}!')
             return redirect('home')

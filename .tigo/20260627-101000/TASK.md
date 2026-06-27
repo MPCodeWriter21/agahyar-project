@@ -1,5 +1,5 @@
 # Add phone number field to registration form
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: feature, auth
 
