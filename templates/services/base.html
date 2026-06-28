@@ -5,8 +5,10 @@
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
- <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
- {% block extra_css %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
+  <script defer src="{% static 'services/js/alpine.min.js' %}"></script>
+  <script defer src="{% static 'services/js/main.js' %}"></script>
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
 
@@ -69,26 +71,7 @@
  </div>
 </footer>
 
-<script>
- function toggleMenu() {
- const nav = document.getElementById('navLinks');
- nav.classList.toggle('show');
- }
-
- document.addEventListener('DOMContentLoaded', function() {
- const messageContainer = document.getElementById('message-container');
- if (messageContainer) {
- setTimeout(function() {
- const messages = messageContainer.querySelectorAll('.message-box');
- messages.forEach(function(msg) {
- msg.style.opacity = '0';
- });
- setTimeout(function() {
- messageContainer.style.display = 'none';
- }, 500);
- }, 2000);
- }
- });
-</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script defer src="{% static 'services/js/main.js' %}"></script>
 </body>
 </html>

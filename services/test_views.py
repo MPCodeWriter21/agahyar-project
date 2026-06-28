@@ -330,6 +330,26 @@ class TestLogoutView:
         assert response.status_code == 302
 
 
+def test_static_js_files_exist():
+    import os
+
+    base = os.path.join(os.path.dirname(__file__), "..", "static", "services", "js")
+    assert os.path.isfile(os.path.join(base, "alpine.min.js"))
+    assert os.path.isfile(os.path.join(base, "main.js"))
+
+
+@pytest.mark.django_db
+def test_base_template_loads_js_files():
+    User.objects.create_user("jstestuser", password="pass12345")
+    client = Client()
+    client.login(username="jstestuser", password="pass12345")
+    response = client.get("/")
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "static/services/js/alpine.min.js" in content
+    assert "static/services/js/main.js" in content
+
+
 @pytest.mark.django_db
 class TestNearbyCentersView:
     def test_requires_login(self):

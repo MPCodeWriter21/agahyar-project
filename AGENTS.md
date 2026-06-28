@@ -89,3 +89,9 @@ One general rule to keep in mind is to avoid directly using `python` and
 instead running everything python related via uv or docker.
 
 We want a great UX and efficient backend.
+
+Dependencies and assets
+-----------------------
+
+- No CDN usage. All JS libraries must be vendor-downloaded into
+  `static/services/js/` and loaded locally.
