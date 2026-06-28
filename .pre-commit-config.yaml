@@ -17,11 +17,4 @@ repos:
     hooks:
       - id: pyproject-fmt
 
-  - repo: local
-    hooks:
-      - id: pytest
-        name: pytest
-        entry: uv run pytest
-        language: system
-        types: [python]
-        pass_filenames: false
+

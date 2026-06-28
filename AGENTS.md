@@ -34,6 +34,8 @@ Documentation
 - Never revert/override changes made by the user without asking for confirmation.
 - Always ask for clarification if the user request is ambiguous.
 - Do not commit anything without running the tests first.
+- Pre-commit hooks: ruff, ruff-format, isort, pyproject-fmt. Pytest is NOT in
+  pre-commit (too slow); run pytest manually before committing.
 - Do not commit empty files or files that do not provide any value to the project.
 - Every new thing needs new tests to be added and run. If you add a new feature,
   add a test for it. If you fix a bug, add a test that reproduces the bug and
