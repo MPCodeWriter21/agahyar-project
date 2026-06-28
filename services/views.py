@@ -43,10 +43,14 @@ def register_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.first_name = form.cleaned_data["first_name"]
+            user.last_name = form.cleaned_data["last_name"]
+            user.save()
+            form.save_m2m()
             city = form.cleaned_data["city"]
             neighborhood = form.cleaned_data["neighborhood"]
-            phone = form.cleaned_data.get("phone", "")
+            phone = form.cleaned_data["phone"]
             save_user_profile(user.id, city, neighborhood, phone)
             login(request, user)
             messages.success(

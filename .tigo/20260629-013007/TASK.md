@@ -1,6 +1,6 @@
 # Registration: first/last name, phone required, email optional
 
-- STATUS: OPEN
+- STATUS: DONE
 - PRIORITY: 80
 - TAGS: feature, auth
 

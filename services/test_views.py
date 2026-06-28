@@ -66,20 +66,28 @@ class TestRegisterView:
         client = Client()
         data = {
             "username": "newuser",
+            "first_name": "علی",
+            "last_name": "محمدی",
             "email": "new@example.com",
             "password1": "ComplexPass1!",
             "password2": "ComplexPass1!",
             "city": "تهران",
             "neighborhood": "ونک",
+            "phone": "09121234567",
         }
         response = client.post("/register/", data)
         assert response.status_code == 302
-        assert User.objects.filter(username="newuser").exists()
+        user = User.objects.get(username="newuser")
+        assert user.first_name == "علی"
+        assert user.last_name == "محمدی"
+        assert user.profile.phone == "09121234567"
 
     def test_register_with_phone(self):
         client = Client()
         data = {
             "username": "phonetest",
+            "first_name": "مریم",
+            "last_name": "احمدی",
             "email": "phone@example.com",
             "password1": "ComplexPass1!",
             "password2": "ComplexPass1!",
@@ -90,6 +98,8 @@ class TestRegisterView:
         response = client.post("/register/", data)
         assert response.status_code == 302
         user = User.objects.get(username="phonetest")
+        assert user.first_name == "مریم"
+        assert user.last_name == "احمدی"
         assert user.profile.phone == "09121234567"
 
     def test_register_requires_login_redirect_when_authenticated(self):
@@ -113,16 +123,21 @@ class TestRegisterView:
             "/register/",
             {
                 "username": "testuser",
+                "first_name": "علی",
+                "last_name": "محمدی",
                 "email": "bad-email",
                 "password1": "short",
                 "password2": "mismatch",
                 "city": "تهران",
                 "neighborhood": "",
+                "phone": "",
             },
         )
         assert response.status_code == 200
         content = response.content.decode()
         assert 'value="testuser"' in content
+        assert 'value="علی"' in content
+        assert 'value="محمدی"' in content
         assert 'value="bad-email"' in content
 
     def test_register_shows_field_errors(self):
@@ -131,11 +146,14 @@ class TestRegisterView:
             "/register/",
             {
                 "username": "",
+                "first_name": "",
+                "last_name": "",
                 "email": "",
                 "password1": "short",
                 "password2": "mismatch",
                 "city": "",
                 "neighborhood": "",
+                "phone": "",
             },
         )
         content = response.content.decode()
@@ -152,11 +170,14 @@ class TestRegisterView:
             "/register/",
             {
                 "username": "partial",
+                "first_name": "رضا",
+                "last_name": "کریمی",
                 "email": "",
                 "password1": "short",
                 "password2": "short",
                 "city": "تهران",
                 "neighborhood": "ونک",
+                "phone": "",
             },
         )
         assert isinstance(response.context["form"], RegisterForm)

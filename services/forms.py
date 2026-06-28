@@ -51,15 +51,28 @@ class LoginForm(forms.Form):
 
 
 class RegisterForm(UserCreationForm):
-    """Extended registration form with city, neighborhood and phone fields."""
+    """Extended registration form with name, city, neighborhood and phone fields."""
 
     error_messages = {
         "password_mismatch": get_error_message("password/mismatch"),
     }
 
+    first_name = forms.CharField(
+        label="نام",
+        max_length=30,
+        error_messages={"required": REQUIRED_MSG},
+        widget=forms.TextInput(attrs={"placeholder": "نام خود را وارد کنید"}),
+    )
+    last_name = forms.CharField(
+        label="نام خانوادگی",
+        max_length=30,
+        error_messages={"required": REQUIRED_MSG},
+        widget=forms.TextInput(attrs={"placeholder": "نام خانوادگی خود را وارد کنید"}),
+    )
     email = forms.EmailField(
         label="ایمیل",
-        error_messages={"required": REQUIRED_MSG, "invalid": INVALID_EMAIL_MSG},
+        required=False,
+        error_messages={"invalid": INVALID_EMAIL_MSG},
     )
     city = forms.CharField(
         label="شهر محل سکونت",
@@ -76,9 +89,8 @@ class RegisterForm(UserCreationForm):
     phone = forms.CharField(
         label="شماره تماس",
         max_length=11,
-        required=False,
         validators=[iranian_phone_number_validator],
-        error_messages={"invalid": INVALID_PHONE_MSG},
+        error_messages={"required": REQUIRED_MSG, "invalid": INVALID_PHONE_MSG},
         widget=forms.TextInput(attrs={"placeholder": "مثال: 09121234567"}),
     )
 
@@ -86,6 +98,8 @@ class RegisterForm(UserCreationForm):
         model = User
         fields = [
             "username",
+            "first_name",
+            "last_name",
             "email",
             "password1",
             "password2",

@@ -33,7 +33,22 @@ class TestRegisterForm:
     def test_form_has_phone_field(self):
         form = RegisterForm()
         assert "phone" in form.fields
-        assert not form.fields["phone"].required
+        assert form.fields["phone"].required
+
+    def test_form_has_first_name_field(self):
+        form = RegisterForm()
+        assert "first_name" in form.fields
+        assert form.fields["first_name"].required
+
+    def test_form_has_last_name_field(self):
+        form = RegisterForm()
+        assert "last_name" in form.fields
+        assert form.fields["last_name"].required
+
+    def test_form_email_optional(self):
+        form = RegisterForm()
+        assert "email" in form.fields
+        assert not form.fields["email"].required
 
 
 class TestLoginForm:
