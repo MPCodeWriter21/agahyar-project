@@ -144,7 +144,7 @@ class TestRegisterView:
         # Check that error CSS classes appear in the HTML
         assert 'class="field-error"' in content or "has-error" in content
         # Check error messages are displayed
-        assert "This field is required" in content or "ضروری" in content
+        assert "ضروری" in content or "الزامی" in content
 
     def test_register_returns_bound_form_in_context(self):
         client = Client()
@@ -520,6 +520,30 @@ def test_static_js_files_exist():
     base = os.path.join(os.path.dirname(__file__), "..", "static", "services", "js")
     assert os.path.isfile(os.path.join(base, "alpine.min.js"))
     assert os.path.isfile(os.path.join(base, "main.js"))
+    assert os.path.isfile(os.path.join(base, "error-translate.js"))
+
+
+def test_error_code_catalog():
+    from services.error_codes import ERROR_CODES
+
+    assert "auth/invalid-credentials" in ERROR_CODES
+    assert (
+        ERROR_CODES["auth/invalid-credentials"] == "نام کاربری یا رمز عبور اشتباه است."
+    )
+
+
+def test_get_error_message_with_kwargs():
+    from services.error_codes import get_error_message
+
+    msg = get_error_message("register/welcome", username="Ali")
+    assert "Ali" in msg
+
+
+def test_get_error_message_fallback():
+    from services.error_codes import get_error_message
+
+    msg = get_error_message("unknown/code")
+    assert msg == "unknown/code"
 
 
 @pytest.mark.django_db
@@ -529,6 +553,7 @@ def test_base_template_loads_js_files():
     assert response.status_code == 200
     content = response.content.decode()
     assert "static/services/js/alpine.min.js" in content
+    assert "static/services/js/error-translate.js" in content
     assert "static/services/js/main.js" in content
 
 

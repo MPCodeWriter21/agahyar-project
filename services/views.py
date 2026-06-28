@@ -8,6 +8,7 @@ from django.db.models import Q, QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from .error_codes import get_error_message
 from .forms import CITY_CHOICES, ContactForm, LoginForm, ProfileForm, RegisterForm
 from .models import FAQ, ContactMessage, Service, ServiceCenter, UserProfile
 from .scraper import get_nearest_center
@@ -48,7 +49,9 @@ def register_view(request: HttpRequest) -> HttpResponse:
             phone = form.cleaned_data.get("phone", "")
             save_user_profile(user.id, city, neighborhood, phone)
             login(request, user)
-            messages.success(request, f"خوش آمدید {user.username}!")
+            messages.success(
+                request, get_error_message("register/welcome", username=user.username)
+            )
             return redirect("home")
     else:
         form = RegisterForm()
@@ -74,9 +77,12 @@ def login_view(request: HttpRequest) -> HttpResponse:
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                messages.success(request, f"خوش آمدید {user.username}!")
+                messages.success(
+                    request,
+                    get_error_message("register/welcome", username=user.username),
+                )
                 return redirect("home")
-            messages.error(request, "نام کاربری یا رمز عبور اشتباه است.")
+            messages.error(request, get_error_message("auth/invalid-credentials"))
     else:
         form = LoginForm()
 
@@ -279,14 +285,14 @@ def profile_view(request: HttpRequest) -> HttpResponse:
                     form.cleaned_data["neighborhood"],
                     form.cleaned_data.get("phone", ""),
                 )
-                messages.success(request, "پروفایل شما با موفقیت به‌روزرسانی شد.")
+                messages.success(request, get_error_message("profile/updated"))
                 return redirect("profile")
         elif "change_password" in request.POST:
             form = ProfileForm()
             password_form = PasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
                 password_form.save()
-                messages.success(request, "رمز عبور شما با موفقیت تغییر یافت.")
+                messages.success(request, get_error_message("password/changed"))
                 return redirect("profile")
     else:
         initial = {}
@@ -329,7 +335,7 @@ def contact(request: HttpRequest) -> HttpResponse:
                 email=form.cleaned_data["email"],
                 message=form.cleaned_data["message"],
             )
-            messages.success(request, "پیام شما با موفقیت ارسال شد.")
+            messages.success(request, get_error_message("contact/sent"))
             return redirect("contact")
     else:
         form = ContactForm()
