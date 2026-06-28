@@ -299,20 +299,15 @@ def profile_view(request: HttpRequest) -> HttpResponse:
 
 
 def about(request: HttpRequest) -> HttpResponse:
-    """Render the about page."""
-    if not request.user.is_authenticated:
-        return redirect("login")
+    """Render the about page (public)."""
     return render(request, "services/about.html")
 
 
 def contact(request: HttpRequest) -> HttpResponse:
-    """Handle the contact form.
+    """Handle the contact form (public).
 
     On POST, validates :class:`ContactForm` and saves a :class:`ContactMessage`.
     """
-    if not request.user.is_authenticated:
-        return redirect("login")
-
     if request.method == "POST":
         form = ContactForm(request.POST)
         if form.is_valid():

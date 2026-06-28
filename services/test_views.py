@@ -231,10 +231,10 @@ class TestFAQView:
 
 @pytest.mark.django_db
 class TestAboutAndContactViews:
-    def test_about_requires_login(self):
+    def test_about_accessible_anonymously(self):
         client = Client()
         response = client.get("/about/")
-        assert response.status_code == 302
+        assert response.status_code == 200
 
     def test_about_renders_when_logged_in(self):
         User.objects.create_user("aboutuser", password="pass12345")
@@ -243,26 +243,23 @@ class TestAboutAndContactViews:
         response = client.get("/about/")
         assert response.status_code == 200
 
-    def test_contact_requires_login(self):
+    def test_contact_accessible_anonymously(self):
         client = Client()
-        response = client.get("/contact/")
-        assert response.status_code == 302
-
-
-@pytest.mark.django_db
-class TestContactView:
-    def test_contact_renders_form_when_logged_in(self):
-        User.objects.create_user("contactuser2", password="pass12345")
-        client = Client()
-        client.login(username="contactuser2", password="pass12345")
         response = client.get("/contact/")
         assert response.status_code == 200
         assert "form" in response.context
 
-    def test_contact_post_saves_message(self):
-        User.objects.create_user("contactuser3", password="pass12345")
+
+@pytest.mark.django_db
+class TestContactView:
+    def test_contact_renders_form_anonymously(self):
         client = Client()
-        client.login(username="contactuser3", password="pass12345")
+        response = client.get("/contact/")
+        assert response.status_code == 200
+        assert "form" in response.context
+
+    def test_contact_post_saves_message_anonymously(self):
+        client = Client()
         response = client.post(
             "/contact/",
             {
@@ -278,9 +275,7 @@ class TestContactView:
         assert msg.email == "test@example.com"
 
     def test_contact_post_invalid_form(self):
-        User.objects.create_user("contactuser4", password="pass12345")
         client = Client()
-        client.login(username="contactuser4", password="pass12345")
         response = client.post(
             "/contact/",
             {
