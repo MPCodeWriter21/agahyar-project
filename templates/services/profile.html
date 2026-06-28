@@ -1,0 +1,103 @@
+{% extends 'services/base.html' %}
+
+{% block title %}پروفایل | آگاه‌یار{% endblock %}
+
+{% block content %}
+
+<div class="profile-container">
+  <h2>پروفایل کاربری</h2>
+
+  {% if messages %}
+  {% for message in messages %}
+  <div class="message-box {% if message.tags == 'success' %}message-success{% elif message.tags == 'error' %}message-error{% endif %}">
+    {{ message }}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="profile-section">
+    <div class="profile-info">
+      <p><strong>نام کاربری:</strong> {{ user.username }}</p>
+      <p><strong>ایمیل:</strong> {{ user.email|default:"-" }}</p>
+      <p><strong>تاریخ عضویت:</strong> {{ user.date_joined|date:"Y/m/d" }}</p>
+      {% if profile %}
+      <p><strong>شهر:</strong> {{ profile.city }}</p>
+      <p><strong>محله:</strong> {{ profile.neighborhood|default:"-" }}</p>
+      <p><strong>تلفن:</strong> {{ profile.phone|default:"-" }}</p>
+      {% else %}
+      <p class="text-muted">شما هنوز پروفایل خود را تکمیل نکرده‌اید.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="profile-section">
+    <h3>ویرایش اطلاعات</h3>
+
+    {% if form.errors %}
+    <div class="form-group">
+      {% for field, errors in form.errors.items %}
+      {% for error in errors %}
+      <div class="error-message">{{ error }}</div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>شهر محل سکونت</label>
+        <select name="city" required>
+          {% for value, label in city_choices %}
+          <option value="{{ value }}"{% if form.city.value == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>محله</label>
+        <input type="text" name="neighborhood" value="{{ form.neighborhood.value|default:'' }}" placeholder="مثال: سعادت‌آباد، ونک، ...">
+      </div>
+      <div class="form-group">
+        <label>شماره تماس (اختیاری)</label>
+        <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="مثال: 09121234567">
+      </div>
+      <button type="submit" name="update_profile" class="btn-register">ذخیره تغییرات</button>
+    </form>
+  </div>
+
+  <div class="profile-section">
+    <h3>تغییر رمز عبور</h3>
+
+    {% if password_form.errors %}
+    <div class="form-group">
+      {% for field, errors in password_form.errors.items %}
+      {% for error in errors %}
+      <div class="error-message">{{ error }}</div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>رمز عبور فعلی</label>
+        <input type="password" name="old_password" placeholder="رمز عبور فعلی" required>
+      </div>
+      <div class="form-group">
+        <label>رمز عبور جدید</label>
+        <input type="password" name="new_password1" placeholder="حداقل ۸ کاراکتر" required>
+      </div>
+      <div class="form-group">
+        <label>تکرار رمز عبور جدید</label>
+        <input type="password" name="new_password2" placeholder="تکرار رمز جدید" required>
+      </div>
+      <button type="submit" name="change_password" class="btn-register">تغییر رمز عبور</button>
+    </form>
+  </div>
+
+  <div class="profile-links">
+    <a href="{% url 'home' %}" class="btn-detail">بازگشت به خانه</a>
+  </div>
+</div>
+{% endblock %}

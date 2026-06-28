@@ -11,6 +11,7 @@ urlpatterns: List[URLPattern] = [
     path("service/<int:service_id>/", views.service_detail, name="service_detail"),
     path("services/", views.services_list, name="services_list"),
     # ===== Supplementary pages =====
+    path("profile/", views.profile_view, name="profile"),
     path("faq/", views.faq_view, name="faq"),
     path("nearby-centers/", views.nearby_centers_view, name="nearby_centers"),
     path("users/", views.show_users, name="show_users"),
@@ -21,6 +22,7 @@ urlpatterns: List[URLPattern] = [
     path("login/", views.login_view, name="login"),
     path("register/", views.register_view, name="register"),
     path("logout/", views.logout_view, name="logout"),
+    # django.contrib.auth.urls provides password-reset/* URLs
     # ===== Password reset =====
     path("password-reset/", include("django.contrib.auth.urls")),
 ]

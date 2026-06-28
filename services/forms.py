@@ -75,6 +75,27 @@ class RegisterForm(UserCreationForm):
         ]
 
 
+class ProfileForm(forms.Form):
+    """Form for editing user profile (city, neighborhood, phone)."""
+
+    city = forms.CharField(
+        label="شهر محل سکونت", max_length=100, widget=forms.Select(choices=CITY_CHOICES)
+    )
+    neighborhood = forms.CharField(
+        label="محله",
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "مثال: سعادت‌آباد، ونک، ..."}),
+    )
+    phone = forms.CharField(
+        label="شماره تماس",
+        max_length=11,
+        required=False,
+        validators=[iranian_phone_number_validator],
+        widget=forms.TextInput(attrs={"placeholder": "مثال: 09121234567"}),
+    )
+
+
 class ContactForm(forms.Form):
     """Form for the contact-us page."""
 

@@ -171,7 +171,8 @@ body {
     text-align: center;
 }
 
-.btn-back {
+.btn-back,
+.btn-detail {
     background: #1a5f7a;
     color: white;
     padding: 12px 28px;
@@ -185,7 +186,8 @@ body {
     transition: 0.2s;
 }
 
-.btn-back:hover {
+.btn-back:hover,
+.btn-detail:hover {
     background: #0e4a60;
     transform: translateY(-2px);
 }
@@ -929,6 +931,60 @@ body {
     line-height: 1.8;
     font-size: 1rem;
     margin: 0;
+}
+
+/* --- Profile Page --- */
+.profile-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.profile-container h2 {
+    text-align: center;
+    color: #1a5f7a;
+    margin-bottom: 30px;
+    font-size: 2rem;
+}
+
+.profile-section {
+    background: white;
+    border-radius: 24px;
+    padding: 30px 32px;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.profile-section h3 {
+    color: #1a5f7a;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
+    border-right: 4px solid #1a5f7a;
+    padding-right: 16px;
+}
+
+.profile-info p {
+    margin-bottom: 10px;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+.profile-info .text-muted {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.profile-links {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.error-message {
+    background: #fde8e8;
+    color: #c62828;
+    padding: 10px 16px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
 }
 
 /* --- Show Users Table --- */

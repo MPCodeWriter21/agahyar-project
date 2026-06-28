@@ -1,13 +1,14 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import CITY_CHOICES, ContactForm, LoginForm, RegisterForm
+from .forms import CITY_CHOICES, ContactForm, LoginForm, ProfileForm, RegisterForm
 from .models import FAQ, ContactMessage, Service, ServiceCenter, UserProfile
 from .scraper import get_nearest_center
 
@@ -241,6 +242,60 @@ def show_users(request: HttpRequest) -> HttpResponse:
         return redirect("login")
     users: QuerySet = User.objects.select_related("profile").all().order_by("id")
     return render(request, "services/show_users.html", {"users": users})
+
+
+@login_required
+def profile_view(request: HttpRequest) -> HttpResponse:
+    """Show and edit the current user's profile.
+
+    GET: displays the profile data and an edit form.
+    POST: saves profile changes (city, neighborhood, phone) or password.
+    """
+    profile: UserProfile | None = None
+    try:
+        profile = request.user.profile
+    except UserProfile.DoesNotExist:
+        pass
+
+    if request.method == "POST":
+        if "update_profile" in request.POST:
+            form = ProfileForm(request.POST)
+            if form.is_valid():
+                save_user_profile(
+                    request.user.id,
+                    form.cleaned_data["city"],
+                    form.cleaned_data["neighborhood"],
+                    form.cleaned_data.get("phone", ""),
+                )
+                messages.success(request, "پروفایل شما با موفقیت به‌روزرسانی شد.")
+                return redirect("profile")
+        elif "change_password" in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                password_form.save()
+                messages.success(request, "رمز عبور شما با موفقیت تغییر یافت.")
+                return redirect("profile")
+    else:
+        initial = {}
+        if profile:
+            initial = {
+                "city": profile.city,
+                "neighborhood": profile.neighborhood,
+                "phone": profile.phone,
+            }
+        form = ProfileForm(initial=initial)
+        password_form = PasswordChangeForm(request.user)
+
+    return render(
+        request,
+        "services/profile.html",
+        {
+            "form": form,
+            "password_form": password_form,
+            "profile": profile,
+            "city_choices": CITY_CHOICES,
+        },
+    )
 
 
 def about(request: HttpRequest) -> HttpResponse:
