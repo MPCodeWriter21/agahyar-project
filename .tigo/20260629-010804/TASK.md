@@ -1,6 +1,6 @@
 # Fix and complete user panel functionality
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 80
 - TAGS: bug, ux, auth
 
