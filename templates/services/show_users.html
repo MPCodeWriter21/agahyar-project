@@ -24,8 +24,8 @@
  <td>{{ user.username }}</td>
  <td>{{ user.email|default:"-" }}</td>
  <td>{{ user.date_joined|date:"Y/m/d" }}</td>
- <td>{{ user.profile.city|default:"ثبت نشده" }}</td>
- <td>{{ user.profile.phone|default:"-" }}</td>
+ <td>{% if user.profile %}{{ user.profile.city }}{% else %}---{% endif %}</td>
+ <td>{% if user.profile %}{{ user.profile.phone }}{% else %}---{% endif %}</td>
  </tr>
  {% empty %}
  <tr>

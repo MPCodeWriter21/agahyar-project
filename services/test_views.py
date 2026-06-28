@@ -43,6 +43,15 @@ class TestShowUsersView:
         assert response.status_code == 200
         assert "viewer" in str(response.content)
 
+    def test_handles_users_without_profile(self):
+        User.objects.create_user("noprofile", password="pass12345")
+        client = Client()
+        client.login(username="noprofile", password="pass12345")
+        response = client.get("/users/")
+        assert response.status_code == 200
+        assert "noprofile" in str(response.content)
+        assert "---" in str(response.content)
+
 
 @pytest.mark.django_db
 class TestRegisterView:

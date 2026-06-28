@@ -1,6 +1,6 @@
 # Fix logout and superuser inconsistencies
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 85
 - TAGS: bug, auth
 
