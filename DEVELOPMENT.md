@@ -5,7 +5,7 @@ Prerequisites
 -------------
 
 - Python 3.12+
-- `uv` (recommended) -- install from https://docs.astral.sh/uv/
+- `uv` (recommended)
 - Git
 
 Environment Variables
@@ -90,7 +90,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The application will be available at http://localhost:8000.
+The application will be available at <http://localhost:8000>.
 
 Development Server
 ------------------
@@ -99,7 +99,7 @@ Development Server
 uv run python manage.py runserver
 ```
 
-Then open http://127.0.0.1:8000 in your browser.
+Then open <http://127.0.0.1:8000> in your browser.
 
 Running Tests
 -------------
@@ -138,4 +138,3 @@ Coding Conventions
 - Do not use ``python -c ...``; write a temporary script instead
 - Docstrings follow reStructuredText (Sphinx) format
 - Use ASCII only in source code -- avoid non-ASCII characters in .py files
-- Stage files explicitly (``git add file1 file2``), never ``git add -A`` or ``git add .``

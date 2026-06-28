@@ -1,0 +1,14 @@
+.venv/
+.venv
+__pycache__/
+*.pyc
+.env
+.git/
+.gitignore
+.pytest_cache/
+.python-version
+*.md
+.vscode/
+.idea/
+db.sqlite3
+.DS_Store
