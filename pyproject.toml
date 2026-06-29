@@ -1,0 +1,51 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools",
+]
+
+[project]
+name = "agahyar"
+version = "0.1.0"
+description = "Smart Citizen Information System for Government Services"
+requires-python = ">=3.12"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  "beautifulsoup4>=4.15",
+  "Django>=6.0.6",
+  "django-ratelimit>=4.1",
+  "log21>=3.3.2",
+  "lxml>=6.1.1",
+  "python-decouple>=3.8",
+  "requests>=2.34.2",
+  "sqlparse>=0.5.5",
+  "tzdata>=2026.2",
+]
+[project.optional-dependencies]
+dev = [
+  "bandit>=1.8",
+  "pre-commit>=4.2",
+  "pytest>=8",
+  "pytest-cov>=7.1",
+  "pytest-django>=4.9",
+]
+prod = [
+  "django-redis>=5.4",
+  "gunicorn>=23",
+  "psycopg2-binary>=2.9.10",
+]
+[project.scripts]
+create-superuser = "agahyar_project.scripts:create_superuser"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["agahyar_project*", "services*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "agahyar_project.settings"
+python_files = ["tests.py", "test_*.py"]
+testpaths = ["src/services"]
+pythonpath = ["src"]

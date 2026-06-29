@@ -1,151 +1,144 @@
-# 🏛️ Aghahyar (آگاه‌یار)
+# Agahyar (آگاه‌یار)
 
-**Smart Citizen Information System for Government Services**
+Smart Citizen Information System for Government Services.
 
----
+## About the Project
 
-## 📖 About the Project
+**Agahyar** helps citizens access accurate information about government
+services before visiting offices in person — showing **required documents**,
+**steps**, **costs**, **duration**, and **nearest service centers** in one
+place.
 
-**Aghahyar** is a web-based platform designed to help citizens easily access accurate information about government services before visiting offices in person.
+> **Problem:** Millions of unsuccessful office visits happen every year due to
+> lack of awareness.
+> **Solution:** Agahyar empowers citizens with knowledge, saving time, money,
+> and reducing frustration.
 
-It provides clear details about **required documents**, **steps**, **costs**, **estimated time**, and the **nearest service centers** – all in one place.
+## Key Features
 
-> **Problem:** Millions of unsuccessful office visits happen every year due to a lack of awareness.  
-> **Solution:** Aghahyār empowers citizens with knowledge, saving time, money, and reducing frustration for both people and government employees.
+- **Smart Search** – Find services by name, organization, or city
+- **Service Details** – Documents, steps, cost, and duration for each service
+- **Nearest Centers** – Closest service center based on user's city and
+  neighborhood with Google Maps links
+- **User Authentication** – Sign up / Login with city & neighborhood storage
+- **Rating & Feedback** – Rate services 1–5 stars and leave public comments
+- **Bookmark Services** – Save favorite services for quick access
+- **Print-Friendly View** – Clean print layout for service details
+- **Dark/Light Theme** – Per-device theme with localStorage persistence
+- **Persian Error Messages** – Backend error codes map to Persian text
+- **Security Hardening** – Rate limiting, CSP headers, configurable admin URL,
+  secure session settings
+- **Fully Responsive** – Works on mobile, tablet, and desktop
+- **Admin Panel** – Manage services, FAQs, and centers via Django admin
 
----
+## Technologies Used
 
-## 👁️ Vision
+- **Python 3.12 / Django 6.0** – Backend
+- **uv** – Python package manager
+- **PostgreSQL / SQLite** – Database
+- **Redis** – Cache & sessions (production)
+- **Docker** – Containerized development and deployment
+- **HTML5 / CSS3 / JavaScript (vanilla)** – Frontend; Font Awesome icons
+- **Gunicorn** – Production WSGI server
 
-To become the **leading citizen‑friendly information hub** for all public services in Iran, bridging the gap between people and government with transparency, simplicity, and intelligence.
+## Project Preview
 
----
+### Login
 
-## ✨ Key Features
+![Login page](images/loginpage.png)
 
-- **🔍 Smart Search** – Find any government service by name or keyword  
-- **📋 Service Details** – View required documents, steps, cost, and duration  
-- **📍 Nearest Centers** – Automatically shows the closest service center based on the user’s city and neighborhood  
-- **🗺️ Google Maps Integration** – Direct link to the center’s location  
-- **👤 User Authentication** – Sign up / Login with city & neighborhood storage  
-- **🧠 AI‑Powered Suggestions** – Simulated intelligence for recommending nearby centers  
-- **📱 Fully Responsive** – Works perfectly on mobile, tablet, and desktop  
-- **🖥️ Admin Panel** – Manage services, FAQs, and centers easily via Django admin
+### Home
 
----
+![Home page](images/homepage.png)
 
-## 🧱 Project Structure
-agahyar-project/
+### Services
 
-├── agahyar_project/ # Django project settings   
-├── services/ # Main application  
-│ ├── models.py # Service, UserProfile, FAQ, ServiceCenter  
-│ ├── views.py # All logic (search, detail, nearby, auth)  
-│ ├── scraper.py # Nearest centers logic + AI simulation  
-│ ├── urls.py # App routes  
-│ └── admin.py # Admin panel registration  
-├── templates/services/ # All HTML templates  
-│ ├── base.html # Main layout  
-│ ├── home.html # Homepage with search & popular services  
-│ ├── search.html # Search results  
-│ ├── detail.html # Service details + nearest center  
-│ ├── nearby_centers.html # List of all centers with nearest label  
-│ └── ...  
-├── static/ # CSS, JS, images (if any)  
-├── db.sqlite3 # SQLite database  
-├── manage.py  
-├── requirements.txt  
-└── README.md  
+![Services page](images/servicepage.png)
 
----
+### Service Details
 
-## 🛠️ Technologies Used
+![Service details](images/service-info.png)
 
-- **🐍 Python 3.12** – Core programming language  
-- **🧩 Django 6.0** – High‑level web framework  
-- **🗄️ SQLite** – Lightweight database (development)  
-- **🎨 HTML5 / CSS3 / JavaScript** – Frontend UI  
-- **📦 Git & GitHub** – Version control and collaboration  
-- **☁️ Render / PythonAnywhere** – Planned deployment platforms  
+### About
 
----
-## 🖼️ Project Preview
+![About page](images/about.png)
 
-### 🔐  Login 
-<img src="images/loginpage.png" width="500">
+### FAQ
 
-### 🏠  Home  
-<img src="images/homepage.png" width="500">
+![FAQ page](images/faq.png)
 
-### 📋  Services 
-<img src="images/servicepage.png" width="500">
+### Contact
 
-### 📄  Service Details 
-<img src="images/servicedetails_1.png" width="500">
-<img src="images/servicedetails_2.png" width="500">
+![Contact page](images/contact.png)
 
-### ℹ️  About 
-<img src="images/about.png" width="500">
+### Nearest Centers
 
-### ❓  FAQ 
-<img src="images/commonquestions.png" width="500">
+![Nearest centers page](images/nearestplace.png)
 
-### 📞  Contact 
-<img src="images/contact.png" width="500">
+#### Resources used for the screenshots
 
-### 📍  Nearest Centers 
-<img src="images/nearestplace.png" width="500">
----
+- [Background Picture](https://unsplash.com/photos/grey-sand-wave-RCAhiGJsUUE)
+- [Screenshot Extension](https://screenshot.rocks/)
 
-## 🚀 How to Run the Project (Local Setup)
+## How to Run the Project (Local Setup)
 
-Follow these steps to run the project on your own machine:
+## Quick Start
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
-
-# 2. Go to the project folder
 cd agahyar-project
 
-# 3. Create a virtual environment
-python -m venv venv
-
-# 4. Activate the virtual environment
-venv\Scripts\activate        # On Windows
-# source venv/bin/activate   # On Mac / Linux
-
-# 5. Install dependencies
-pip install -r requirements.txt
-
-# 6. Apply database migrations
-python manage.py migrate
-
-# 7. Create a superuser (admin)
-python manage.py createsuperuser
-
-# 8. Run the development server
-python manage.py runserver
+# Install uv (if needed): https://docs.astral.sh/uv/
+uv venv && source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+uv sync
+cp .env.example .env
+uv run python manage.py migrate
+uv run python manage.py createsuperuser
+uv run python manage.py runserver
 ```
----
 
-Then open your browser and visit:
-👉 http://127.0.0.1:8000
+Populate sample data (optional):
 
-## 🗺️ Future Plans & Roadmap
-#### We are committed to continuously improving Aghahyar. Here are our goals for the coming months:  
-- Real AI Integration – Use OpenAI / Google Maps API for dynamic nearest-center detection  
-- Mobile App – Develop a native Android / iOS app for wider accessibility  
-- Multi-City Support – Add service centers for all major cities in Iran  
-- Admin Dashboard – Visual analytics for user activity and service popularity  
-- User Feedback System – Allow citizens to rate services and leave comments  
-- Advanced Security – OAuth2 login, password recovery, and two-factor authentication  
-- Multi-Language – Support English and other languages for international users  
+```bash
+uv run python scripts/populate_services.py
+uv run python scripts/populate_centers.py
+uv run python scripts/populate_faq.py
+```
 
----
+Visit **<http://127.0.0.1:8000>** in your browser.
 
-## 🤝 Team Members
-- Fatemeh Mohammadganji – Project Manager & Frontend Developer  
-- Zahra Kamalian – Backend Developer  
-- Mohsen Ali Ahmadi – Database Developer & Organization Liaison  
+Run tests:
 
+```bash
+uv run pytest
+```
+
+## Project Structure
+
+```
+agahyar-project/
+├── src/                    # Python packages
+│   ├── agahyar_project/    # Django project config
+│   └── services/           # Main app (models, views, forms, etc.)
+├── templates/
+│   └── services/           # HTML templates
+├── static/services/        # CSS, JS, fonts, icons (no CDN)
+├── scripts/                # Database population scripts
+└── docker-compose*.yml     # Dev & production Docker configs
+```
+
+## Roadmap
+
+- [ ] Real AI integration (OpenAI / Google Maps API) for dynamic center
+      detection
+- [ ] Mobile app (Android / iOS)
+- [ ] Multi-city support (all major Iranian cities)
+- [ ] Multi-language (English and other languages)
+- [ ] OAuth2 login and two-factor authentication
+- [ ] Notification system for service updates
+
+## Team
+
+- Fatemeh Mohammadganji – Project Manager & Frontend Developer
+- Zahra Kamalian – Backend Developer
+- Mohsen Ali Ahmadi – Database Developer & Organization Liaison

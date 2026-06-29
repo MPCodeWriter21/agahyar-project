@@ -1,260 +1,91 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', 'Vazir', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #fdf6ec;
-            color: #2c3e50;
-            line-height: 1.5;
-        }
-
-        .header {
-            background: white;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 70px;
-        }
-
-        .logo h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #1a5f7a, #2c8faa);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .logo p {
-            font-size: 0.7rem;
-            color: #6c757d;
-            margin-top: -4px;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 32px;
-            align-items: center;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: #495057;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: #1a5f7a;
-        }
-
-        .mobile-menu-btn {
-            display: none;
-            font-size: 1.8rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #1a5f7a;
-        }
-
-        .main-content {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 40px 24px;
-            min-height: 60vh;
-        }
-
-        .footer {
-            background: #1a1a2e;
-            color: #adb5bd;
-            padding: 40px 24px 20px;
-            margin-top: 60px;
-        }
-
-        .footer-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 30px;
-        }
-
-        .footer-section h4 {
-            color: white;
-            margin-bottom: 12px;
-        }
-
-        .footer-section a {
-            color: #adb5bd;
-            text-decoration: none;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .footer-section a:hover {
-            color: white;
-        }
-
-        .footer-bottom {
-            text-align: center;
-            padding-top: 30px;
-            border-top: 1px solid #2c3e50;
-            margin-top: 30px;
-            font-size: 0.8rem;
-        }
-
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-                flex-direction: column;
-                position: absolute;
-                top: 70px;
-                left: 0;
-                right: 0;
-                background: white;
-                padding: 20px;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            }
-            .nav-links.show {
-                display: flex;
-            }
-            .mobile-menu-btn {
-                display: block;
-            }
-            .header-container {
-                padding: 0 16px;
-            }
-        }
-    </style>
-    {% block extra_css %}{% endblock %}
+ <head>
+  <script>(function(){var t=localStorage.getItem("theme");if(t){document.documentElement.setAttribute("data-theme",t)}})()</script>
+  <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
+ <meta name="description" content="{% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - آگاه‌یار{% endblock %}">
+ <meta name="keywords" content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی{% endblock %}">
+ <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+ <meta property="og:title" content="{% block og_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
+ <meta property="og:description" content="{% block og_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
+ <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+ <meta property="og:url" content="{{ request.build_absolute_uri }}">
+ <meta name="twitter:card" content="{% block twitter_card %}summary{% endblock %}">
+ <meta name="twitter:title" content="{% block twitter_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
+ <meta name="twitter:description" content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
+  <link rel="stylesheet" href="{% static 'services/css/fontawesome-all.min.css' %}">
+  <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
+  <script defer src="{% static 'services/js/error-translate.js' %}"></script>
+  <script defer src="{% static 'services/js/main.js' %}"></script>
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
 
 <header class="header">
-    <div class="header-container">
-        <div class="logo">
-            <h1>آگاه‌یار</h1>
-            <p>راهنمای هوشمند خدمات دولتی</p>
-        </div>
-        <nav class="nav-links" id="navLinks">
-            <a href="{% url 'home' %}">خانه</a>
-            <a href="{% url 'services_list' %}">خدمات</a>
-            <a href="{% url 'contact' %}">تماس با ما</a>
-            <a href="{% url 'about' %}">درباره ما</a>
-            {% if user.is_authenticated %}
-                <a href="{% url 'logout' %}" style="color: #e74c3c; font-weight: bold; border-right: 2px solid #e74c3c; padding-right: 15px;">
-                    🚪 خروج
-                </a>
-            {% endif %}
-        </nav>
-        <button class="mobile-menu-btn" onclick="toggleMenu()">☰</button>
-    </div>
+ <div class="header-container">
+ <div class="logo">
+ <h1>آگاه‌یار</h1>
+ <p>راهنمای هوشمند خدمات دولتی</p>
+ </div>
+  <nav class="nav-links" id="navLinks">
+   <a href="{% url 'home' %}">خانه</a>
+   <a href="{% url 'services_list' %}">خدمات</a>
+   <a href="{% url 'about' %}">درباره ما</a>
+   <a href="{% url 'contact' %}">تماس با ما</a>
+   {% if user.is_authenticated %}
+   <a href="{% url 'dashboard' %}">داشبورد</a>
+   <a href="{% url 'profile' %}">پروفایل</a>
+    <a href="{% url 'app_logout' %}" class="logout-link">خروج</a>
+   {% else %}
+   <a href="{% url 'login' %}" class="login-link">ورود</a>
+    {% endif %}
+   <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" aria-label="تغییر تم"><i class="fas fa-moon"></i></button>
+   </nav>
+ <button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="منو">☰</button>
+ </div>
 </header>
 
 <main class="main-content">
-    {% if messages and request.resolver_match.url_name == 'home' %}
-        <div id="message-container" style="max-width: 1280px; margin: 0 auto 20px; padding: 0 24px;">
-            {% for message in messages %}
-                {% if message.tags == 'success' %}
-                    <div class="message-box message-success" 
-                         style="
-                            display: inline-block;
-                            padding: 8px 20px;
-                            border-radius: 16px;
-                            transition: opacity 0.5s ease;
-                            background: #e8f5e9;
-                            color: #2e7d32;
-                            border-right: 4px solid #2e7d32;
-                            font-size: 0.95rem;
-                         ">
-                        ✅ {{ message }}
-                    </div>
-                {% elif message.tags == 'error' %}
-                    <div class="message-box message-error" 
-                         style="
-                            display: inline-block;
-                            padding: 8px 20px;
-                            border-radius: 16px;
-                            transition: opacity 0.5s ease;
-                            background: #fde8e8;
-                            color: #c62828;
-                            border-right: 4px solid #c62828;
-                            font-size: 0.95rem;
-                         ">
-                        ❌ {{ message }}
-                    </div>
-                {% endif %}
-            {% endfor %}
-        </div>
-    {% endif %}
-    
-    {% block content %}{% endblock %}
+  {% if messages %}
+ <div id="message-container">
+ {% for message in messages %}
+ {% if message.tags == 'success' %}
+ <div class="message-box message-success">{{ message }}</div>
+ {% elif message.tags == 'error' %}
+ <div class="message-box message-error">{{ message }}</div>
+ {% endif %}
+ {% endfor %}
+ </div>
+ {% endif %}
+
+ {% block content %}{% endblock %}
 </main>
 
 <footer class="footer">
-    <div class="footer-container">
-        <div class="footer-section">
-            <h4>آگاه‌یار</h4>
-            <p>سامانه اطلاع‌رسانی مردمی<br>خدمات دولتی</p>
-        </div>
-        <div class="footer-section">
-            <h4>دسترسی سریع</h4>
-            <a href="{% url 'services_list' %}">همه خدمات</a>
-            <a href="{% url 'contact' %}">تماس با ما</a>
-            <a href="{% url 'about' %}">درباره تیم</a>
-        </div>
-        <div class="footer-section">
-            <h4>تماس با ما</h4>
-            <a href="#">info@agahyar.ir</a>
-            <a href="#">۰۲۱-۱۲۳۴۵۶۷۸</a>
-        </div>
-    </div>
-    <div class="footer-bottom">
-        <p>© ۱۴۰۴ - تیم آگاه‌ران | پروژه درس مدیریت پروژه فناوری اطلاعات</p>
-    </div>
+ <div class="footer-container">
+ <div class="footer-section">
+ <h4>آگاه‌یار</h4>
+ <p>سامانه اطلاع‌رسانی مردمی<br>خدمات دولتی</p>
+ </div>
+ <div class="footer-section">
+ <h4>دسترسی سریع</h4>
+ <a href="{% url 'services_list' %}">همه خدمات</a>
+ <a href="{% url 'contact' %}">تماس با ما</a>
+ <a href="{% url 'about' %}">درباره تیم</a>
+ </div>
+ <div class="footer-section">
+ <h4>تماس با ما</h4>
+ <a href="#">info@agahyar.ir</a>
+ <a href="#">۰۲۱-۱۲۳۴۵۶۷۸</a>
+ </div>
+ </div>
+ <div class="footer-bottom">
+ <p>© ۱۴۰۴ - تیم آگاه‌ران | پروژه درس مدیریت پروژه فناوری اطلاعات</p>
+ </div>
 </footer>
 
-<script>
-    function toggleMenu() {
-        const nav = document.getElementById('navLinks');
-        nav.classList.toggle('show');
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const messageContainer = document.getElementById('message-container');
-        if (messageContainer) {
-            setTimeout(function() {
-                const messages = messageContainer.querySelectorAll('.message-box');
-                messages.forEach(function(msg) {
-                    msg.style.opacity = '0';
-                });
-                setTimeout(function() {
-                    messageContainer.style.display = 'none';
-                }, 500);
-            }, 2000);
-        }
-    });
-</script>
 </body>
 </html>

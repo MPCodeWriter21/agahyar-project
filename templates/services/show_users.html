@@ -1,62 +1,41 @@
 {% extends 'services/base.html' %}
 
-{% block title %}لیست کاربران (SQL) | آگاه‌یار{% endblock %}
+{% block title %}لیست کاربران | آگاه‌یار{% endblock %}
+{% block meta_description %}لیست کاربران سامانه آگاه‌یار{% endblock %}
+{% block meta_keywords %}کاربران, لیست, آگاه‌یار{% endblock %}
 
 {% block content %}
-<style>
-.user-table {
-    width: 100%;
-    background: white;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-.user-table th {
-    background: #1a5f7a;
-    color: white;
-    padding: 15px;
-    text-align: right;
-}
-.user-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-}
-.user-table tr:hover {
-    background: #f8f9fa;
-}
-</style>
 
-<h1>📋 لیست کاربران (با SQL خام)</h1>
-<p style="color:#6c757d; margin-bottom:20px;">اطلاعات مستقیم از دیتابیس با کوئری SQL</p>
+<h1> لیست کاربران</h1>
 
 <table class="user-table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>نام کاربری</th>
-            <th>ایمیل</th>
-            <th>تاریخ عضویت</th>
-            <th>شهر</th>
-            <th>تلفن</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for user in users %}
-        <tr>
-            <td>{{ user.0 }}</td>
-            <td>{{ user.1 }}</td>
-            <td>{{ user.2|default:"-" }}</td>
-            <td>{{ user.3|date:"Y/m/d" }}</td>
-            <td>{{ user.4|default:"ثبت نشده" }}</td>
-            <td>{{ user.5|default:"-" }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="6" style="text-align:center;">هیچ کاربری یافت نشد</td>
-        </tr>
-        {% endfor %}
-    </tbody>
+ <thead>
+ <tr>
+ <th>ID</th>
+ <th>نام کاربری</th>
+ <th>ایمیل</th>
+ <th>تاریخ عضویت</th>
+ <th>شهر</th>
+ <th>تلفن</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for user in users %}
+ <tr>
+ <td>{{ user.id }}</td>
+ <td>{{ user.username }}</td>
+ <td>{{ user.email|default:"-" }}</td>
+ <td>{{ user.date_joined|date:"Y/m/d" }}</td>
+ <td>{% if user.profile %}{{ user.profile.city }}{% else %}---{% endif %}</td>
+ <td>{% if user.profile %}{{ user.profile.phone }}{% else %}---{% endif %}</td>
+ </tr>
+ {% empty %}
+ <tr>
+ <td colspan="6" class="text-center">هیچ کاربری یافت نشد</td>
+ </tr>
+ {% endfor %}
+ </tbody>
 </table>
 
-<a href="{% url 'home' %}" class="btn-detail">← بازگشت به خانه</a>
+<a href="{% url 'home' %}" class="btn-detail"> بازگشت به خانه</a>
 {% endblock %}

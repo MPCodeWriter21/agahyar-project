@@ -1,159 +1,58 @@
 {% extends 'services/base.html' %}
 
 {% block title %}تماس با ما | آگاه‌یار{% endblock %}
+{% block meta_description %}ارسال پیام و تماس با تیم پشتیبانی سامانه آگاه‌یار{% endblock %}
+{% block meta_keywords %}تماس با ما, پشتیبانی, آگاه‌یار{% endblock %}
 
 {% block content %}
-<style>
-.contact-page {
-    padding: 40px 0;
-}
-.contact-page h1 {
-    text-align: center;
-    color: #1a5f7a;
-    margin-bottom: 40px;
-    font-size: 2rem;
-}
-.contact-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;  /* ← فاصله بین دو ستون */
-    margin-bottom: 30px;  /* ← فاصله از دکمه بازگشت */
-}
-.contact-form, .contact-info {
-    background: white;
-    border-radius: 24px;
-    padding: 30px 32px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-.contact-form h3, .contact-info h3 {
-    color: #1a5f7a;
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-}
-.contact-info p {
-    margin-bottom: 12px;
-    color: #2c3e50;
-    line-height: 1.6;
-}
-.contact-info hr {
-    margin: 20px 0;
-    border: none;
-    border-top: 1px solid #e8e8e8;
-}
-.form-group {
-    margin-bottom: 20px;
-}
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #2c3e50;
-}
-.form-group input, .form-group textarea {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #ddd;
-    border-radius: 16px;
-    font-size: 1rem;
-    font-family: inherit;
-    transition: 0.2s;
-}
-.form-group input:focus, .form-group textarea:focus {
-    border-color: #1a5f7a;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(26,95,122,0.1);
-}
-.btn-send {
-    background: #1a5f7a;
-    color: white;
-    padding: 14px 32px;
-    border: none;
-    border-radius: 40px;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: inherit;
-    transition: 0.2s;
-    width: 100%;
-}
-.btn-send:hover {
-    background: #0e4a60;
-    transform: translateY(-2px);
-}
-.btn-back {
-    background: #1a5f7a;
-    color: white;
-    padding: 12px 28px;
-    border-radius: 40px;
-    text-decoration: none;
-    display: inline-block;
-    margin-top: 10px;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    transition: 0.2s;
-}
-.btn-back:hover {
-    background: #0e4a60;
-    transform: translateY(-2px);
-}
-.text-center {
-    text-align: center;
-}
-
-/* ===== واکنش‌گرایی ===== */
-@media (max-width: 768px) {
-    .contact-grid {
-        grid-template-columns: 1fr;
-        gap: 30px;
-    }
-}
-</style>
 
 <div class="contact-page">
-    <h1>تماس با ما</h1>
-    
-    <div class="contact-grid">
-        <!-- ===== فرم تماس ===== -->
-        <div class="contact-form">
-            <h3>📨 ارسال پیام</h3>
-            <form action="#" method="post">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label>نام و نام خانوادگی</label>
-                    <input type="text" placeholder="نام خود را وارد کنید" required>
-                </div>
-                <div class="form-group">
-                    <label>ایمیل</label>
-                    <input type="email" placeholder="example@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label>پیام شما</label>
-                    <textarea rows="5" placeholder="پیام خود را بنویسید..." required></textarea>
-                </div>
-                <button type="submit" class="btn-send">📩 ارسال پیام</button>
-            </form>
-        </div>
-        
-        <!-- ===== اطلاعات تماس ===== -->
-        <div class="contact-info">
-            <h3>📞 اطلاعات تماس</h3>
-            <p>📧 info@agahyar.ir</p>
-            <p>📞 ۰۲۱-۱۲۳۴۵۶۷۸</p>
-            <p>🕘 شنبه تا چهارشنبه ۹ تا ۱۷</p>
-            
-            <hr>
-            
-            <h3>👥 تیم ما</h3>
-            <p>پروژه آگاه‌یار توسط تیم آگاه‌ران طراحی و پیاده‌سازی شده است.</p>
-            <p style="font-size: 0.85rem; color: #6c757d; margin-top: 8px;">
-                پروژه درس مدیریت پروژه فناوری اطلاعات
-            </p>
-        </div>
-    </div>
-    
-    <div class="text-center">
-        <a href="javascript:history.go(-1)" class="btn-back">← بازگشت به صفحه قبل</a>
-    </div>
+ <h1>تماس با ما</h1>
+
+ <div class="contact-grid">
+ <!-- ===== فرم تماس ===== -->
+  <div class="contact-form">
+  <h3> ارسال پیام</h3>
+  <form method="post">
+  {% csrf_token %}
+  <div class="form-group{% if form.name.errors %} has-error{% endif %}">
+  <label>نام و نام خانوادگی</label>
+  <input type="text" name="name" value="{{ form.name.value|default:'' }}" placeholder="نام خود را وارد کنید" class="{% if form.name.errors %}field-error{% endif %}" required>
+  {% if form.name.errors %}<div class="field-error-msg">{{ form.name.errors.0 }}</div>{% endif %}
+  </div>
+  <div class="form-group{% if form.email.errors %} has-error{% endif %}">
+  <label>ایمیل</label>
+   <input type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="example@email.com" class="ltr-input{% if form.email.errors %} field-error{% endif %}" dir="ltr" required>
+  {% if form.email.errors %}<div class="field-error-msg">{{ form.email.errors.0 }}</div>{% endif %}
+  </div>
+  <div class="form-group{% if form.message.errors %} has-error{% endif %}">
+  <label>پیام شما</label>
+  <textarea name="message" rows="5" placeholder="پیام خود را بنویسید..." class="{% if form.message.errors %}field-error{% endif %}" required>{{ form.message.value|default:'' }}</textarea>
+  {% if form.message.errors %}<div class="field-error-msg">{{ form.message.errors.0 }}</div>{% endif %}
+  </div>
+  <button type="submit" class="btn-send"> ارسال پیام</button>
+  </form>
+  </div>
+
+ <!-- ===== اطلاعات تماس ===== -->
+ <div class="contact-info">
+ <h3> اطلاعات تماس</h3>
+ <p> info@agahyar.ir</p>
+ <p> ۰۲۱-۱۲۳۴۵۶۷۸</p>
+ <p> شنبه تا چهارشنبه ۹ تا ۱۷</p>
+
+ <hr>
+
+ <h3> تیم ما</h3>
+ <p>پروژه آگاه‌یار توسط تیم آگاه‌ران طراحی و پیاده‌سازی شده است.</p>
+ <p class="team-note">
+ پروژه درس مدیریت پروژه فناوری اطلاعات
+ </p>
+ </div>
+ </div>
+
+ <div class="text-center">
+ <a href="#" onclick="history.back(); return false;" class="btn-back"> بازگشت به صفحه قبل</a>
+ </div>
 </div>
 {% endblock %}

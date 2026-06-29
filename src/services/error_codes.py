@@ -1,0 +1,59 @@
+"""Error code catalog and Persian translation utilities.
+
+Every user-facing error should be returned as a code; the frontend (or
+this module) maps codes to Persian messages.
+"""
+
+ERROR_CODES: dict[str, str] = {
+    # ---- Auth ----
+    "auth/invalid-credentials": "نام کاربری یا رمز عبور اشتباه است.",
+    "auth/login-required": "برای مشاهده این صفحه باید وارد شوید.",
+    "auth/not-authorized": "شما مجوز دسترسی به این بخش را ندارید.",
+    # ---- Generic validation ----
+    "field/required": "وارد کردن این فیلد الزامی است.",
+    "field/invalid-email": "ایمیل وارد شده معتبر نیست.",
+    "field/max-length": "مقدار وارد شده بیش از حد مجاز است.",
+    "field/min-length": "مقدار وارد شده کمتر از حد مجاز است.",
+    "field/invalid-phone": "شماره تماس وارد شده معتبر نیست (مثال: 09121234567).",
+    # ---- Password ----
+    "password/mismatch": "رمز عبور و تکرار آن مطابقت ندارند.",
+    "password/too-short": "رمز عبور باید حداقل ۸ کاراکتر باشد.",
+    "password/too-common": "رمز عبور وارد شده خیلی ساده است.",
+    "password/too-similar": "رمز عبور نمی‌تواند شبیه نام کاربری باشد.",
+    "password/numeric-only": "رمز عبور نمی‌تواند فقط عدد باشد.",
+    "password/wrong-old": "رمز عبور فعلی اشتباه است.",
+    # ---- Username ----
+    "username/duplicate": "این نام کاربری قبلاً ثبت شده است.",
+    "username/required": "وارد کردن نام کاربری الزامی است.",
+    # ---- Profile ----
+    "profile/updated": "پروفایل شما با موفقیت به‌روزرسانی شد.",
+    "password/changed": "رمز عبور شما با موفقیت تغییر یافت.",
+    # ---- Contact ----
+    "contact/sent": "پیام شما با موفقیت ارسال شد.",
+    # ---- Register ----
+    "register/welcome": "خوش آمدید {first_name}!",
+    # ---- Bookmark ----
+    "bookmark/added": "خدمت مورد نظر به نشانک‌ها اضافه شد.",
+    "bookmark/removed": "خدمت مورد نظر از نشانک‌ها حذف شد.",
+    # ---- Rating ----
+    "rating/added": "امتیاز شما با موفقیت ثبت شد.",
+    "rating/updated": "امتیاز شما با موفقیت به‌روزرسانی شد.",
+    # ---- Rate limiting ----
+    "ratelimit/exceeded": "درخواست‌های زیادی ارسال کرده‌اید. لطفاً چند دقیقه دیگر تلاش کنید.",
+    # ---- Uniqueness ----
+    "email/duplicate": "این ایمیل قبلاً ثبت شده است.",
+    "phone/duplicate": "این شماره تماس قبلاً ثبت شده است.",
+}
+
+
+def get_error_message(code: str, **kwargs: str) -> str:
+    """Return the Persian message for *code*, optionally interpolating *kwargs*.
+
+    :param code: An error code key from :data:`ERROR_CODES`.
+    :param kwargs: Values to interpolate into the message template.
+    :returns: The Persian message string (falls back to the code itself if unknown).
+    """
+    template = ERROR_CODES.get(code, code)
+    if kwargs:
+        return template.format(**kwargs)
+    return template

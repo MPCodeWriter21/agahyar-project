@@ -1,103 +1,41 @@
 {% extends 'services/base.html' %}
 
 {% block title %}ورود | آگاه‌یار{% endblock %}
+{% block meta_description %}ورود به سامانه آگاه‌یار{% endblock %}
+{% block meta_keywords %}ورود, لاگین, آگاه‌یار{% endblock %}
 
 {% block content %}
-<style>
-.login-container {
-    max-width: 450px;
-    margin: 50px auto;
-    background: white;
-    padding: 40px;
-    border-radius: 28px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.08);
-}
-.login-container h2 {
-    text-align: center;
-    color: #1a5f7a;
-    margin-bottom: 30px;
-}
-.form-group {
-    margin-bottom: 20px;
-}
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-.form-group input {
-    width: 100%;
-    padding: 14px;
-    border: 1px solid #e0e0e0;
-    border-radius: 16px;
-    font-size: 1rem;
-    transition: 0.2s;
-}
-.form-group input:focus {
-    border-color: #1a5f7a;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(26,95,122,0.1);
-}
-.btn-login {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #1a5f7a, #2c8faa);
-    color: white;
-    border: none;
-    border-radius: 40px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.btn-login:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(26,95,122,0.3);
-}
-.register-link {
-    text-align: center;
-    margin-top: 20px;
-}
-.error-message {
-    background: #fde8e8;
-    color: #c62828;
-    padding: 12px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    border-right: 4px solid #c62828;
-}
-</style>
 
 <div class="login-container">
-    <h2>🔐 ورود به آگاه‌یار</h2>
-    
-    {% if form.errors %}
-    <div class="error-message">
-        ❌ نام کاربری یا رمز عبور اشتباه است.
-    </div>
-    {% endif %}
-    
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>نام کاربری</label>
-            <input type="text" name="username" placeholder="نام کاربری خود را وارد کنید" required>
-        </div>
-        <div class="form-group">
-            <label>رمز عبور</label>
-            <input type="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
-        </div>
-        
-        <button type="submit" class="btn-login">🚀 ورود</button>
-    </form>
-    
-    <div class="register-link">
-        <a href="{% url 'register' %}" style="color:#1a5f7a;">ثبت‌نام جدید</a>
-    </div>
-    <div style="text-align: center; margin-top: 10px;">
-        <a href="{% url 'password_reset' %}" style="color:#6c757d; font-size:0.9rem;">
-            🔑 رمز عبور را فراموش کردید؟
-        </a>
-    </div>
+ <h2> ورود به آگاه‌یار</h2>
+
+ {% if form.errors %}
+ <div class="error-message">
+ نام کاربری یا رمز عبور اشتباه است.
+ </div>
+ {% endif %}
+
+ <form method="post">
+ {% csrf_token %}
+ <div class="form-group">
+ <label>نام کاربری</label>
+  <input type="text" name="username" placeholder="نام کاربری خود را وارد کنید" class="ltr-input" dir="ltr" required>
+  </div>
+  <div class="form-group">
+  <label>رمز عبور</label>
+  <input type="password" name="password" placeholder="رمز عبور خود را وارد کنید" class="ltr-input" dir="ltr" required>
+ </div>
+
+ <button type="submit" class="btn-login"> ورود</button>
+ </form>
+
+ <div class="register-link">
+ <a href="{% url 'register' %}">ثبت‌نام جدید</a>
+ </div>
+ <div class="forgot-password">
+ <a href="{% url 'password_reset' %}" class="muted-link">
+ رمز عبور را فراموش کردید؟
+ </a>
+ </div>
 </div>
 {% endblock %}

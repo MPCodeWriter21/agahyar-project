@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./src/agahyar_project:/app/src/agahyar_project
+      - ./src/services:/app/src/services
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./manage.py:/app/manage.py

@@ -1,132 +1,70 @@
 {% extends 'services/base.html' %}
 
 {% block title %}ثبت‌نام | آگاه‌یار{% endblock %}
+{% block meta_description %}ثبت‌نام در سامانه آگاه‌یار برای دسترسی به خدمات دولتی{% endblock %}
+{% block meta_keywords %}ثبت‌نام, عضویت, آگاه‌یار{% endblock %}
 
 {% block content %}
-<style>
-.register-container {
-    max-width: 450px;
-    margin: 50px auto;
-    background: white;
-    padding: 40px;
-    border-radius: 28px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.08);
-}
-.register-container h2 {
-    text-align: center;
-    color: #1a5f7a;
-    margin-bottom: 30px;
-}
-.form-group {
-    margin-bottom: 20px;
-}
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-.form-group input, .form-group select {
-    width: 100%;
-    padding: 14px;
-    border: 1px solid #e0e0e0;
-    border-radius: 16px;
-    font-size: 1rem;
-}
-.form-group input:focus, .form-group select:focus {
-    border-color: #1a5f7a;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(26,95,122,0.1);
-}
-.btn-register {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #1a5f7a, #2c8faa);
-    color: white;
-    border: none;
-    border-radius: 40px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-}
-.btn-register:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(26,95,122,0.3);
-}
-.login-link {
-    text-align: center;
-    margin-top: 20px;
-}
-.error-message {
-    background: #fde8e8;
-    color: #c62828;
-    padding: 10px 14px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    border-right: 4px solid #c62828;
-    font-size: 0.9rem;
-}
-</style>
 
-<div class="register-container">
-    <h2>📝 ثبت‌نام در آگاه‌یار</h2>
-    
-    {% if form.errors %}
-        <div style="margin-bottom: 20px;">
-            {% for field, errors in form.errors.items %}
-                {% for error in errors %}
-                    <div class="error-message">
-                        ❌ {{ error }}
-                    </div>
-                {% endfor %}
-            {% endfor %}
-        </div>
-    {% endif %}
-    
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>نام کاربری</label>
-            <input type="text" name="username" placeholder="نام کاربری خود را انتخاب کنید" required>
-        </div>
-        <div class="form-group">
-            <label>ایمیل</label>
-            <input type="email" name="email" placeholder="example@email.com" required>
-        </div>
-        <div class="form-group">
-            <label>رمز عبور</label>
-            <input type="password" name="password1" placeholder="حداقل ۸ کاراکتر" required>
-        </div>
-        <div class="form-group">
-            <label>تکرار رمز عبور</label>
-            <input type="password" name="password2" placeholder="رمز را دوباره وارد کنید" required>
-        </div>
-        <div class="form-group">
-            <label>شهر محل سکونت</label>
-            <select name="city" required>
-                <option value="">شهر خود را انتخاب کنید</option>
-                <option value="تهران">تهران</option>
-                <option value="مشهد">مشهد</option>
-                <option value="اصفهان">اصفهان</option>
-                <option value="شیراز">شیراز</option>
-                <option value="تبریز">تبریز</option>
-                <option value="کرج">کرج</option>
-                <option value="قم">قم</option>
-                <option value="اهواز">اهواز</option>
-                <option value="رشت">رشت</option>
-                <option value="کرمانشاه">کرمانشاه</option>
-                <option value="زاهدان">زاهدان</option>
-                <option value="ارومیه">ارومیه</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>محله</label>
-            <input type="text" name="neighborhood" placeholder="مثال: سعادت‌آباد، ونک، ..." required>
-        </div>
-        <button type="submit" class="btn-register">✅ ثبت‌نام</button>
-    </form>
-    
-    <div class="login-link">
-        <a href="{% url 'login' %}" style="color:#1a5f7a;">قبلاً ثبت‌نام کرده‌اید؟ وارد شوید</a>
-    </div>
+  <div class="register-container">
+  <h2> ثبت‌نام در آگاه‌یار</h2>
+
+  <form method="post">
+  {% csrf_token %}
+  <div class="form-group{% if form.username.errors %} has-error{% endif %}">
+  <label>نام کاربری</label>
+   <input type="text" name="username" value="{{ form.username.value|default:'' }}" placeholder="نام کاربری خود را انتخاب کنید" class="ltr-input{% if form.username.errors %} field-error{% endif %}" dir="ltr" required>
+   {% if form.username.errors %}<div class="field-error-msg">{{ form.username.errors.0 }}</div>{% endif %}
+   </div>
+   <div class="form-group{% if form.first_name.errors %} has-error{% endif %}">
+   <label>نام</label>
+   <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" placeholder="نام خود را وارد کنید" class="{% if form.first_name.errors %}field-error{% endif %}" required>
+   {% if form.first_name.errors %}<div class="field-error-msg">{{ form.first_name.errors.0 }}</div>{% endif %}
+   </div>
+   <div class="form-group{% if form.last_name.errors %} has-error{% endif %}">
+   <label>نام خانوادگی</label>
+   <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" placeholder="نام خانوادگی خود را وارد کنید" class="{% if form.last_name.errors %}field-error{% endif %}" required>
+   {% if form.last_name.errors %}<div class="field-error-msg">{{ form.last_name.errors.0 }}</div>{% endif %}
+   </div>
+   <div class="form-group{% if form.email.errors %} has-error{% endif %}">
+   <label>ایمیل (اختیاری)</label>
+   <input type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="example@email.com" class="ltr-input{% if form.email.errors %} field-error{% endif %}" dir="ltr">
+   {% if form.email.errors %}<div class="field-error-msg">{{ form.email.errors.0 }}</div>{% endif %}
+   </div>
+   <div class="form-group{% if form.password1.errors %} has-error{% endif %}">
+   <label>رمز عبور</label>
+   <input type="password" name="password1" placeholder="حداقل ۸ کاراکتر" class="ltr-input{% if form.password1.errors %} field-error{% endif %}" dir="ltr" required>
+   {% if form.password1.errors %}<div class="field-error-msg">{{ form.password1.errors.0 }}</div>{% endif %}
+   </div>
+   <div class="form-group{% if form.password2.errors %} has-error{% endif %}">
+   <label>تکرار رمز عبور</label>
+   <input type="password" name="password2" placeholder="رمز را دوباره وارد کنید" class="ltr-input{% if form.password2.errors %} field-error{% endif %}" dir="ltr" required>
+   {% if form.password2.errors %}<div class="field-error-msg">{{ form.password2.errors.0 }}</div>{% endif %}
+  </div>
+  <div class="form-group{% if form.city.errors %} has-error{% endif %}">
+  <label>شهر محل سکونت</label>
+  <select name="city" class="{% if form.city.errors %}field-error{% endif %}" required>
+  {% for value, label in city_choices %}
+  <option value="{{ value }}"{% if form.city.value == value %} selected{% endif %}>{{ label }}</option>
+  {% endfor %}
+  </select>
+  {% if form.city.errors %}<div class="field-error-msg">{{ form.city.errors.0 }}</div>{% endif %}
+  </div>
+  <div class="form-group{% if form.neighborhood.errors %} has-error{% endif %}">
+  <label>محله</label>
+  <input type="text" name="neighborhood" value="{{ form.neighborhood.value|default:'' }}" placeholder="مثال: سعادت‌آباد، ونک، ..." class="{% if form.neighborhood.errors %}field-error{% endif %}" required>
+  {% if form.neighborhood.errors %}<div class="field-error-msg">{{ form.neighborhood.errors.0 }}</div>{% endif %}
+  </div>
+  <div class="form-group{% if form.phone.errors %} has-error{% endif %}">
+  <label>شماره تماس</label>
+   <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="مثال: 09121234567" class="ltr-input{% if form.phone.errors %} field-error{% endif %}" dir="ltr" required>
+   {% if form.phone.errors %}<div class="field-error-msg">{{ form.phone.errors.0 }}</div>{% endif %}
+  </div>
+  <button type="submit" class="btn-register"> ثبت‌نام</button>
+  </form>
+
+  <div class="register-login-prompt">
+  قبلاً ثبت‌نام کرده‌اید؟ <a href="{% url 'login' %}">وارد شوید</a>
+  </div>
 </div>
 {% endblock %}

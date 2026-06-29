@@ -1,0 +1,1134 @@
+import pytest
+from django.contrib.auth.models import User
+from django.test import Client
+from django.urls import reverse
+
+from services.forms import RegisterForm
+from services.models import (
+    FAQ,
+    Bookmark,
+    ContactMessage,
+    Rating,
+    Service,
+    ServiceCenter,
+    UserProfile,
+)
+from services.views import save_user_profile
+
+
+@pytest.mark.django_db
+class TestSaveUserProfile:
+    def test_creates_new_profile(self):
+        user = User.objects.create_user("newuser", password="pass12345")
+        save_user_profile(user.id, "tehran", "saadatabad", "09121234567")
+        profile = UserProfile.objects.get(user=user)
+        assert profile.city == "tehran"
+        assert profile.neighborhood == "saadatabad"
+        assert profile.phone == "09121234567"
+
+    def test_updates_existing_profile(self):
+        user = User.objects.create_user("existing", password="pass12345")
+        UserProfile.objects.create(user=user, city="esfahan", neighborhood="", phone="")
+        save_user_profile(user.id, "tehran", "vanak", "09981234567")
+        profile = UserProfile.objects.get(user=user)
+        assert profile.city == "tehran"
+        assert profile.neighborhood == "vanak"
+        assert profile.phone == "09981234567"
+
+
+@pytest.mark.django_db
+class TestShowUsersView:
+    def test_requires_login(self):
+        client = Client()
+        response = client.get("/users/")
+        assert response.status_code == 302
+
+    def test_shows_users_with_profiles(self):
+        user = User.objects.create_user("viewer", password="pass12345")
+        UserProfile.objects.create(user=user, city="tehran", phone="09121234567")
+        client = Client()
+        client.login(username="viewer", password="pass12345")
+        response = client.get("/users/")
+        assert response.status_code == 200
+        assert "viewer" in str(response.content)
+
+    def test_handles_users_without_profile(self):
+        User.objects.create_user("noprofile", password="pass12345")
+        client = Client()
+        client.login(username="noprofile", password="pass12345")
+        response = client.get("/users/")
+        assert response.status_code == 200
+        assert "noprofile" in str(response.content)
+        assert "---" in str(response.content)
+
+
+@pytest.mark.django_db
+class TestRegisterView:
+    def test_get_returns_form(self):
+        client = Client()
+        response = client.get("/register/")
+        assert response.status_code == 200
+        assert "form" in response.context
+
+    def test_register_creates_user(self):
+        client = Client()
+        data = {
+            "username": "newuser",
+            "first_name": "علی",
+            "last_name": "محمدی",
+            "email": "new@example.com",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": "09121234567",
+        }
+        response = client.post("/register/", data)
+        assert response.status_code == 302
+        user = User.objects.get(username="newuser")
+        assert user.first_name == "علی"
+        assert user.last_name == "محمدی"
+        assert user.profile.phone == "09121234567"
+
+    def test_register_with_phone(self):
+        client = Client()
+        data = {
+            "username": "phonetest",
+            "first_name": "مریم",
+            "last_name": "احمدی",
+            "email": "phone@example.com",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": "09121234567",
+        }
+        response = client.post("/register/", data)
+        assert response.status_code == 302
+        user = User.objects.get(username="phonetest")
+        assert user.first_name == "مریم"
+        assert user.last_name == "احمدی"
+        assert user.profile.phone == "09121234567"
+
+    def test_register_requires_login_redirect_when_authenticated(self):
+        User.objects.create_user("loggedin", password="pass12345")
+        client = Client()
+        client.login(username="loggedin", password="pass12345")
+        response = client.get("/register/")
+        assert response.status_code == 302
+
+    def test_ltr_inputs_have_ltr_class(self):
+        client = Client()
+        response = client.get("/register/")
+        content = response.content.decode()
+        assert 'name="username"' in content
+        assert 'class="ltr-input"' in content or "ltr-input" in content
+        assert 'dir="ltr"' in content
+
+    def test_register_preserves_values_on_validation_error(self):
+        client = Client()
+        response = client.post(
+            "/register/",
+            {
+                "username": "testuser",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "bad-email",
+                "password1": "short",
+                "password2": "mismatch",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "",
+            },
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'value="testuser"' in content
+        assert 'value="علی"' in content
+        assert 'value="محمدی"' in content
+        assert 'value="bad-email"' in content
+
+    def test_register_shows_field_errors(self):
+        client = Client()
+        response = client.post(
+            "/register/",
+            {
+                "username": "",
+                "first_name": "",
+                "last_name": "",
+                "email": "",
+                "password1": "short",
+                "password2": "mismatch",
+                "city": "",
+                "neighborhood": "",
+                "phone": "",
+            },
+        )
+        content = response.content.decode()
+        # Check that form errors exist in the rendered context
+        assert response.context["form"].errors
+        # Check that error CSS classes appear in the HTML
+        assert 'class="field-error"' in content or "has-error" in content
+        # Check error messages are displayed
+        assert "ضروری" in content or "الزامی" in content
+
+    def test_register_returns_bound_form_in_context(self):
+        client = Client()
+        response = client.post(
+            "/register/",
+            {
+                "username": "partial",
+                "first_name": "رضا",
+                "last_name": "کریمی",
+                "email": "",
+                "password1": "short",
+                "password2": "short",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "",
+            },
+        )
+        assert isinstance(response.context["form"], RegisterForm)
+        assert response.context["form"].is_bound is True
+
+
+@pytest.mark.django_db
+class TestHomeView:
+    def test_accessible_anonymously(self):
+        client = Client()
+        response = client.get("/")
+        assert response.status_code == 200
+
+    def test_shows_popular_services(self):
+        Service.objects.create(
+            name="test service", organization="org", documents="doc1", steps="step1"
+        )
+        client = Client()
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "test service" in str(response.content)
+
+
+@pytest.mark.django_db
+class TestDashboardView:
+    def test_requires_login(self):
+        client = Client()
+        response = client.get("/dashboard/")
+        assert response.status_code == 302
+
+    def test_shows_when_logged_in(self):
+        User.objects.create_user("dashuser", password="pass12345")
+        client = Client()
+        client.login(username="dashuser", password="pass12345")
+        response = client.get("/dashboard/")
+        assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestSearchView:
+    def test_requires_login(self):
+        client = Client()
+        response = client.get("/search/")
+        assert response.status_code == 302
+
+    def test_search_finds_service_by_name(self):
+        User.objects.create_user("searchuser", password="pass12345")
+        Service.objects.create(
+            name="smart card",
+            organization="org",
+            documents="doc1",
+            steps="step1",
+            keywords="ملی,کارت",
+        )
+        client = Client()
+        client.login(username="searchuser", password="pass12345")
+        response = client.get("/search/", {"q": "smart"})
+        assert response.status_code == 200
+        assert "smart card" in str(response.content)
+
+    def test_search_pagination_context(self):
+        User.objects.create_user("searchpag", password="pass12345")
+        for i in range(15):
+            Service.objects.create(
+                name=f"result{i}", organization="o", documents="d", steps="s"
+            )
+        client = Client()
+        client.login(username="searchpag", password="pass12345")
+        response = client.get("/search/", {"q": "result"})
+        assert response.status_code == 200
+        assert "page_obj" in response.context
+
+    def test_search_empty_query_returns_empty(self):
+        User.objects.create_user("searchuser2", password="pass12345")
+        client = Client()
+        client.login(username="searchuser2", password="pass12345")
+        response = client.get("/search/", {"q": ""})
+        assert response.status_code == 200
+
+    def test_search_filters_by_organization(self):
+        User.objects.create_user("orgfilteruser", password="pass12345")
+        Service.objects.create(
+            name="سرویس الف", organization="سازمان الف", documents="d", steps="s"
+        )
+        Service.objects.create(
+            name="سرویس ب", organization="سازمان ب", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="orgfilteruser", password="pass12345")
+        response = client.get("/search/", {"organization": "سازمان الف"})
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "سرویس الف" in content
+        assert "سرویس ب" not in content
+
+    def test_search_filters_by_city(self):
+        User.objects.create_user("cityfilteruser", password="pass12345")
+        svc_a = Service.objects.create(
+            name="سرویس شهر", organization="org1", documents="d", steps="s"
+        )
+        svc_b = Service.objects.create(
+            name="سرویس دیگر", organization="org2", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(
+            service=svc_a, name="مرکز تهران", address="آدرس", city="تهران"
+        )
+        ServiceCenter.objects.create(
+            service=svc_b, name="مرکز مشهد", address="آدرس", city="مشهد"
+        )
+        client = Client()
+        client.login(username="cityfilteruser", password="pass12345")
+        response = client.get("/search/", {"city": "تهران"})
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "سرویس شهر" in content
+        assert "سرویس دیگر" not in content
+
+    def test_search_filters_dropdowns_present(self):
+        User.objects.create_user("dropdownuser", password="pass12345")
+        Service.objects.create(
+            name="test1", organization="سازمان الف", documents="d", steps="s"
+        )
+        Service.objects.create(
+            name="test2", organization="سازمان ب", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="dropdownuser", password="pass12345")
+        response = client.get("/search/")
+        content = response.content.decode()
+        assert 'name="organization"' in content
+        assert 'name="city"' in content
+        assert "سازمان الف" in content
+        assert "سازمان ب" in content
+
+
+@pytest.mark.django_db
+class TestServiceListView:
+    def test_accessible_anonymously(self):
+        client = Client()
+        response = client.get("/services/")
+        assert response.status_code == 200
+
+    def test_lists_services_ordered_by_name(self):
+        Service.objects.create(name="beta", organization="o", documents="d", steps="s")
+        Service.objects.create(name="alpha", organization="o", documents="d", steps="s")
+        client = Client()
+        response = client.get("/services/")
+        assert response.status_code == 200
+        content = str(response.content)
+        assert content.index("alpha") < content.index("beta")
+
+    def test_list_pagination_context(self):
+        for i in range(15):
+            Service.objects.create(
+                name=f"svc{i}", organization="o", documents="d", steps="s"
+            )
+        client = Client()
+        client.login(username="paguser", password="pass12345")
+        response = client.get("/services/")
+        assert response.status_code == 200
+        assert "page_obj" in response.context
+        assert response.context["page_obj"].paginator.per_page == 12
+
+
+@pytest.mark.django_db
+class TestServiceDetailView:
+    def test_requires_login(self):
+        client = Client()
+        response = client.get("/service/1/")
+        assert response.status_code == 302
+
+    def test_shows_service_details(self):
+        User.objects.create_user("detailuser", password="pass12345")
+        service = Service.objects.create(
+            name="passport", organization="police", documents="doc1", steps="step1"
+        )
+        client = Client()
+        client.login(username="detailuser", password="pass12345")
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+        assert "passport" in str(response.content)
+
+    def test_service_detail_falls_back_to_tehran_without_profile(self):
+        User.objects.create_user("noprofileuser", password="pass12345")
+        service = Service.objects.create(
+            name="test-svc", organization="org", documents="doc1", steps="step1"
+        )
+        client = Client()
+        client.login(username="noprofileuser", password="pass12345")
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+        assert response.context["user_city"] == "تهران"
+
+    def test_service_detail_with_profile(self):
+        user = User.objects.create_user("profileduser", password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="شیراز", neighborhood="قصردشت", phone="09121234567"
+        )
+        service = Service.objects.create(
+            name="test-svc2", organization="org", documents="doc1", steps="step1"
+        )
+        client = Client()
+        client.login(username="profileduser", password="pass12345")
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+        assert response.context["user_city"] == "شیراز"
+
+
+@pytest.mark.django_db
+class TestFAQView:
+    def test_requires_login(self):
+        client = Client()
+        response = client.get("/faq/")
+        assert response.status_code == 302
+
+    def test_shows_faqs_ordered(self):
+        User.objects.create_user("faquser", password="pass12345")
+        FAQ.objects.create(question="q1", answer="a1", order=2)
+        FAQ.objects.create(question="q2", answer="a2", order=1)
+        client = Client()
+        client.login(username="faquser", password="pass12345")
+        response = client.get("/faq/")
+        assert response.status_code == 200
+        assert "q1" in str(response.content)
+
+
+@pytest.mark.django_db
+class TestLoginView:
+    def test_get_returns_form(self):
+        client = Client()
+        response = client.get("/login/")
+        assert response.status_code == 200
+        assert "form" in response.context
+
+    def test_login_preserves_username_on_invalid_credentials(self):
+        User.objects.create_user("loginuser", password="correctpass")
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "loginuser", "password": "wrongpass"},
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'value="loginuser"' in content
+
+    def test_login_invalid_username_returns_form_with_errors(self):
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "", "password": ""},
+        )
+        assert response.status_code == 200
+        assert response.context["form"].errors
+        content = response.content.decode()
+        assert "has-error" in content or "message-error" in content
+
+    def test_login_redirects_when_authenticated(self):
+        User.objects.create_user("alreadyin", password="pass12345")
+        client = Client()
+        client.login(username="alreadyin", password="pass12345")
+        response = client.get("/login/")
+        assert response.status_code == 302
+
+
+@pytest.mark.django_db
+class TestAboutAndContactViews:
+    def test_about_accessible_anonymously(self):
+        client = Client()
+        response = client.get("/about/")
+        assert response.status_code == 200
+
+    def test_about_renders_when_logged_in(self):
+        User.objects.create_user("aboutuser", password="pass12345")
+        client = Client()
+        client.login(username="aboutuser", password="pass12345")
+        response = client.get("/about/")
+        assert response.status_code == 200
+
+    def test_contact_accessible_anonymously(self):
+        client = Client()
+        response = client.get("/contact/")
+        assert response.status_code == 200
+        assert "form" in response.context
+
+
+@pytest.mark.django_db
+class TestContactView:
+    def test_contact_renders_form_anonymously(self):
+        client = Client()
+        response = client.get("/contact/")
+        assert response.status_code == 200
+        assert "form" in response.context
+
+    def test_contact_post_saves_message_anonymously(self):
+        client = Client()
+        response = client.post(
+            "/contact/",
+            {
+                "name": "Test User",
+                "email": "test@example.com",
+                "message": "Hello, this is a test message.",
+            },
+        )
+        assert response.status_code == 302
+        assert ContactMessage.objects.count() == 1
+        msg = ContactMessage.objects.first()
+        assert msg.name == "Test User"
+        assert msg.email == "test@example.com"
+
+    def test_contact_post_invalid_form(self):
+        client = Client()
+        response = client.post(
+            "/contact/",
+            {
+                "name": "",
+                "email": "not-an-email",
+                "message": "",
+            },
+        )
+        assert response.status_code == 200
+        assert ContactMessage.objects.count() == 0
+
+    def test_contact_preserves_values_on_validation_error(self):
+        client = Client()
+        response = client.post(
+            "/contact/",
+            {
+                "name": "Test User",
+                "email": "bad-email",
+                "message": "",
+            },
+        )
+        content = response.content.decode()
+        assert 'value="Test User"' in content
+        assert 'value="bad-email"' in content
+
+    def test_contact_shows_field_errors(self):
+        client = Client()
+        response = client.post(
+            "/contact/",
+            {
+                "name": "",
+                "email": "bad-email",
+                "message": "",
+            },
+        )
+        content = response.content.decode()
+        assert 'class="field-error"' in content
+
+
+@pytest.mark.django_db
+class TestPasswordReset:
+    def test_password_reset_page_loads(self):
+        client = Client()
+        response = client.get(reverse("password_reset"))
+        assert response.status_code == 200
+
+    def test_password_reset_done_page_loads(self):
+        client = Client()
+        response = client.get(reverse("password_reset_done"))
+        assert response.status_code == 200
+
+    def test_password_reset_submit_sends_email(self):
+        User.objects.create_user(
+            username="resetuser", email="reset@example.com", password="oldpass"
+        )
+        client = Client()
+        response = client.post(
+            reverse("password_reset"), {"email": "reset@example.com"}
+        )
+        assert response.status_code == 302
+        assert response.url == reverse("password_reset_done")
+
+
+@pytest.mark.django_db
+class TestLogoutView:
+    def test_logout_redirects_to_login(self):
+        User.objects.create_user("logoutuser", password="pass12345")
+        client = Client()
+        client.login(username="logoutuser", password="pass12345")
+        response = client.get("/logout/")
+        assert response.status_code == 302
+
+
+@pytest.mark.django_db
+class TestProfileView:
+    def test_requires_login(self):
+        client = Client()
+        response = client.get("/profile/")
+        assert response.status_code == 302
+
+    def test_get_returns_form(self):
+        User.objects.create_user("puser", password="pass12345")
+        client = Client()
+        client.login(username="puser", password="pass12345")
+        response = client.get("/profile/")
+        assert response.status_code == 200
+        assert "form" in response.context
+        assert "password_form" in response.context
+
+    def test_get_populates_initial_data_with_profile(self):
+        user = User.objects.create_user("puser_profile", password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="اصفهان", neighborhood="", phone="09131234567"
+        )
+        client = Client()
+        client.login(username="puser_profile", password="pass12345")
+        response = client.get("/profile/")
+        assert response.status_code == 200
+        form = response.context["form"]
+        assert form.initial.get("city") == "اصفهان"
+        assert form.initial.get("phone") == "09131234567"
+
+    def test_profile_update_shows_errors_on_invalid_data(self):
+        user = User.objects.create_user("puser2", password="pass12345")
+        UserProfile.objects.create(user=user, city="tehran", neighborhood="", phone="")
+        client = Client()
+        client.login(username="puser2", password="pass12345")
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "invalid",
+            },
+        )
+        assert response.status_code == 200
+        assert response.context["form"].errors
+        content = response.content.decode()
+        assert "has-error" in content or "field-error" in content
+
+    def test_password_change_shows_errors_on_wrong_old_password(self):
+        User.objects.create_user("puser3", password="correctpass")
+        client = Client()
+        client.login(username="puser3", password="correctpass")
+        response = client.post(
+            "/profile/",
+            {
+                "change_password": "1",
+                "old_password": "wrongpass",
+                "new_password1": "newpass123",
+                "new_password2": "newpass123",
+            },
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'class="has-error"' in content or "field-error-msg" in content
+
+    def test_profile_update_with_valid_data_saves_changes(self):
+        user = User.objects.create_user("puser4", password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="تهران", neighborhood="", phone="09121234567"
+        )
+        client = Client()
+        client.login(username="puser4", password="pass12345")
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "نام جدید",
+                "last_name": "نام خانوادگی جدید",
+                "email": "",
+                "city": "مشهد",
+                "neighborhood": "سجاد",
+                "phone": "09131234567",
+            },
+        )
+        assert response.status_code == 302
+        user.refresh_from_db()
+        assert user.first_name == "نام جدید"
+        assert user.last_name == "نام خانوادگی جدید"
+
+    def test_password_change_with_valid_data_succeeds(self):
+        User.objects.create_user("puser5", password="oldpass123")
+        client = Client()
+        client.login(username="puser5", password="oldpass123")
+        response = client.post(
+            "/profile/",
+            {
+                "change_password": "1",
+                "old_password": "oldpass123",
+                "new_password1": "newpass456",
+                "new_password2": "newpass456",
+            },
+        )
+        assert response.status_code == 302
+        client.logout()
+        client.login(username="puser5", password="newpass456")
+        assert client.session is not None
+
+
+def test_static_js_files_exist():
+    import os
+
+    base = os.path.join(
+        os.path.dirname(__file__), "..", "..", "static", "services", "js"
+    )
+    assert os.path.isfile(os.path.join(base, "alpine.min.js"))
+    assert os.path.isfile(os.path.join(base, "main.js"))
+    assert os.path.isfile(os.path.join(base, "error-translate.js"))
+
+
+def test_vazirmatn_font_files_exist():
+    import os
+
+    base = os.path.join(
+        os.path.dirname(__file__), "..", "..", "static", "services", "fonts"
+    )
+    assert os.path.isfile(os.path.join(base, "Vazirmatn-Regular.woff2"))
+
+
+def test_vazirmatn_css_in_style_css():
+    import os
+
+    path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
+    )
+    with open(path, encoding="utf-8") as f:
+        content = f.read()
+    assert "Vazirmatn" in content
+    assert "@font-face" in content
+
+
+def test_error_code_catalog():
+    from services.error_codes import ERROR_CODES
+
+    assert "auth/invalid-credentials" in ERROR_CODES
+    assert (
+        ERROR_CODES["auth/invalid-credentials"] == "نام کاربری یا رمز عبور اشتباه است."
+    )
+
+
+def test_get_error_message_with_kwargs():
+    from services.error_codes import get_error_message
+
+    msg = get_error_message("register/welcome", first_name="علی")
+    assert "علی" in msg
+
+
+def test_get_error_message_fallback():
+    from services.error_codes import get_error_message
+
+    msg = get_error_message("unknown/code")
+    assert msg == "unknown/code"
+
+
+@pytest.mark.django_db
+def test_base_template_loads_static_assets():
+    client = Client()
+    response = client.get("/")
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "static/services/js/error-translate.js" in content
+    assert "static/services/js/main.js" in content
+    assert "static/services/css/style.css" in content
+    assert 'dir="rtl"' in content
+    assert 'lang="fa"' in content
+
+
+def test_body_has_rtl_direction():
+    import os
+
+    css_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
+    )
+    with open(css_path, encoding="utf-8") as f:
+        content = f.read()
+    assert "direction: rtl" in content
+    assert "text-align: right" in content
+
+
+@pytest.mark.django_db
+class TestNearbyCentersView:
+    def test_requires_login(self):
+        client = Client()
+        response = client.get("/nearby-centers/")
+        assert response.status_code == 302
+
+    def test_renders_when_logged_in(self):
+        User.objects.create_user("nearbyuser", password="pass12345")
+        client = Client()
+        client.login(username="nearbyuser", password="pass12345")
+        response = client.get("/nearby-centers/")
+        assert response.status_code == 200
+
+    def test_renders_with_profile(self):
+        user = User.objects.create_user("nbcityuser", password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="تهران", neighborhood="ونک", phone="09121234567"
+        )
+        service = Service.objects.create(
+            name="سرویس تست", organization="org", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(
+            service=service, name="مرکز الف", address="آدرس", city="تهران"
+        )
+        client = Client()
+        client.login(username="nbcityuser", password="pass12345")
+        response = client.get("/nearby-centers/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "تهران" in content
+        assert "centers_by_service" in response.context
+
+
+@pytest.mark.django_db
+class TestSecurityHeaders:
+    def test_csp_header_present(self):
+        client = Client()
+        response = client.get("/")
+        assert "Content-Security-Policy" in response
+        csp = response["Content-Security-Policy"]
+        assert "default-src 'self'" in csp
+        assert "form-action 'self'" in csp
+
+    def test_x_content_type_options(self):
+        client = Client()
+        response = client.get("/")
+        assert response["X-Content-Type-Options"] == "nosniff"
+
+    def test_referrer_policy(self):
+        client = Client()
+        response = client.get("/")
+        assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+    def test_session_cookie_httponly(self):
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "nonexistent", "password": "x"},
+        )
+        if response.has_header("Set-Cookie"):
+            cookie = response.cookies.get("sessionid")
+            if cookie:
+                assert cookie.get("httponly", False)
+
+
+@pytest.mark.django_db
+class TestBookmarkView:
+    def test_toggle_adds_bookmark(self):
+        user = User.objects.create_user("bmuser", password="pass12345")
+        service = Service.objects.create(
+            name="bm-svc", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="bmuser", password="pass12345")
+        response = client.post(f"/bookmark/{service.id}/")
+        assert response.status_code == 302
+        assert Bookmark.objects.filter(user=user, service=service).exists()
+
+    def test_toggle_removes_bookmark(self):
+        user = User.objects.create_user("bmuser2", password="pass12345")
+        service = Service.objects.create(
+            name="bm-svc2", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        client = Client()
+        client.login(username="bmuser2", password="pass12345")
+        response = client.post(f"/bookmark/{service.id}/")
+        assert response.status_code == 302
+        assert not Bookmark.objects.filter(user=user, service=service).exists()
+
+    def test_toggle_requires_login(self):
+        service = Service.objects.create(
+            name="bm-svc3", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        response = client.post(f"/bookmark/{service.id}/")
+        assert response.status_code == 302
+        assert "/login/" in response.url
+
+    def test_toggle_get_redirects_to_detail(self):
+        User.objects.create_user("bmuser4", password="pass12345")
+        service = Service.objects.create(
+            name="bm-svc4", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="bmuser4", password="pass12345")
+        response = client.get(f"/bookmark/{service.id}/")
+        assert response.status_code == 302
+        assert f"/service/{service.id}/" in response.url
+
+    def test_bookmarks_list_requires_login(self):
+        client = Client()
+        response = client.get("/bookmarks/")
+        assert response.status_code == 302
+
+    def test_bookmarks_list_shows_bookmarked_services(self):
+        user = User.objects.create_user("bmlistuser", password="pass12345")
+        service = Service.objects.create(
+            name="کتاب نشانک", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        client = Client()
+        client.login(username="bmlistuser", password="pass12345")
+        response = client.get("/bookmarks/")
+        assert response.status_code == 200
+        assert "کتاب نشانک" in response.content.decode()
+
+    def test_detail_shows_bookmark_context(self):
+        user = User.objects.create_user("bmdetail", password="pass12345")
+        service = Service.objects.create(
+            name="bm", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        client = Client()
+        client.login(username="bmdetail", password="pass12345")
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+        assert response.context["is_bookmarked"] is True
+
+
+@pytest.mark.django_db
+class TestRatingView:
+    def test_submit_creates_rating(self):
+        user = User.objects.create_user("rater", password="pass12345")
+        service = Service.objects.create(
+            name="rate-svc", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="rater", password="pass12345")
+        response = client.post(
+            f"/rate/{service.id}/", {"score": "4", "comment": "good"}
+        )
+        assert response.status_code == 302
+        rating = Rating.objects.get(user=user, service=service)
+        assert rating.score == 4
+        assert rating.comment == "good"
+
+    def test_submit_updates_existing_rating(self):
+        user = User.objects.create_user("rater2", password="pass12345")
+        service = Service.objects.create(
+            name="rate-svc2", organization="org", documents="d", steps="s"
+        )
+        Rating.objects.create(user=user, service=service, score=2, comment="bad")
+        client = Client()
+        client.login(username="rater2", password="pass12345")
+        response = client.post(
+            f"/rate/{service.id}/", {"score": "5", "comment": "updated"}
+        )
+        assert response.status_code == 302
+        rating = Rating.objects.get(user=user, service=service)
+        assert rating.score == 5
+        assert rating.comment == "updated"
+
+    def test_submit_requires_login(self):
+        service = Service.objects.create(
+            name="rate-svc3", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        response = client.post(f"/rate/{service.id}/")
+        assert response.status_code == 302
+        assert "/login/" in response.url
+
+    def test_submit_get_redirects_to_detail(self):
+        User.objects.create_user("rater3", password="pass12345")
+        service = Service.objects.create(
+            name="rate-svc4", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="rater3", password="pass12345")
+        response = client.get(f"/rate/{service.id}/")
+        assert response.status_code == 302
+        assert f"/service/{service.id}/" in response.url
+
+    def test_detail_shows_rating_context(self):
+        user = User.objects.create_user("rater4", password="pass12345")
+        service = Service.objects.create(
+            name="rate-svc5", organization="org", documents="d", steps="s"
+        )
+        Rating.objects.create(user=user, service=service, score=3)
+        client = Client()
+        client.login(username="rater4", password="pass12345")
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+        assert response.context["avg_rating"] == 3.0
+        assert response.context["rating_count"] == 1
+        assert response.context["user_rating"] is not None
+
+
+class TestRateLimitPage:
+    def test_429_template_exists(self):
+        import os
+
+        template_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "templates", "429.html"
+        )
+        assert os.path.isfile(template_path)
+
+
+@pytest.mark.django_db
+class TestAdminURLConfigurable:
+    def test_admin_accessible_at_default_path(self):
+        client = Client()
+        response = client.get("/admin/login/")
+        assert response.status_code in (200, 302)
+
+    def test_rate_limit_error_code_exists(self):
+        from services.error_codes import ERROR_CODES
+
+        assert "ratelimit/exceeded" in ERROR_CODES
+
+
+@pytest.mark.django_db
+class TestResponsiveHamburger:
+    def test_hamburger_button_present(self):
+        client = Client()
+        response = client.get("/")
+        content = response.content.decode()
+        assert 'class="mobile-menu-btn"' in content
+        assert "onclick=" in content
+        assert "toggleMenu" in content
+        assert 'aria-label="منو"' in content
+
+    def test_mobile_menu_btn_css_hidden_on_desktop(self):
+        import os
+
+        css_path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "static",
+            "services",
+            "css",
+            "style.css",
+        )
+        with open(css_path, encoding="utf-8") as f:
+            content = f.read()
+        assert ".mobile-menu-btn {\n    display: none;" in content
+        assert "@media (max-width: 768px)" in content
+        assert ".nav-links" in content
+
+    def test_close_menu_function_exists(self):
+        import os
+
+        js_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "static", "services", "js", "main.js"
+        )
+        with open(js_path, encoding="utf-8") as f:
+            content = f.read()
+        assert "function closeMenu" in content
+        assert "navLinks.querySelectorAll('a').forEach" in content
+        assert "link.addEventListener('click', closeMenu)" in content
+
+    def test_nav_links_use_getElementById(self):
+        import os
+
+        js_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "static", "services", "js", "main.js"
+        )
+        with open(js_path, encoding="utf-8") as f:
+            content = f.read()
+        assert "document.getElementById('navLinks')" in content
+        assert "navLinks" in content
+
+
+@pytest.mark.django_db
+class TestSeoEndpoints:
+    def test_robots_txt(self):
+        from django.test.utils import override_settings
+
+        with override_settings(SITE_URL="https://example.com"):
+            client = Client()
+            response = client.get("/robots.txt")
+            assert response.status_code == 200
+            assert response["Content-Type"] == "text/plain"
+            content = response.content.decode()
+            assert "User-agent: *" in content
+            assert "Sitemap: https://example.com/sitemap.xml" in content
+
+    def test_sitemap_xml(self):
+        from django.test.utils import override_settings
+
+        with override_settings(SITE_URL="https://example.com"):
+            client = Client()
+            response = client.get("/sitemap.xml")
+            assert response.status_code == 200
+            assert "application/xml" in response["Content-Type"]
+            content = response.content.decode()
+            assert '<?xml version="1.0" encoding="UTF-8"?>' in content
+            assert "<urlset" in content
+            assert "https://example.com" in content
+
+    def test_sitemap_includes_services(self):
+        from django.test.utils import override_settings
+
+        Service.objects.create(
+            name="سرویس الف", organization="org1", documents="d", steps="s"
+        )
+        Service.objects.create(
+            name="سرویس ب", organization="org2", documents="d", steps="s"
+        )
+        with override_settings(SITE_URL="https://example.com"):
+            client = Client()
+            response = client.get("/sitemap.xml")
+            content = response.content.decode()
+            assert "/service/1/" in content
+            assert "/service/2/" in content
+
+    def test_homepage_has_meta_tags(self):
+        client = Client()
+        response = client.get("/")
+        content = response.content.decode()
+        assert 'name="description"' in content
+        assert 'name="keywords"' in content
+        assert 'rel="canonical"' in content
+        assert 'property="og:title"' in content
+        assert 'property="og:description"' in content
+        assert 'name="twitter:title"' in content
+        assert 'name="twitter:description"' in content
+
+
+@pytest.mark.django_db
+def test_print_media_query_exists_in_css():
+    import os
+
+    css_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
+    )
+    with open(css_path, encoding="utf-8") as f:
+        content = f.read()
+    assert "@media print" in content
+    assert ".btn-print" in content
+
+
+@pytest.mark.django_db
+class TestPrintableView:
+    def test_print_button_on_detail_page(self):
+        from services.models import Service
+
+        Service.objects.create(
+            name="test-print",
+            organization="org",
+            documents="doc1|doc2",
+            steps="step1|step2",
+            cost="free",
+            duration="1 day",
+        )
+        User.objects.create_user("printuser", password="pass12345")
+        client = Client()
+        client.login(username="printuser", password="pass12345")
+        response = client.get("/service/1/")
+        content = response.content.decode()
+        assert "btn-print" in content
+        assert "window.print()" in content

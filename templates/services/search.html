@@ -1,147 +1,81 @@
 {% extends 'services/base.html' %}
 
 {% block title %}نتایج جستجو | آگاه‌یار{% endblock %}
+{% block meta_description %}نتایج جستجوی خدمات دولتی در سامانه آگاه‌یار{% endblock %}
+{% block meta_keywords %}جستجو, خدمات دولتی, آگاه‌یار{% endblock %}
 
 {% block content %}
-<style>
-.search-header {
-    background: white;
-    padding: 20px;
-    border-radius: 24px;
-    margin-bottom: 32px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-.search-form-row {
-    display: flex;
-    gap: 12px;
-    max-width: 550px;
-}
-.search-form-row input {
-    flex: 1;
-    padding: 12px 18px;
-    border: 1px solid #ddd;
-    border-radius: 40px;
-    font-size: 1rem;
-    font-family: inherit;
-}
-.search-form-row button {
-    background: #1a5f7a;
-    color: white;
-    border: none;
-    padding: 12px 28px;
-    border-radius: 40px;
-    cursor: pointer;
-    font-family: inherit;
-    font-weight: bold;
-}
-.result-card {
-    background: white;
-    border-radius: 24px;
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    transition: 0.2s;
-    border: 1px solid #eef2f5;
-}
-.result-card h3 {
-    font-size: 1.5rem;
-    color: #1a5f7a;
-    margin-bottom: 12px;
-}
-.org-badge {
-    background: #e8f4f8;
-    padding: 8px 16px;
-    border-radius: 20px;
-    display: inline-block;
-    margin-bottom: 16px;
-    font-size: 0.85rem;
-}
-.docs-preview {
-    background: #f8f9fa;
-    padding: 12px 16px;
-    border-radius: 16px;
-    margin: 16px 0;
-}
-.btn-outline-custom {
-    background: transparent;
-    border: 1px solid #1a5f7a;
-    color: #1a5f7a;
-    padding: 8px 20px;
-    border-radius: 30px;
-    text-decoration: none;
-    display: inline-block;
-    margin-top: 12px;
-}
-.no-results {
-    text-align: center;
-    background: white;
-    padding: 50px;
-    border-radius: 28px;
-}
-.btn-back {
-    background: #1a5f7a;
-    color: white;
-    padding: 12px 28px;
-    border-radius: 40px;
-    text-decoration: none;
-    display: inline-block;
-    margin-top: 16px;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    transition: 0.2s;
-}
-.btn-back:hover {
-    background: #0e4a60;
-    transform: translateY(-2px);
-}
-.text-center {
-    text-align: center;
-}
-</style>
 
 <div class="search-header">
-    <form action="{% url 'search' %}" method="get" class="search-form-row">
-        <input type="text" name="q" value="{{ query }}" placeholder="جستجوی خدمت مورد نظر ..." required>
-        <button type="submit">جستجو</button>
-    </form>
+ <form action="{% url 'search' %}" method="get" class="search-form-row">
+ <input type="text" name="q" value="{{ query }}" placeholder="جستجوی خدمت مورد نظر ..." required>
+ <button type="submit">جستجو</button>
+ </form>
+ <div class="filter-row">
+  <select name="organization" onchange="this.form.submit()">
+   <option value="">همه سازمان‌ها</option>
+   {% for org in organizations %}
+   <option value="{{ org }}" {% if org_filter == org %}selected{% endif %}>{{ org }}</option>
+   {% endfor %}
+  </select>
+  <select name="city" onchange="this.form.submit()">
+   <option value="">همه شهرها</option>
+   {% for city in cities %}
+   <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
+   {% endfor %}
+  </select>
+ </div>
 </div>
 
-{% if query %}
-    {% if count == 0 %}
-        <div class="no-results">
-            <h3>😞 متأسفیم!</h3>
-            <p>نتیجه‌ای برای "{{ query }}" پیدا نشد.</p>
-        </div>
-    {% else %}
-        <h2 style="margin-bottom: 24px;">{{ count }} نتیجه برای "{{ query }}"</h2>
-        {% for service in results %}
-        <div class="result-card">
-            <h3>{{ service.name }}</h3>
-            <div class="org-badge">🏢 {{ service.organization }}</div>
-            
-            <div class="docs-preview">
-                <strong>📄 مدارک مورد نیاز:</strong>
-                <ul style="margin: 8px 0 0 20px;">
-                    {% for doc in service.get_documents_list|slice:":2" %}
-                        <li>{{ doc }}</li>
-                    {% endfor %}
-                    {% if service.get_documents_list|length > 2 %}...{% endif %}
-                </ul>
-            </div>
-            
-            <a href="{% url 'service_detail' service.id %}" class="btn-outline-custom">مشاهده جزئیات →</a>
-        </div>
-        {% endfor %}
-    {% endif %}
+{% if query or org_filter or city_filter %}
+ {% if count == 0 %}
+ <div class="no-results">
+ <h3> متأسفیم!</h3>
+ <p>نتیجه‌ای برای "{{ query }}" پیدا نشد.</p>
+ </div>
+ {% else %}
+ <h2 class="section-title result-heading">{{ count }} نتیجه برای "{{ query }}"</h2>
+ {% for service in page_obj %}
+ <div class="result-card">
+ <h3>{{ service.name }}</h3>
+ <div class="org-badge"> {{ service.organization }}</div>
+
+ <div class="docs-preview">
+ <strong> مدارک مورد نیاز:</strong>
+ <ul class="docs-list">
+ {% for doc in service.get_documents_list|slice:":2" %}
+ <li>{{ doc }}</li>
+ {% endfor %}
+ {% if service.get_documents_list|length > 2 %}...{% endif %}
+ </ul>
+ </div>
+
+ <a href="{% url 'service_detail' service.id %}" class="btn-outline-custom">مشاهده جزئیات </a>
+ </div>
+ {% endfor %}
+
+ {% if page_obj.paginator.num_pages > 1 %}
+ <div class="pagination">
+ {% if page_obj.has_previous %}
+ <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page=1">&laquo; اول</a>
+ <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.previous_page_number }}">قبلی</a>
+ {% endif %}
+ <span>صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+ {% if page_obj.has_next %}
+ <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.next_page_number }}">بعدی</a>
+ <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.paginator.num_pages }}">آخر &raquo;</a>
+ {% endif %}
+ </div>
+ {% endif %}
+ {% endif %}
 {% else %}
-    <div class="no-results">
-        <h3>🔍 جستجو کنید</h3>
-        <p>لطفاً نام یک خدمت دولتی را وارد کنید.</p>
-    </div>
+ <div class="no-results">
+ <h3> جستجو کنید</h3>
+ <p>لطفاً نام یک خدمت دولتی را وارد کنید.</p>
+ </div>
 {% endif %}
 
 <div class="text-center">
-    <a href="javascript:history.go(-1)" class="btn-back">← بازگشت به صفحه قبل</a>
+ <a href="{% url 'home' %}" class="btn-back"> بازگشت به خانه</a>
 </div>
 {% endblock %}
