@@ -1768,7 +1768,6 @@ body {
 
 @media (max-width: 768px) {
     .theme-toggle-btn {
-        align-self: flex-start;
         margin: 10px 20px;
     }
 }
