@@ -1,8 +1,9 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-<head>
- <meta charset="UTF-8">
+ <head>
+  <script>(function(){var t=localStorage.getItem("theme");if(t){document.documentElement.setAttribute("data-theme",t)}})()</script>
+  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
  <meta name="description" content="{% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - آگاه‌یار{% endblock %}">
@@ -15,8 +16,8 @@
  <meta name="twitter:card" content="{% block twitter_card %}summary{% endblock %}">
  <meta name="twitter:title" content="{% block twitter_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
  <meta name="twitter:description" content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
+  <link rel="stylesheet" href="{% static 'services/css/fontawesome-all.min.css' %}">
   <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
-  <script defer src="{% static 'services/js/alpine.min.js' %}"></script>
   <script defer src="{% static 'services/js/error-translate.js' %}"></script>
   <script defer src="{% static 'services/js/main.js' %}"></script>
   {% block extra_css %}{% endblock %}
@@ -40,8 +41,9 @@
     <a href="{% url 'app_logout' %}" class="logout-link">خروج</a>
    {% else %}
    <a href="{% url 'login' %}" class="login-link">ورود</a>
-   {% endif %}
-  </nav>
+    {% endif %}
+   <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" aria-label="تغییر تم"><i class="fas fa-moon"></i></button>
+   </nav>
  <button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="منو">☰</button>
  </div>
 </header>

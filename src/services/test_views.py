@@ -739,7 +739,6 @@ def test_base_template_loads_static_assets():
     response = client.get("/")
     assert response.status_code == 200
     content = response.content.decode()
-    assert "static/services/js/alpine.min.js" in content
     assert "static/services/js/error-translate.js" in content
     assert "static/services/js/main.js" in content
     assert "static/services/css/style.css" in content

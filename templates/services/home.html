@@ -22,21 +22,6 @@
  {% endif %}
 </section>
 
-<div class="icon-boxes">
- <a href="{% url 'services_list' %}" class="icon-box">
- <span class="icon"></span>
- <span class="label">خدمات</span>
- </a>
- <a href="{% url 'about' %}" class="icon-box">
- <span class="icon"></span>
- <span class="label">درباره ما</span>
- </a>
- <a href="{% url 'contact' %}" class="icon-box">
- <span class="icon"></span>
- <span class="label">تماس با ما</span>
- </a>
-</div>
-
 <h2 class="section-title"> خدمات پرطرفدار</h2>
 <div class="services-grid">
  {% for service in popular_services %}
