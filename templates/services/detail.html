@@ -21,6 +21,8 @@
  </a>
  </div>
  {% endif %}
+
+ <button onclick="window.print()" class="btn-print">چاپ</button>
 </div>
 
 <div class="info-card">
@@ -78,6 +80,6 @@
 </div>
 
 <div class="text-center">
- <a href="#" onclick="history.back(); return false;" class="btn-back"> بازگشت به صفحه قبل</a>
+ <a href="{% url 'services_list' %}" class="btn-back"> بازگشت به لیست خدمات</a>
 </div>
 {% endblock %}

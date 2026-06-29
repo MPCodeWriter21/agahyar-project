@@ -1,6 +1,6 @@
 # Print-friendly view for service details
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 - TAGS: feature
 

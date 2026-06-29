@@ -32,7 +32,7 @@
    <a href="{% url 'login' %}" class="login-link">ورود</a>
    {% endif %}
   </nav>
- <button class="mobile-menu-btn" onclick="toggleMenu()"></button>
+ <button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="منو">☰</button>
  </div>
 </header>
 
@@ -75,8 +75,5 @@
  </div>
 </footer>
 
-<script defer src="{% static 'services/js/alpine.min.js' %}"></script>
-<script defer src="{% static 'services/js/error-translate.js' %}"></script>
-<script defer src="{% static 'services/js/main.js' %}"></script>
 </body>
 </html>

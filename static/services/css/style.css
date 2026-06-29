@@ -209,6 +209,25 @@ body {
     transform: translateY(-2px);
 }
 
+.btn-print {
+    display: inline-block;
+    margin-top: 12px;
+    background: #28a745;
+    color: white;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 40px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: 0.2s;
+}
+
+.btn-print:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
 .form-group {
     margin-bottom: 20px;
 }
@@ -1211,6 +1230,10 @@ body {
     .mobile-menu-btn {
         display: block;
     }
+    .nav-links.show .logout-link {
+        border-right: none;
+        padding-right: 0;
+    }
     .header-container {
         padding: 0 16px;
     }
@@ -1255,5 +1278,60 @@ body {
     .search-box button {
         width: 100%;
         padding: 14px;
+    }
+}
+
+/* --- Print Styles --- */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    .header,
+    .footer,
+    .nav-links,
+    .mobile-menu-btn,
+    .search-box,
+    .btn-map,
+    .btn-print,
+    .btn-back,
+    .text-center,
+    .alert-note,
+    .icon-boxes,
+    .hero-cta,
+    #message-container {
+        display: none !important;
+    }
+    .main-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+    }
+    .detail-header,
+    .info-card,
+    .meta-item,
+    .nearest-box,
+    .org-address-box {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+    .detail-header h1 {
+        font-size: 1.6rem;
+        color: black !important;
+    }
+    .info-card h3 {
+        color: black !important;
+        border-right-color: #333 !important;
+    }
+    .nearest-card {
+        border-right-color: #333 !important;
+    }
+    .nearest-box {
+        border-right-color: #333 !important;
+    }
+    a {
+        color: black !important;
+        text-decoration: underline;
     }
 }

@@ -666,3 +666,38 @@ class TestAdminURLConfigurable:
         from services.error_codes import ERROR_CODES
 
         assert "ratelimit/exceeded" in ERROR_CODES
+
+
+@pytest.mark.django_db
+def test_print_media_query_exists_in_css():
+    import os
+
+    css_path = os.path.join(
+        os.path.dirname(__file__), "..", "static", "services", "css", "style.css"
+    )
+    with open(css_path, encoding="utf-8") as f:
+        content = f.read()
+    assert "@media print" in content
+    assert ".btn-print" in content
+
+
+@pytest.mark.django_db
+class TestPrintableView:
+    def test_print_button_on_detail_page(self):
+        from services.models import Service
+
+        Service.objects.create(
+            name="test-print",
+            organization="org",
+            documents="doc1|doc2",
+            steps="step1|step2",
+            cost="free",
+            duration="1 day",
+        )
+        User.objects.create_user("printuser", password="pass12345")
+        client = Client()
+        client.login(username="printuser", password="pass12345")
+        response = client.get("/service/1/")
+        content = response.content.decode()
+        assert "btn-print" in content
+        assert "window.print()" in content
