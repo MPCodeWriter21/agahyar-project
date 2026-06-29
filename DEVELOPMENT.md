@@ -135,6 +135,13 @@ realistic sample data:
   uv run python scripts/populate_centers.py
   ```
 
+- ``populate_faq.py`` -- creates (or updates) 30 FAQ entries covering all 9
+  service categories plus general questions (idempotent):
+
+  ```bash
+  uv run python scripts/populate_faq.py
+  ```
+
 Project Structure
 -----------------
 
