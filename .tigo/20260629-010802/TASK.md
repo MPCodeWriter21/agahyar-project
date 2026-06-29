@@ -1,6 +1,6 @@
 # Host Vazirmatn font locally
 
-- STATUS: DONE
+- STATUS: CLOSED
 - PRIORITY: 75
 - TAGS: design, font, asset
 

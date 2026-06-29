@@ -1,6 +1,6 @@
 # Make contact-us and about pages public
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 85
 - TAGS: feature, auth
 

@@ -1,6 +1,6 @@
 # Form validation without reset
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 80
 - TAGS: ux, bug
 

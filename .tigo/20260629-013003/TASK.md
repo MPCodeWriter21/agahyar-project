@@ -1,6 +1,6 @@
 # Separate JS files + HTMX / Alpine.js / Datastar
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: frontend, refactor
 

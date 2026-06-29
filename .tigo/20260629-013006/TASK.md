@@ -1,6 +1,6 @@
 # Fix LTR field direction in RTL layout
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 75
 - TAGS: ux, bug, rtl
 

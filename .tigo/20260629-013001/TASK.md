@@ -1,6 +1,6 @@
 # Persian error translation layer
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 85
 - TAGS: ux, i18n, refactor
 

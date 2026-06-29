@@ -1,6 +1,6 @@
 # Hot reload
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 - TAGS: docker, hot reload
 
