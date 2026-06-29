@@ -31,7 +31,9 @@ ERROR_CODES: dict[str, str] = {
     # ---- Contact ----
     "contact/sent": "پیام شما با موفقیت ارسال شد.",
     # ---- Register ----
-    "register/welcome": "خوش آمدید {username}!",
+    "register/welcome": "خوش آمدید {first_name}!",
+    # ---- Rate limiting ----
+    "ratelimit/exceeded": "درخواست‌های زیادی ارسال کرده‌اید. لطفاً چند دقیقه دیگر تلاش کنید.",
     # ---- Uniqueness ----
     "email/duplicate": "این ایمیل قبلاً ثبت شده است.",
     "phone/duplicate": "این شماره تماس قبلاً ثبت شده است.",

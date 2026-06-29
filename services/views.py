@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django_ratelimit.decorators import ratelimit
 
 from .error_codes import get_error_message
 from .forms import CITY_CHOICES, ContactForm, LoginForm, ProfileForm, RegisterForm
@@ -30,6 +31,7 @@ def save_user_profile(
     )
 
 
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
 def register_view(request: HttpRequest) -> HttpResponse:
     """Handle user registration.
 
@@ -54,7 +56,11 @@ def register_view(request: HttpRequest) -> HttpResponse:
             save_user_profile(user.id, city, neighborhood, phone)
             login(request, user)
             messages.success(
-                request, get_error_message("register/welcome", username=user.username)
+                request,
+                get_error_message(
+                    "register/welcome",
+                    first_name=user.first_name or user.username,
+                ),
             )
             return redirect("home")
     else:
@@ -65,6 +71,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
 def login_view(request: HttpRequest) -> HttpResponse:
     """Handle user login.
 
@@ -83,7 +90,10 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 login(request, user)
                 messages.success(
                     request,
-                    get_error_message("register/welcome", username=user.username),
+                    get_error_message(
+                        "register/welcome",
+                        first_name=user.first_name or user.username,
+                    ),
                 )
                 return redirect("home")
             messages.error(request, get_error_message("auth/invalid-credentials"))
@@ -135,7 +145,7 @@ def search(request: HttpRequest) -> HttpResponse:
     """
     if not request.user.is_authenticated:
         return redirect("login")
-    query: str = request.GET.get("q", "").strip()
+    query: str = request.GET.get("q", "").strip()[:200]
     results: QuerySet = Service.objects.none()
     if query:
         results = Service.objects.filter(
@@ -270,7 +280,8 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     """Show and edit the current user's profile.
 
     GET: displays the profile data and an edit form.
-    POST: saves profile changes (city, neighborhood, phone) or password.
+    POST: saves profile changes (name, email, city, neighborhood, phone) or
+          password.
     """
     profile: UserProfile | None = None
     try:
@@ -283,11 +294,16 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             form = ProfileForm(request.POST, user_id=request.user.id)
             password_form = PasswordChangeForm(request.user)
             if form.is_valid():
+                user = request.user
+                user.first_name = form.cleaned_data["first_name"]
+                user.last_name = form.cleaned_data["last_name"]
+                user.email = form.cleaned_data.get("email", "")
+                user.save()
                 save_user_profile(
                     request.user.id,
                     form.cleaned_data["city"],
                     form.cleaned_data["neighborhood"],
-                    form.cleaned_data.get("phone", ""),
+                    form.cleaned_data["phone"],
                 )
                 messages.success(request, get_error_message("profile/updated"))
                 return redirect("profile")
@@ -299,13 +315,19 @@ def profile_view(request: HttpRequest) -> HttpResponse:
                 messages.success(request, get_error_message("password/changed"))
                 return redirect("profile")
     else:
-        initial = {}
+        initial = {
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "email": request.user.email,
+        }
         if profile:
-            initial = {
-                "city": profile.city,
-                "neighborhood": profile.neighborhood,
-                "phone": profile.phone,
-            }
+            initial.update(
+                {
+                    "city": profile.city,
+                    "neighborhood": profile.neighborhood,
+                    "phone": profile.phone,
+                }
+            )
         form = ProfileForm(initial=initial)
         password_form = PasswordChangeForm(request.user)
 
@@ -326,6 +348,7 @@ def about(request: HttpRequest) -> HttpResponse:
     return render(request, "services/about.html")
 
 
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
 def contact(request: HttpRequest) -> HttpResponse:
     """Handle the contact form (public).
 

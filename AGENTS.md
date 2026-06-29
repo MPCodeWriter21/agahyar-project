@@ -36,6 +36,10 @@ Documentation
 - Do not commit anything without running the tests first.
 - Pre-commit hooks: ruff, ruff-format, isort, pyproject-fmt. Pytest is NOT in
   pre-commit (too slow); run pytest manually before committing.
+
+- The same CSS class must not be used for elements that are fundamentally
+  different. A nav button and a page prompt are different things; use
+  separate class names even if they share some styles.
 - Do not commit empty files or files that do not provide any value to the project.
 - Every new thing needs new tests to be added and run. If you add a new feature,
   add a test for it. If you fix a bug, add a test that reproduces the bug and

@@ -1,0 +1,14 @@
+{% extends 'services/base.html' %}
+{% load static %}
+
+{% block title %}محدودیت درخواست | آگاه‌یار{% endblock %}
+
+{% block content %}
+<div style="text-align:center; padding:80px 20px;">
+  <h1 style="font-size:3rem; color:#e74c3c; margin-bottom:20px;">429</h1>
+  <p style="font-size:1.2rem; color:#2c3e50; margin-bottom:30px;">
+    درخواست‌های زیادی ارسال کرده‌اید. لطفاً چند دقیقه دیگر تلاش کنید.
+  </p>
+  <a href="{% url 'home' %}" class="btn-detail">بازگشت به خانه</a>
+</div>
+{% endblock %}

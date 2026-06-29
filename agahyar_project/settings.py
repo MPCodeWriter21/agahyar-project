@@ -68,6 +68,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "agahyar_project.middleware.SecurityHeadersMiddleware",
 ]
 
 ROOT_URLCONF = "agahyar_project.urls"
@@ -143,6 +144,18 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Session & Cookie security
+SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=3600, cast=int)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# Rate limiting
+RATELIMIT_ENABLE = True
+RATELIMIT_FAIL_OPEN = False
 
 # Auth
 LOGIN_URL = "login"

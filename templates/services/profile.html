@@ -17,16 +17,20 @@
 
   <div class="profile-section">
     <div class="profile-info">
-      <p><strong>نام کاربری:</strong> {{ user.username }}</p>
-      <p><strong>ایمیل:</strong> {{ user.email|default:"-" }}</p>
-      <p><strong>تاریخ عضویت:</strong> {{ user.date_joined|date:"Y/m/d" }}</p>
+      <div class="info-row"><span class="info-label">نام</span><span class="info-value">{{ user.first_name|default:"-" }}</span></div>
+      <div class="info-row"><span class="info-label">نام خانوادگی</span><span class="info-value">{{ user.last_name|default:"-" }}</span></div>
+      <div class="info-row"><span class="info-label">نام کاربری</span><span class="info-value">{{ user.username }}</span></div>
+      <div class="info-row"><span class="info-label">ایمیل</span><span class="info-value">{{ user.email|default:"-" }}</span></div>
       {% if profile %}
-      <p><strong>شهر:</strong> {{ profile.city }}</p>
-      <p><strong>محله:</strong> {{ profile.neighborhood|default:"-" }}</p>
-      <p><strong>تلفن:</strong> {{ profile.phone|default:"-" }}</p>
+      <div class="info-row"><span class="info-label">شماره تماس</span><span class="info-value" dir="ltr">{{ profile.phone }}</span></div>
+      <div class="info-row"><span class="info-label">شهر</span><span class="info-value">{{ profile.city }}</span></div>
+      <div class="info-row"><span class="info-label">محله</span><span class="info-value">{{ profile.neighborhood|default:"-" }}</span></div>
       {% else %}
-      <p class="text-muted">شما هنوز پروفایل خود را تکمیل نکرده‌اید.</p>
+      <div class="info-row"><span class="info-label">شماره تماس</span><span class="info-value text-muted">ثبت نشده</span></div>
+      <div class="info-row"><span class="info-label">شهر</span><span class="info-value text-muted">ثبت نشده</span></div>
+      <div class="info-row"><span class="info-label">محله</span><span class="info-value text-muted">ثبت نشده</span></div>
       {% endif %}
+      <div class="info-row"><span class="info-label">تاریخ عضویت</span><span class="info-value">{{ user.date_joined|date:"Y/m/d" }}</span></div>
     </div>
   </div>
 
@@ -45,6 +49,21 @@
 
     <form method="post">
       {% csrf_token %}
+      <div class="form-group{% if form.first_name.errors %} has-error{% endif %}">
+        <label>نام</label>
+        <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" class="{% if form.first_name.errors %}field-error{% endif %}" required>
+        {% if form.first_name.errors %}<div class="field-error-msg">{{ form.first_name.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="form-group{% if form.last_name.errors %} has-error{% endif %}">
+        <label>نام خانوادگی</label>
+        <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" class="{% if form.last_name.errors %}field-error{% endif %}" required>
+        {% if form.last_name.errors %}<div class="field-error-msg">{{ form.last_name.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="form-group{% if form.email.errors %} has-error{% endif %}">
+        <label>ایمیل</label>
+        <input type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="example@email.com" class="ltr-input{% if form.email.errors %} field-error{% endif %}" dir="ltr">
+        {% if form.email.errors %}<div class="field-error-msg">{{ form.email.errors.0 }}</div>{% endif %}
+      </div>
       <div class="form-group{% if form.city.errors %} has-error{% endif %}">
         <label>شهر محل سکونت</label>
         <select name="city" class="{% if form.city.errors %}field-error{% endif %}" required>
@@ -60,8 +79,8 @@
         {% if form.neighborhood.errors %}<div class="field-error-msg">{{ form.neighborhood.errors.0 }}</div>{% endif %}
       </div>
       <div class="form-group{% if form.phone.errors %} has-error{% endif %}">
-        <label>شماره تماس (اختیاری)</label>
-        <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="مثال: 09121234567" class="ltr-input{% if form.phone.errors %} field-error{% endif %}" dir="ltr">
+        <label>شماره تماس</label>
+        <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="مثال: 09121234567" class="ltr-input{% if form.phone.errors %} field-error{% endif %}" dir="ltr" required>
         {% if form.phone.errors %}<div class="field-error-msg">{{ form.phone.errors.0 }}</div>{% endif %}
       </div>
       <button type="submit" name="update_profile" class="btn-register">ذخیره تغییرات</button>

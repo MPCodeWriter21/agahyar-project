@@ -6,7 +6,7 @@
 {% block content %}
 
 <div class="dashboard-header">
-  <h2>خوش آمدید، {{ user.username }}</h2>
+  <h2>خوش آمدید، {{ user.first_name|default:user.username }}</h2>
   <p>از اینجا به خدمات و اطلاعات خود دسترسی داشته باشید.</p>
 </div>
 

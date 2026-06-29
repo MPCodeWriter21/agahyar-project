@@ -16,6 +16,7 @@ classifiers = [
 dependencies = [
   "beautifulsoup4>=4.15",
   "Django>=6.0.6",
+  "django-ratelimit>=4.1",
   "log21>=3.3.2",
   "lxml>=6.1.1",
   "python-decouple>=3.8",
@@ -25,6 +26,7 @@ dependencies = [
 ]
 [project.optional-dependencies]
 dev = [
+  "bandit>=1.8",
   "pre-commit>=4.2",
   "pytest>=8",
   "pytest-django>=4.9",

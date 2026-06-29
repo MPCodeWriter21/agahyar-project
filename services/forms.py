@@ -132,12 +132,27 @@ class RegisterForm(UserCreationForm):
 
 
 class ProfileForm(forms.Form):
-    """Form for editing user profile (city, neighborhood, phone)."""
+    """Form for editing user profile (name, email, city, neighborhood, phone)."""
 
     def __init__(self, *args, **kwargs):
         self.user_id = kwargs.pop("user_id", None)
         super().__init__(*args, **kwargs)
 
+    first_name = forms.CharField(
+        label="نام",
+        max_length=30,
+        error_messages={"required": REQUIRED_MSG},
+    )
+    last_name = forms.CharField(
+        label="نام خانوادگی",
+        max_length=30,
+        error_messages={"required": REQUIRED_MSG},
+    )
+    email = forms.EmailField(
+        label="ایمیل",
+        required=False,
+        error_messages={"invalid": INVALID_EMAIL_MSG},
+    )
     city = forms.CharField(
         label="شهر محل سکونت",
         max_length=100,
@@ -153,9 +168,8 @@ class ProfileForm(forms.Form):
     phone = forms.CharField(
         label="شماره تماس",
         max_length=11,
-        required=False,
         validators=[iranian_phone_number_validator],
-        error_messages={"invalid": INVALID_PHONE_MSG},
+        error_messages={"required": REQUIRED_MSG, "invalid": INVALID_PHONE_MSG},
         widget=forms.TextInput(attrs={"placeholder": "مثال: 09121234567"}),
     )
 

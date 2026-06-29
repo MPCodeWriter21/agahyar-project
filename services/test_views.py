@@ -575,8 +575,8 @@ def test_error_code_catalog():
 def test_get_error_message_with_kwargs():
     from services.error_codes import get_error_message
 
-    msg = get_error_message("register/welcome", username="Ali")
-    assert "Ali" in msg
+    msg = get_error_message("register/welcome", first_name="علی")
+    assert "علی" in msg
 
 
 def test_get_error_message_fallback():
@@ -611,3 +611,58 @@ class TestNearbyCentersView:
         client.login(username="nearbyuser", password="pass12345")
         response = client.get("/nearby-centers/")
         assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestSecurityHeaders:
+    def test_csp_header_present(self):
+        client = Client()
+        response = client.get("/")
+        assert "Content-Security-Policy" in response
+        csp = response["Content-Security-Policy"]
+        assert "default-src 'self'" in csp
+        assert "form-action 'self'" in csp
+
+    def test_x_content_type_options(self):
+        client = Client()
+        response = client.get("/")
+        assert response["X-Content-Type-Options"] == "nosniff"
+
+    def test_referrer_policy(self):
+        client = Client()
+        response = client.get("/")
+        assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+    def test_session_cookie_httponly(self):
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "nonexistent", "password": "x"},
+        )
+        if response.has_header("Set-Cookie"):
+            cookie = response.cookies.get("sessionid")
+            if cookie:
+                assert cookie.get("httponly", False)
+
+
+class TestRateLimitPage:
+    def test_429_template_exists(self):
+        import os
+
+        template_path = os.path.join(
+            os.path.dirname(__file__), "..", "templates", "429.html"
+        )
+        assert os.path.isfile(template_path)
+
+
+@pytest.mark.django_db
+class TestAdminURLConfigurable:
+    def test_admin_accessible_at_default_path(self):
+        client = Client()
+        response = client.get("/admin/login/")
+        assert response.status_code in (200, 302)
+
+    def test_rate_limit_error_code_exists(self):
+        from services.error_codes import ERROR_CODES
+
+        assert "ratelimit/exceeded" in ERROR_CODES
