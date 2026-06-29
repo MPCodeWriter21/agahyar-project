@@ -1,5 +1,5 @@
 # Unify source files under `src/` directory
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: dev, code, source, structure

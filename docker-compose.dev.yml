@@ -6,8 +6,8 @@ services:
     env_file:
       - .env
     volumes:
-      - ./agahyar_project:/app/agahyar_project
-      - ./services:/app/services
+      - ./src/agahyar_project:/app/src/agahyar_project
+      - ./src/services:/app/src/services
       - ./templates:/app/templates
       - ./static:/app/static
       - ./manage.py:/app/manage.py

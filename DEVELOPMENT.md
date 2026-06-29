@@ -113,18 +113,19 @@ Project Structure
 
 ```
 agahyar-project/
-├── agahyar_project/         # Django project configuration
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py / asgi.py
-├── services/                # Main application
-│   ├── models.py            # Service, UserProfile, FAQ, ServiceCenter
-│   ├── views.py             # All view functions
-│   ├── scraper.py           # Nearest-center logic and AI simulation
-│   ├── urls.py              # App routes
-│   ├── forms.py             # LoginForm, RegisterForm
-│   ├── admin.py             # Admin panel registration
-│   └── migrations/          # Database migrations
+├── src/                     # Python source packages
+│   ├── agahyar_project/     # Django project configuration
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py / asgi.py
+│   └── services/            # Main application
+│       ├── models.py        # Service, UserProfile, FAQ, ServiceCenter
+│       ├── views.py         # All view functions
+│       ├── scraper.py       # Nearest-center logic and AI simulation
+│       ├── urls.py          # App routes
+│       ├── forms.py         # LoginForm, RegisterForm
+│       ├── admin.py         # Admin panel registration
+│       └── migrations/      # Database migrations
 ├── templates/
 │   └── services/            # HTML templates
 └── pyproject.toml           # Project metadata, dependencies, and tool config

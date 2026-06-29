@@ -38,9 +38,11 @@ prod = [
 create-superuser = "agahyar_project.scripts:create_superuser"
 
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["agahyar_project*", "services*"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "agahyar_project.settings"
 python_files = ["tests.py", "test_*.py"]
-testpaths = ["services"]
+testpaths = ["src/services"]
+pythonpath = ["src"]

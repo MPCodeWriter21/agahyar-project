@@ -538,7 +538,9 @@ class TestProfileView:
 def test_static_js_files_exist():
     import os
 
-    base = os.path.join(os.path.dirname(__file__), "..", "static", "services", "js")
+    base = os.path.join(
+        os.path.dirname(__file__), "..", "..", "static", "services", "js"
+    )
     assert os.path.isfile(os.path.join(base, "alpine.min.js"))
     assert os.path.isfile(os.path.join(base, "main.js"))
     assert os.path.isfile(os.path.join(base, "error-translate.js"))
@@ -547,7 +549,9 @@ def test_static_js_files_exist():
 def test_vazirmatn_font_files_exist():
     import os
 
-    base = os.path.join(os.path.dirname(__file__), "..", "static", "services", "fonts")
+    base = os.path.join(
+        os.path.dirname(__file__), "..", "..", "static", "services", "fonts"
+    )
     assert os.path.isfile(os.path.join(base, "Vazirmatn-Regular.woff2"))
 
 
@@ -555,7 +559,7 @@ def test_vazirmatn_css_in_style_css():
     import os
 
     path = os.path.join(
-        os.path.dirname(__file__), "..", "static", "services", "css", "style.css"
+        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
     )
     with open(path, encoding="utf-8") as f:
         content = f.read()
@@ -604,7 +608,7 @@ def test_body_has_rtl_direction():
     import os
 
     css_path = os.path.join(
-        os.path.dirname(__file__), "..", "static", "services", "css", "style.css"
+        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
     )
     with open(css_path, encoding="utf-8") as f:
         content = f.read()
@@ -664,7 +668,7 @@ class TestRateLimitPage:
         import os
 
         template_path = os.path.join(
-            os.path.dirname(__file__), "..", "templates", "429.html"
+            os.path.dirname(__file__), "..", "..", "templates", "429.html"
         )
         assert os.path.isfile(template_path)
 
@@ -687,7 +691,7 @@ def test_print_media_query_exists_in_css():
     import os
 
     css_path = os.path.join(
-        os.path.dirname(__file__), "..", "static", "services", "css", "style.css"
+        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
     )
     with open(css_path, encoding="utf-8") as f:
         content = f.read()
