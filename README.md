@@ -58,8 +58,7 @@ transparency, simplicity, and intelligence.
 
 ### Service Details
 
-![Service details page 1](images/servicedetails_1.png)
-![Service details page 2](images/servicedetails_2.png)
+![Service details](images/service-info.png)
 
 ### About
 
@@ -67,7 +66,7 @@ transparency, simplicity, and intelligence.
 
 ### FAQ
 
-![FAQ page](images/commonquestions.png)
+![FAQ page](images/faq.png)
 
 ### Contact
 
@@ -76,6 +75,11 @@ transparency, simplicity, and intelligence.
 ### Nearest Centers
 
 ![Nearest centers page](images/nearestplace.png)
+
+#### Resources used for the screenshots
+
+- [Background Picture](https://unsplash.com/photos/grey-sand-wave-RCAhiGJsUUE)
+- [Screenshot Extension](https://screenshot.rocks/)
 
 ## How to Run the Project (Local Setup)
 
