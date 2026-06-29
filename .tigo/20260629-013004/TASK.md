@@ -1,6 +1,6 @@
 # Responsive design verification and hamburger menu
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 75
 - TAGS: ux, frontend, mobile
 

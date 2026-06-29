@@ -687,6 +687,59 @@ class TestAdminURLConfigurable:
 
 
 @pytest.mark.django_db
+class TestResponsiveHamburger:
+    def test_hamburger_button_present(self):
+        client = Client()
+        response = client.get("/")
+        content = response.content.decode()
+        assert 'class="mobile-menu-btn"' in content
+        assert "onclick=" in content
+        assert "toggleMenu" in content
+        assert 'aria-label="منو"' in content
+
+    def test_mobile_menu_btn_css_hidden_on_desktop(self):
+        import os
+
+        css_path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "static",
+            "services",
+            "css",
+            "style.css",
+        )
+        with open(css_path, encoding="utf-8") as f:
+            content = f.read()
+        assert ".mobile-menu-btn {\n    display: none;" in content
+        assert "@media (max-width: 768px)" in content
+        assert ".nav-links" in content
+
+    def test_close_menu_function_exists(self):
+        import os
+
+        js_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "static", "services", "js", "main.js"
+        )
+        with open(js_path, encoding="utf-8") as f:
+            content = f.read()
+        assert "function closeMenu" in content
+        assert "navLinks.querySelectorAll('a').forEach" in content
+        assert "link.addEventListener('click', closeMenu)" in content
+
+    def test_nav_links_use_getElementById(self):
+        import os
+
+        js_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "static", "services", "js", "main.js"
+        )
+        with open(js_path, encoding="utf-8") as f:
+            content = f.read()
+        assert "document.getElementById('navLinks')" in content
+        assert "navLinks" in content
+
+
+@pytest.mark.django_db
 class TestSeoEndpoints:
     def test_robots_txt(self):
         from django.test.utils import override_settings

@@ -1320,6 +1320,118 @@ body {
     }
 }
 
+@media (max-width: 480px) {
+    .main-content {
+        padding: 20px 12px;
+    }
+    .login-container,
+    .register-container,
+    .reset-container {
+        padding: 24px 16px;
+        margin: 30px 12px;
+    }
+    .profile-section {
+        padding: 20px 16px;
+    }
+    .dashboard-header h2 {
+        font-size: 1.5rem;
+    }
+    .hero h2 {
+        font-size: 1.6rem;
+    }
+    .hero p {
+        font-size: 0.95rem;
+    }
+    .hero {
+        padding: 40px 16px 30px;
+    }
+    .hero-cta {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .icon-box {
+        width: 100px;
+        height: 100px;
+        padding: 12px;
+    }
+    .icon-box .icon {
+        font-size: 1.8rem;
+    }
+    .icon-box .label {
+        font-size: 0.8rem;
+    }
+    .step {
+        min-width: auto;
+    }
+    .detail-header {
+        padding: 20px 16px;
+    }
+    .detail-header h1 {
+        font-size: 1.4rem;
+    }
+    .info-card {
+        padding: 18px 14px;
+    }
+    .meta-grid {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .meta-item {
+        min-width: auto;
+    }
+    .services-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .service-card {
+        padding: 18px;
+    }
+    .section-title {
+        font-size: 1.4rem;
+        margin: 40px 0 24px;
+    }
+    .how-it-works {
+        padding: 30px 16px;
+    }
+    .how-it-works h2 {
+        font-size: 1.4rem;
+    }
+    .faq-header h1,
+    .nearby-header h1,
+    .about-page h1,
+    .contact-page h1 {
+        font-size: 1.5rem;
+    }
+    .faq-item {
+        padding: 18px;
+    }
+    .contact-form,
+    .contact-info {
+        padding: 20px 16px;
+    }
+    .result-card {
+        padding: 18px;
+    }
+    .search-form-row {
+        flex-direction: column;
+        max-width: 100%;
+    }
+    .user-table {
+        font-size: 0.85rem;
+    }
+    .user-table th,
+    .user-table td {
+        padding: 10px 8px;
+    }
+    .footer-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    .footer-section h4 {
+        margin-bottom: 8px;
+    }
+}
+
 @media (max-width: 700px) {
     .steps-container {
         flex-direction: column;
