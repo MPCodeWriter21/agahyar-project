@@ -2,7 +2,8 @@ import pytest
 from django.contrib.auth.models import User
 from django.test import Client
 
-from services.forms import CITY_CHOICES, LoginForm, RegisterForm
+from services.forms import CITY_CHOICES, LoginForm, ProfileForm, RegisterForm
+from services.models import UserProfile
 
 
 class TestCityChoices:
@@ -68,6 +69,81 @@ class TestRegisterForm:
         assert not form.is_valid()
         assert "username" in form.errors
         assert "قبلاً ثبت شده است" in form.errors["username"][0]
+
+    def test_duplicate_email_raises_error(self):
+        User.objects.create_user("user1", email="dup@test.com", password="pass12345")
+        form = RegisterForm(
+            data={
+                "username": "newuser",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "dup@test.com",
+                "password1": "ComplexPass1!",
+                "password2": "ComplexPass1!",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            }
+        )
+        assert not form.is_valid()
+        assert "email" in form.errors
+
+    def test_duplicate_phone_raises_error(self):
+        user = User.objects.create_user("user1", password="pass12345")
+        UserProfile.objects.create(user=user, city="تهران", phone="09121234567")
+        form = RegisterForm(
+            data={
+                "username": "newuser",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "password1": "ComplexPass1!",
+                "password2": "ComplexPass1!",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            }
+        )
+        assert not form.is_valid()
+        assert "phone" in form.errors
+
+
+@pytest.mark.django_db
+class TestProfileForm:
+    def test_duplicate_phone_excludes_own_user(self):
+        user = User.objects.create_user("user1", password="pass12345")
+        UserProfile.objects.create(user=user, city="تهران", phone="09121234567")
+        form = ProfileForm(
+            data={
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            },
+            user_id=user.id,
+        )
+        assert form.is_valid(), form.errors
+
+    def test_duplicate_phone_rejects_other_user(self):
+        user_a = User.objects.create_user("user_a", password="pass12345")
+        UserProfile.objects.create(user=user_a, city="تهران", phone="09121234567")
+        user_b = User.objects.create_user("user_b", password="pass12345")
+        UserProfile.objects.create(user=user_b, city="مشهد", phone="09131234567")
+        form = ProfileForm(
+            data={
+                "first_name": "رضا",
+                "last_name": "احمدی",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09121234567",
+            },
+            user_id=user_b.id,
+        )
+        assert not form.is_valid()
+        assert "phone" in form.errors
 
 
 class TestLoginForm:

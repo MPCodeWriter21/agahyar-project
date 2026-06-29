@@ -1,6 +1,6 @@
 # Increase test coverage
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: testing, quality
 

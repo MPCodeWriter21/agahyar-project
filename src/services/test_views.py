@@ -4,7 +4,7 @@ from django.test import Client
 from django.urls import reverse
 
 from services.forms import RegisterForm
-from services.models import FAQ, ContactMessage, Service, UserProfile
+from services.models import FAQ, ContactMessage, Service, ServiceCenter, UserProfile
 from services.views import save_user_profile
 
 
@@ -305,6 +305,31 @@ class TestServiceDetailView:
         assert response.status_code == 200
         assert "passport" in str(response.content)
 
+    def test_service_detail_falls_back_to_tehran_without_profile(self):
+        User.objects.create_user("noprofileuser", password="pass12345")
+        service = Service.objects.create(
+            name="test-svc", organization="org", documents="doc1", steps="step1"
+        )
+        client = Client()
+        client.login(username="noprofileuser", password="pass12345")
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+        assert response.context["user_city"] == "تهران"
+
+    def test_service_detail_with_profile(self):
+        user = User.objects.create_user("profileduser", password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="شیراز", neighborhood="قصردشت", phone="09121234567"
+        )
+        service = Service.objects.create(
+            name="test-svc2", organization="org", documents="doc1", steps="step1"
+        )
+        client = Client()
+        client.login(username="profileduser", password="pass12345")
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+        assert response.context["user_city"] == "شیراز"
+
 
 @pytest.mark.django_db
 class TestFAQView:
@@ -498,6 +523,19 @@ class TestProfileView:
         assert "form" in response.context
         assert "password_form" in response.context
 
+    def test_get_populates_initial_data_with_profile(self):
+        user = User.objects.create_user("puser_profile", password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="اصفهان", neighborhood="", phone="09131234567"
+        )
+        client = Client()
+        client.login(username="puser_profile", password="pass12345")
+        response = client.get("/profile/")
+        assert response.status_code == 200
+        form = response.context["form"]
+        assert form.initial.get("city") == "اصفهان"
+        assert form.initial.get("phone") == "09131234567"
+
     def test_profile_update_shows_errors_on_invalid_data(self):
         user = User.objects.create_user("puser2", password="pass12345")
         UserProfile.objects.create(user=user, city="tehran", neighborhood="", phone="")
@@ -533,6 +571,48 @@ class TestProfileView:
         assert response.status_code == 200
         content = response.content.decode()
         assert 'class="has-error"' in content or "field-error-msg" in content
+
+    def test_profile_update_with_valid_data_saves_changes(self):
+        user = User.objects.create_user("puser4", password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="تهران", neighborhood="", phone="09121234567"
+        )
+        client = Client()
+        client.login(username="puser4", password="pass12345")
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "نام جدید",
+                "last_name": "نام خانوادگی جدید",
+                "email": "",
+                "city": "مشهد",
+                "neighborhood": "سجاد",
+                "phone": "09131234567",
+            },
+        )
+        assert response.status_code == 302
+        user.refresh_from_db()
+        assert user.first_name == "نام جدید"
+        assert user.last_name == "نام خانوادگی جدید"
+
+    def test_password_change_with_valid_data_succeeds(self):
+        User.objects.create_user("puser5", password="oldpass123")
+        client = Client()
+        client.login(username="puser5", password="oldpass123")
+        response = client.post(
+            "/profile/",
+            {
+                "change_password": "1",
+                "old_password": "oldpass123",
+                "new_password1": "newpass456",
+                "new_password2": "newpass456",
+            },
+        )
+        assert response.status_code == 302
+        client.logout()
+        client.login(username="puser5", password="newpass456")
+        assert client.session is not None
 
 
 def test_static_js_files_exist():
@@ -629,6 +709,25 @@ class TestNearbyCentersView:
         client.login(username="nearbyuser", password="pass12345")
         response = client.get("/nearby-centers/")
         assert response.status_code == 200
+
+    def test_renders_with_profile(self):
+        user = User.objects.create_user("nbcityuser", password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="تهران", neighborhood="ونک", phone="09121234567"
+        )
+        service = Service.objects.create(
+            name="سرویس تست", organization="org", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(
+            service=service, name="مرکز الف", address="آدرس", city="تهران"
+        )
+        client = Client()
+        client.login(username="nbcityuser", password="pass12345")
+        response = client.get("/nearby-centers/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "تهران" in content
+        assert "centers_by_service" in response.context
 
 
 @pytest.mark.django_db
@@ -765,6 +864,22 @@ class TestSeoEndpoints:
             assert '<?xml version="1.0" encoding="UTF-8"?>' in content
             assert "<urlset" in content
             assert "https://example.com" in content
+
+    def test_sitemap_includes_services(self):
+        from django.test.utils import override_settings
+
+        Service.objects.create(
+            name="سرویس الف", organization="org1", documents="d", steps="s"
+        )
+        Service.objects.create(
+            name="سرویس ب", organization="org2", documents="d", steps="s"
+        )
+        with override_settings(SITE_URL="https://example.com"):
+            client = Client()
+            response = client.get("/sitemap.xml")
+            content = response.content.decode()
+            assert "/service/1/" in content
+            assert "/service/2/" in content
 
     def test_homepage_has_meta_tags(self):
         client = Client()
