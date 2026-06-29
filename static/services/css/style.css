@@ -23,6 +23,8 @@ body {
     background-color: #fdf6ec;
     color: #2c3e50;
     line-height: 1.5;
+    direction: rtl;
+    text-align: right;
 }
 
 /* --- Header --- */
@@ -1184,6 +1186,81 @@ body {
     font-size: 0.85rem;
     margin-top: 6px;
     padding-right: 4px;
+}
+
+/* --- Utility Classes for Replacing Inline Styles --- */
+.section-title-spaced {
+    margin: 30px 0 15px;
+}
+.badge-near-space {
+    margin-inline-start: 10px;
+}
+.empty-text {
+    color: #6c757d;
+}
+.empty-state {
+    text-align: center;
+    padding: 50px 0;
+}
+.empty-faq {
+    text-align: center;
+    padding: 50px 0;
+}
+.empty-state-grid {
+    text-align: center;
+    grid-column: 1 / -1;
+    color: #6c757d;
+    padding: 50px 0;
+}
+.forgot-password {
+    text-align: center;
+    margin-top: 10px;
+}
+.nearest-address {
+    color: #2c3e50;
+    margin-top: 8px;
+}
+.nearest-phone {
+    color: #6c757d;
+    margin-top: 5px;
+}
+.nearest-map-link {
+    display: inline-block;
+    margin-top: 10px;
+    background: #28a745;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-family: inherit;
+}
+.nearest-map-link:hover {
+    background: #218838;
+}
+.nearest-note {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-top: 10px;
+}
+.docs-list {
+    margin: 8px 0 0;
+    padding-inline-start: 20px;
+}
+.result-heading {
+    margin-bottom: 24px;
+}
+.service-icon {
+    font-size: 2rem;
+}
+.team-note {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 8px;
+}
+.error-page-wrap {
+    text-align: center;
+    padding: 80px 20px;
 }
 
 /* --- Show Users Table --- */

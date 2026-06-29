@@ -18,7 +18,7 @@
  <p>نتیجه‌ای برای "{{ query }}" پیدا نشد.</p>
  </div>
  {% else %}
- <h2 class="section-title" style="margin-bottom: 24px;">{{ count }} نتیجه برای "{{ query }}"</h2>
+ <h2 class="section-title result-heading">{{ count }} نتیجه برای "{{ query }}"</h2>
  {% for service in page_obj %}
  <div class="result-card">
  <h3>{{ service.name }}</h3>
@@ -26,7 +26,7 @@
 
  <div class="docs-preview">
  <strong> مدارک مورد نیاز:</strong>
- <ul style="margin: 8px 0 0 20px;">
+ <ul class="docs-list">
  {% for doc in service.get_documents_list|slice:":2" %}
  <li>{{ doc }}</li>
  {% endfor %}

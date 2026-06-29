@@ -9,7 +9,7 @@
 <div class="services-grid">
  {% for service in page_obj %}
  <div class="service-card">
- <div class="service-icon" style="font-size: 2rem;"></div>
+ <div class="service-icon"></div>
  <h3>{{ service.name }}</h3>
  <p class="org-name">{{ service.organization }}</p>
  <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات </a>

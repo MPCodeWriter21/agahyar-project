@@ -1,6 +1,6 @@
 # Fix RTL layout for Persian website
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 80
 - TAGS: design, ux, rtl
 

@@ -18,7 +18,7 @@
  <p>مراکز ارائه خدمات در شهر شما:</p>
 
  {% for service_name, centers in centers_by_service.items %}
- <h3 class="section-title" style="margin: 30px 0 15px;"> {{ service_name }}</h3>
+ <h3 class="section-title section-title-spaced">{{ service_name }}</h3>
 
  {% for center in centers %}
  <div class="center-card {% if center.is_nearest %}nearest{% endif %}">
@@ -40,23 +40,23 @@
  </a>
 
  {% if not center.is_nearest %}
- <span class="badge-near" style="margin-right: 10px;">نزدیک</span>
+ <span class="badge-near badge-near-space">نزدیک</span>
  {% endif %}
  </div>
  {% empty %}
- <p style="color: #6c757d;">هیچ مرکزی برای این خدمت در شهر شما یافت نشد.</p>
+ <p class="empty-text">هیچ مرکزی برای این خدمت در شهر شما یافت نشد.</p>
  {% endfor %}
 
  {% endfor %}
 {% else %}
- <div style="text-align:center; padding:50px 0;">
+ <div class="empty-state">
  <h3> متأسفیم</h3>
  <p>هیچ مرکزی در شهر شما ثبت نشده است.</p>
- <p style="color:#6c757d; font-size:0.9rem;">لطفاً با پشتیبانی تماس بگیرید.</p>
+ <p class="empty-text">لطفاً با پشتیبانی تماس بگیرید.</p>
  </div>
 {% endif %}
 
 <div class="text-center">
- <a href="#" onclick="history.back(); return false;" class="btn-back"> بازگشت به صفحه قبل</a>
+ <a href="{% url 'services_list' %}" class="btn-back"> بازگشت به لیست خدمات</a>
 </div>
 {% endblock %}

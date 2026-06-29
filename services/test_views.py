@@ -596,6 +596,20 @@ def test_base_template_loads_static_assets():
     assert "static/services/js/error-translate.js" in content
     assert "static/services/js/main.js" in content
     assert "static/services/css/style.css" in content
+    assert 'dir="rtl"' in content
+    assert 'lang="fa"' in content
+
+
+def test_body_has_rtl_direction():
+    import os
+
+    css_path = os.path.join(
+        os.path.dirname(__file__), "..", "static", "services", "css", "style.css"
+    )
+    with open(css_path, encoding="utf-8") as f:
+        content = f.read()
+    assert "direction: rtl" in content
+    assert "text-align: right" in content
 
 
 @pytest.mark.django_db

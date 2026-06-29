@@ -43,7 +43,7 @@
     <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات</a>
   </div>
   {% empty %}
-  <p style="text-align:center; grid-column:1/-1; color:#6c757d; padding:50px 0;">
+  <p class="empty-state">
     هیچ خدمتی یافت نشد.
   </p>
   {% endfor %}
@@ -57,7 +57,7 @@
     <div class="faq-answer">{{ faq.answer }}</div>
   </div>
   {% empty %}
-  <p style="text-align:center; color:#6c757d;">هنوز پرسشی ثبت نشده است.</p>
+  <p class="empty-faq">هنوز پرسشی ثبت نشده است.</p>
   {% endfor %}
 </div>
 

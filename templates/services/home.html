@@ -44,11 +44,11 @@
  <p class="org-name">{{ service.organization|truncatechars:45 }}</p>
  <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات </a>
  </div>
- {% empty %}
- <p style="text-align:center; grid-column:1/-1; color:#6c757d; padding:50px 0;">
- هیچ خدمتی یافت نشد. ابتدا در پنل ادمین خدمات اضافه کنید.
- </p>
- {% endfor %}
+  {% empty %}
+  <p class="empty-state-grid">
+  هیچ خدمتی یافت نشد. ابتدا در پنل ادمین خدمات اضافه کنید.
+  </p>
+  {% endfor %}
 </div>
 
 <div class="how-it-works">
