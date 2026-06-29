@@ -732,6 +732,24 @@ body {
     font-family: inherit;
 }
 
+.btn-bookmark {
+    background: #ffc107;
+    color: #212529;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 12px;
+    transition: 0.2s;
+}
+
+.btn-bookmark:hover {
+    background: #e0a800;
+    transform: translateY(-2px);
+}
+
 .no-results {
     text-align: center;
     background: white;

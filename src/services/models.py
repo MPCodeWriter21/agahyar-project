@@ -108,3 +108,22 @@ class ContactMessage(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} - {self.email}"
+
+
+class Bookmark(models.Model):
+    """A user's bookmark for a favorite service."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="bookmarks")
+    service = models.ForeignKey(
+        Service, on_delete=models.CASCADE, related_name="bookmarks"
+    )
+    created_at = models.DateTimeField("تاریخ", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "نشانک"
+        verbose_name_plural = "نشانک‌ها"
+        unique_together = ("user", "service")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} - {self.service.name}"

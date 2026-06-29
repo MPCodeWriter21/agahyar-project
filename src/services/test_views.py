@@ -4,7 +4,14 @@ from django.test import Client
 from django.urls import reverse
 
 from services.forms import RegisterForm
-from services.models import FAQ, ContactMessage, Service, ServiceCenter, UserProfile
+from services.models import (
+    FAQ,
+    Bookmark,
+    ContactMessage,
+    Service,
+    ServiceCenter,
+    UserProfile,
+)
 from services.views import save_user_profile
 
 
@@ -815,6 +822,81 @@ class TestSecurityHeaders:
             cookie = response.cookies.get("sessionid")
             if cookie:
                 assert cookie.get("httponly", False)
+
+
+@pytest.mark.django_db
+class TestBookmarkView:
+    def test_toggle_adds_bookmark(self):
+        user = User.objects.create_user("bmuser", password="pass12345")
+        service = Service.objects.create(
+            name="bm-svc", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="bmuser", password="pass12345")
+        response = client.post(f"/bookmark/{service.id}/")
+        assert response.status_code == 302
+        assert Bookmark.objects.filter(user=user, service=service).exists()
+
+    def test_toggle_removes_bookmark(self):
+        user = User.objects.create_user("bmuser2", password="pass12345")
+        service = Service.objects.create(
+            name="bm-svc2", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        client = Client()
+        client.login(username="bmuser2", password="pass12345")
+        response = client.post(f"/bookmark/{service.id}/")
+        assert response.status_code == 302
+        assert not Bookmark.objects.filter(user=user, service=service).exists()
+
+    def test_toggle_requires_login(self):
+        service = Service.objects.create(
+            name="bm-svc3", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        response = client.post(f"/bookmark/{service.id}/")
+        assert response.status_code == 302
+        assert "/login/" in response.url
+
+    def test_toggle_get_redirects_to_detail(self):
+        User.objects.create_user("bmuser4", password="pass12345")
+        service = Service.objects.create(
+            name="bm-svc4", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="bmuser4", password="pass12345")
+        response = client.get(f"/bookmark/{service.id}/")
+        assert response.status_code == 302
+        assert f"/service/{service.id}/" in response.url
+
+    def test_bookmarks_list_requires_login(self):
+        client = Client()
+        response = client.get("/bookmarks/")
+        assert response.status_code == 302
+
+    def test_bookmarks_list_shows_bookmarked_services(self):
+        user = User.objects.create_user("bmlistuser", password="pass12345")
+        service = Service.objects.create(
+            name="کتاب نشانک", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        client = Client()
+        client.login(username="bmlistuser", password="pass12345")
+        response = client.get("/bookmarks/")
+        assert response.status_code == 200
+        assert "کتاب نشانک" in response.content.decode()
+
+    def test_detail_shows_bookmark_context(self):
+        user = User.objects.create_user("bmdetail", password="pass12345")
+        service = Service.objects.create(
+            name="bm", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        client = Client()
+        client.login(username="bmdetail", password="pass12345")
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+        assert response.context["is_bookmarked"] is True
 
 
 class TestRateLimitPage:

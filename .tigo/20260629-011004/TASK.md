@@ -1,6 +1,6 @@
 # Save/bookmark favorite services
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: feature
 

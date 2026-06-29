@@ -32,6 +32,9 @@ ERROR_CODES: dict[str, str] = {
     "contact/sent": "پیام شما با موفقیت ارسال شد.",
     # ---- Register ----
     "register/welcome": "خوش آمدید {first_name}!",
+    # ---- Bookmark ----
+    "bookmark/added": "خدمت مورد نظر به نشانک‌ها اضافه شد.",
+    "bookmark/removed": "خدمت مورد نظر از نشانک‌ها حذف شد.",
     # ---- Rate limiting ----
     "ratelimit/exceeded": "درخواست‌های زیادی ارسال کرده‌اید. لطفاً چند دقیقه دیگر تلاش کنید.",
     # ---- Uniqueness ----

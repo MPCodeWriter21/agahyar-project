@@ -1,7 +1,14 @@
 import pytest
 from django.contrib.auth.models import User
 
-from services.models import FAQ, ContactMessage, Service, ServiceCenter, UserProfile
+from services.models import (
+    FAQ,
+    Bookmark,
+    ContactMessage,
+    Service,
+    ServiceCenter,
+    UserProfile,
+)
 
 
 @pytest.mark.django_db
@@ -88,3 +95,26 @@ class TestContactMessageModel:
         )
         assert "علی" in str(msg)
         assert "ali@test.com" in str(msg)
+
+
+@pytest.mark.django_db
+class TestBookmarkModel:
+    def test_str(self):
+        user = User.objects.create_user("bookmarkuser", password="pass12345")
+        service = Service.objects.create(
+            name="خدمت نشانک", organization="org", documents="d", steps="s"
+        )
+        bookmark = Bookmark.objects.create(user=user, service=service)
+        assert "bookmarkuser" in str(bookmark)
+        assert "خدمت نشانک" in str(bookmark)
+
+    def test_unique_together(self):
+        user = User.objects.create_user("buser", password="pass12345")
+        service = Service.objects.create(
+            name="test", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        from django.db import IntegrityError
+
+        with pytest.raises(IntegrityError):
+            Bookmark.objects.create(user=user, service=service)

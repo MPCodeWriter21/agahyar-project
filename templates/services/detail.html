@@ -84,5 +84,9 @@
 
 <div class="text-center">
  <a href="{% url 'services_list' %}" class="btn-back"> بازگشت به لیست خدمات</a>
+ <form method="post" action="{% url 'toggle_bookmark' service.id %}" style="display:inline">
+  {% csrf_token %}
+  <button type="submit" class="btn-bookmark">{% if is_bookmarked %}حذف نشانک{% else %}افزودن به نشانک‌ها{% endif %}</button>
+ </form>
 </div>
 {% endblock %}

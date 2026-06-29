@@ -11,7 +11,7 @@ from django_ratelimit.decorators import ratelimit
 
 from .error_codes import get_error_message
 from .forms import CITY_CHOICES, ContactForm, LoginForm, ProfileForm, RegisterForm
-from .models import FAQ, ContactMessage, Service, ServiceCenter, UserProfile
+from .models import FAQ, Bookmark, ContactMessage, Service, ServiceCenter, UserProfile
 from .scraper import get_nearest_center
 
 
@@ -218,6 +218,8 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             service=service, city__icontains=user_city
         ).first()
 
+    is_bookmarked = Bookmark.objects.filter(user=request.user, service=service).exists()
+
     return render(
         request,
         "services/detail.html",
@@ -228,6 +230,7 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "nearest_center": nearest_center,
             "user_city": user_city,
             "user_neighborhood": user_neighborhood,
+            "is_bookmarked": is_bookmarked,
         },
     )
 
@@ -397,6 +400,37 @@ def contact(request: HttpRequest) -> HttpResponse:
         form = ContactForm()
 
     return render(request, "services/contact.html", {"form": form})
+
+
+@login_required
+def toggle_bookmark(request: HttpRequest, service_id: int) -> HttpResponse:
+    """Toggle bookmark on a service.
+
+    GET: redirects to service detail.
+    POST: toggles bookmark for the given service.
+    """
+
+    if request.method != "POST":
+        return redirect("service_detail", service_id=service_id)
+
+    service = get_object_or_404(Service, id=service_id)
+    bookmark, created = Bookmark.objects.get_or_create(
+        user=request.user, service=service
+    )
+    if not created:
+        bookmark.delete()
+        messages.success(request, get_error_message("bookmark/removed"))
+    else:
+        messages.success(request, get_error_message("bookmark/added"))
+
+    return redirect("service_detail", service_id=service_id)
+
+
+@login_required
+def bookmarks_list(request: HttpRequest) -> HttpResponse:
+    """List all bookmarked services for the current user."""
+    bookmarks = Bookmark.objects.filter(user=request.user).select_related("service")
+    return render(request, "services/bookmarks.html", {"bookmarks": bookmarks})
 
 
 def robots_txt(request: HttpRequest) -> HttpResponse:
