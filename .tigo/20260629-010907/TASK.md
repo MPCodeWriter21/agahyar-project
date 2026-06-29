@@ -1,6 +1,6 @@
 # Security hardening
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 85
 - TAGS: security
 
