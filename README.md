@@ -240,10 +240,8 @@ Agahyar was created to centralize this information into a single platform where 
 
 ## 🎓 Academic Project
 
-This project was developed as a **university team project** for the **Project Management and Control** course during the **1404–1405 (2025–2026)** academic year.
+This project was developed as a **university team project** for the **Project Management and Control** course during the **1404–1405** academic year.
 
 The project was designed to simulate a real software development lifecycle, including project planning, requirement analysis, system design, implementation, documentation, testing, and team collaboration.
-
-Although developed for academic purposes, Agahyar was built with production-oriented practices and is intended to serve as a realistic portfolio project demonstrating modern web development principles.
 
 
