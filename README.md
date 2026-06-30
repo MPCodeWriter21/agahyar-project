@@ -89,20 +89,20 @@ git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
 cd agahyar-project
 
 # Install uv (if needed): https://docs.astral.sh/uv/
-uv venv && source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+uv venv
 uv sync
 cp .env.example .env
-uv run python manage.py migrate
-uv run python manage.py createsuperuser
-uv run python manage.py runserver
+uv run migrate
+uv run create-superuser
+uv run run-server
 ```
 
 Populate sample data (optional):
 
 ```bash
-uv run python scripts/populate_services.py
-uv run python scripts/populate_centers.py
-uv run python scripts/populate_faq.py
+uv run scripts/populate_services.py
+uv run scripts/populate_centers.py
+uv run scripts/populate_faq.py
 ```
 
 Visit **<http://127.0.0.1:8000>** in your browser.

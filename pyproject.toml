@@ -39,6 +39,8 @@ prod = [
 ]
 [project.scripts]
 create-superuser = "agahyar_project.scripts:create_superuser"
+migrate = "agahyar_project.scripts:migrate"
+run-server = "agahyar_project.scripts:run_server"
 
 [tool.setuptools.packages.find]
 where = ["src"]

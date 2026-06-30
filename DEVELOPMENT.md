@@ -32,12 +32,6 @@ cd agahyar-project
 # Create a virtual environment with uv
 uv venv
 
-# Activate it
-# Windows:
-.venv\Scripts\activate
-# Linux / macOS:
-# source .venv/bin/activate
-
 # Install dependencies (from pyproject.toml)
 uv sync
 
@@ -102,7 +96,7 @@ Development Server
 ------------------
 
 ```bash
-uv run python manage.py runserver
+uv run run-server
 ```
 
 Then open <http://127.0.0.1:8000> in your browser.
@@ -124,7 +118,7 @@ realistic sample data:
   (idempotent, safe to re-run):
 
   ```bash
-  uv run python scripts/populate_services.py
+  uv run scripts/populate_services.py
   ```
 
 - ``populate_centers.py`` -- creates (or updates) 34 ServiceCenter records with
@@ -132,14 +126,14 @@ realistic sample data:
   ``populate_services.py`` has been run first (idempotent):
 
   ```bash
-  uv run python scripts/populate_centers.py
+  uv run scripts/populate_centers.py
   ```
 
 - ``populate_faq.py`` -- creates (or updates) 30 FAQ entries covering all 9
   service categories plus general questions (idempotent):
 
   ```bash
-  uv run python scripts/populate_faq.py
+  uv run scripts/populate_faq.py
   ```
 
 Project Structure
