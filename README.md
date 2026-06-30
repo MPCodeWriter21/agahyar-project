@@ -160,8 +160,8 @@ agahyar-project/
 
 ---
 
-## 👥 Team
+## 🤝🏻 Team
 
-- 👩‍💻 Fatemeh Mohammadganji – Project Manager & Frontend Developer
-- 👩‍💻 Zahra Kamalian – Backend Developer
-- 👨‍💻 Mohsen Ali Ahmadi – Database Developer & Organization Liaison
+-  Fatemeh Mohammadganji – Project Manager & Frontend Developer
+-  Zahra Kamalian – Backend Developer
+-  Mohsen Ali Ahmadi – Database Developer & Organization Liaison
