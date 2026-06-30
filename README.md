@@ -222,6 +222,14 @@ The project focuses on:
 
 ---
 
+## 💡 Motivation
+
+Government services are often scattered across multiple websites and organizations, making it difficult for citizens to find accurate and up-to-date information.
+
+Agahyar was created to centralize this information into a single platform where users can quickly learn about required documents, procedures, costs, service centers, and other essential details before visiting government offices.
+
+---
+
 ## 🤝🏻 Team
 
 -  Fatemeh Mohammadganji – Project Manager & Frontend Developer
@@ -238,11 +246,4 @@ The project was designed to simulate a real software development lifecycle, incl
 
 Although developed for academic purposes, Agahyar was built with production-oriented practices and is intended to serve as a realistic portfolio project demonstrating modern web development principles.
 
----
-
-## 💡 Motivation
-
-Government services are often scattered across multiple websites and organizations, making it difficult for citizens to find accurate and up-to-date information.
-
-Agahyar was created to centralize this information into a single platform where users can quickly learn about required documents, procedures, costs, service centers, and other essential details before visiting government offices.
 
