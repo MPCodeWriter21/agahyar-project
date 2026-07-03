@@ -67,8 +67,8 @@ Database
 Run migrations and create an admin user:
 
 ```bash
-uv run python manage.py migrate
-uv run python manage.py createsuperuser
+uv run migrate
+uv run create-superuser
 ```
 
 Docker

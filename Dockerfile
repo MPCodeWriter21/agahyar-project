@@ -1,55 +1,31 @@
-# syntax=docker/dockerfile:1
-FROM python:3.12-slim AS builder
+FROM astral/uv:python3.12-alpine AS builder
 
 WORKDIR /app
 
-# Install system build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
-
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
+# Copy application code
+COPY pyproject.toml uv.lock manage.py ./
+COPY src/agahyar_project ./src/agahyar_project
+COPY src/services ./src/services
 
 # Install project dependencies (including prod extras)
 RUN uv sync --frozen --no-dev --extra prod
+RUN uv pip install -e .
 
-# Copy application code
-COPY . .
+COPY static ./static
+COPY templates ./templates
 
-# Minify CSS and JS assets (production build step)
-RUN uv pip install cssmin jsmin --no-deps \
-    && python -c "\
-import cssmin; \
-f = 'static/services/css/style.css'; \
-open(f, 'w', encoding='utf-8').write(cssmin.cssmin(open(f, encoding='utf-8').read())) \
-" \
-    && python -c "\
-import jsmin; \
-for f in ['static/services/js/main.js', 'static/services/js/error-translate.js']: \
-    open(f, 'w', encoding='utf-8').write(jsmin.jsmin(open(f, encoding='utf-8').read())) \
-" \
-    && uv pip uninstall cssmin jsmin -y
+# minify static files
+RUN apk add --no-cache minify
+RUN if [[ -z "$DEBUG" ]]; then minify -air static; fi
 
 # Collect static files into STATIC_ROOT
 RUN uv run python manage.py collectstatic --noinput
 
 # =====================================================================
-FROM python:3.12-slim AS runtime
+FROM astral/uv:python3.12-alpine AS runtime
 
+ENV TZ="Asia/Tehran"
 WORKDIR /app
-
-# Install runtime system deps (only libpq)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy uv binary (used for create-superuser command)
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # Copy virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv
@@ -70,7 +46,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD uv run python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')" || exit 1
 
 # Run migrations and start production server
-CMD uv run python manage.py migrate \
+CMD uv run migrate \
     && uv run gunicorn agahyar_project.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers 4 \

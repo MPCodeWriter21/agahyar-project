@@ -48,9 +48,9 @@ uv venv
 uv sync
 uv pip install -e ".[dev]"
 
-uv run python manage.py migrate
+uv run migrate
 uv run create-superuser
-uv run python manage.py runserver
+uv run run-server
 ```
 
 Open <http://127.0.0.1:8000>.
@@ -80,7 +80,7 @@ git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
 cd agahyar-project
 
 cp .env.example .env
-docker compose up --build
+docker compose -f docker-compose.dev.yml up --build
 ```
 
 Open <http://127.0.0.1:8000>.
