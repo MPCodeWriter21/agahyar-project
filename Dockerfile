@@ -2,6 +2,8 @@ FROM astral/uv:python3.12-alpine AS builder
 
 WORKDIR /app
 
+RUN apk add --no-cache minify
+
 # Copy application code
 COPY pyproject.toml uv.lock manage.py ./
 COPY src/agahyar_project ./src/agahyar_project
@@ -15,11 +17,10 @@ COPY static ./static
 COPY templates ./templates
 
 # minify static files
-RUN apk add --no-cache minify
 RUN if [[ -z "$DEBUG" ]]; then minify -air static; fi
 
 # Collect static files into STATIC_ROOT
-RUN uv run python manage.py collectstatic --noinput
+RUN uv run --no-sync python manage.py collectstatic --noinput
 
 # =====================================================================
 FROM astral/uv:python3.12-alpine AS runtime
@@ -43,11 +44,11 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD uv run python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')" || exit 1
+    CMD uv run --no-sync python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')" || exit 1
 
 # Run migrations and start production server
-CMD uv run migrate \
-    && uv run gunicorn agahyar_project.wsgi:application \
+CMD uv run --no-sync migrate \
+    && uv run --no-sync gunicorn agahyar_project.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers 4 \
     --access-logfile - \

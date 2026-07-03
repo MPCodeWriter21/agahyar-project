@@ -136,10 +136,22 @@ pytest                 # with plain pip
 Production Deployment
 ---------------------
 
+### Prerequisites
+
+Before deploying with Docker Compose, create the Traefik network:
+
+```bash
+docker network create traefik-network
+```
+
+Also set up [traefik-starter](https://github.com/MPCodeWriter21/traefik-starter)
+as a reverse proxy (or your own Traefik instance).
+
 ### Production Docker Compose
 
-The project includes a production-ready `docker-compose.prod.yml` with PostgreSQL
-and Redis services:
+The project includes a production-ready `docker-compose.prod.yml` with PostgreSQL,
+Redis, and Traefik labels for routing. The web service does **not** expose ports
+directly -- Traefik handles HTTPS termination and routing.
 
 ```bash
 docker compose -f docker-compose.prod.yml up --build -d
@@ -150,7 +162,9 @@ Update `.env` for production:
 ```ini
 SECRET_KEY=<generate-a-strong-random-key>
 DEBUG=False
-ALLOWED_HOSTS=yourdomain.com
+DOMAIN=yourdomain.com
+SITE_URL=https://yourdomain.com
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 SECURE_SSL_REDIRECT=True
 SESSION_COOKIE_SECURE=True
 CSRF_COOKIE_SECURE=True
@@ -172,7 +186,8 @@ After the containers are running, create the admin user:
 docker compose -f docker-compose.prod.yml exec web uv run create-superuser
 ```
 
-The application will be available at <http://localhost:8000>.
+The application will be available at ``https://${DOMAIN}`` (where ``DOMAIN``
+is set in your ``.env``).
 
 > **Note:** A commented-out Adminer service is included in
 > `docker-compose.prod.yml`. Uncomment it and set `ADMINER_DEFAULT_SERVER=db`

@@ -30,7 +30,9 @@ SECRET_KEY = config(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+DOMAIN = config("DOMAIN", default="localhost")
+_allowed_default = f"localhost,127.0.0.1,{DOMAIN},www.{DOMAIN}"
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default=_allowed_default).split(",")
 
 # Security settings for production
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
@@ -154,7 +156,13 @@ CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
 
 # Site URL (used in sitemap.xml, robots.txt, and canonical URLs)
-SITE_URL = config("SITE_URL", default="https://agahyar.ir")
+SITE_URL = config("SITE_URL", default=f"https://{DOMAIN}")
+
+# CSRF trusted origins (needed when behind a reverse proxy)
+_csrf_default = f"https://{DOMAIN},https://www.{DOMAIN}"
+if DEBUG:
+    _csrf_default += f",http://{DOMAIN},http://www.{DOMAIN}"
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default=_csrf_default).split(",")
 
 # Cache (Redis in production, local-memory fallback)
 REDIS_URL = config("REDIS_URL", default="")

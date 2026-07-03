@@ -16,6 +16,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.agahyar.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.agahyar.entrypoints=websecure"
+      - "traefik.http.services.agahyar.loadbalancer.server.port=8000"
 
   adminer:
     image: adminer:latest
@@ -27,6 +34,13 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adminer.rule=Host(`adminer.${DOMAIN}`)"
+      - "traefik.http.routers.adminer.entrypoints=websecure"
+      - "traefik.http.services.adminer.loadbalancer.server.port=8080"
 
   db:
     image: postgres:17-alpine
@@ -42,6 +56,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - traefik-network
 
   redis:
     image: redis:7-alpine
@@ -53,6 +69,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - traefik-network
+
+networks:
+  traefik-network:
+    external: true
 
 volumes:
   postgres_data:

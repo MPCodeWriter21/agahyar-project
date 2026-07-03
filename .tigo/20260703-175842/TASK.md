@@ -1,6 +1,6 @@
 # Integerate with Traefik for prod
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 - TAGS: dev, docker, deployment, production
 

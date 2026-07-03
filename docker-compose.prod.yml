@@ -13,6 +13,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - traefik-network
 
   redis:
     image: redis:7-alpine
@@ -24,6 +26,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - traefik-network
 
   # adminer:
   #   image: adminer:latest
@@ -35,13 +39,19 @@ services:
   #     db:
   #       condition: service_healthy
   #   restart: unless-stopped
+  #   networks:
+  #     - traefik-network
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.adminer.rule=Host(`adminer.${DOMAIN}`)"
+  #     - "traefik.http.routers.adminer.entrypoints=websecure"
+  #     - "traefik.http.routers.adminer.tls=true"
+  #     - "traefik.http.services.adminer.loadbalancer.server.port=8080"
 
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
     env_file:
       - .env
     depends_on:
@@ -50,6 +60,18 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.agahyar.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.agahyar.entrypoints=websecure"
+      - "traefik.http.routers.agahyar.tls=true"
+      - "traefik.http.services.agahyar.loadbalancer.server.port=8000"
+
+networks:
+  traefik-network:
+    external: true
 
 volumes:
   postgres_data:
