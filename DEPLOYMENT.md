@@ -41,6 +41,8 @@ git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
 cd agahyar-project
 
 cp .env.example .env
+# If running without Docker, switch .env to SQLite (comment PostgreSQL lines,
+# uncomment SQLite lines)
 uv venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate   # Linux / macOS
@@ -62,6 +64,8 @@ git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
 cd agahyar-project
 
 cp .env.example .env
+# If running without Docker, switch .env to SQLite (comment PostgreSQL lines,
+# uncomment SQLite lines)
 python -m venv .venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate   # Linux / macOS
@@ -169,6 +173,10 @@ docker compose -f docker-compose.prod.yml exec web uv run create-superuser
 ```
 
 The application will be available at <http://localhost:8000>.
+
+> **Note:** A commented-out Adminer service is included in
+> `docker-compose.prod.yml`. Uncomment it and set `ADMINER_DEFAULT_SERVER=db`
+> to get a web-based database UI at <http://localhost:8080>.
 
 > **Note:** The Dockerfile uses a multi-stage build. The first stage installs
 > dependencies, minifies CSS/JS assets, and collects static files. The second

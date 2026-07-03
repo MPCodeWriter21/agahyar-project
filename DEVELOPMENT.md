@@ -20,6 +20,10 @@ cp .env.example .env
 > **Note:** ``.env`` is git-ignored and must **not** be committed. Only
 > ``.env.example`` (with placeholder values) is tracked.
 
+> **Note:** The default ``.env.example`` sets up **PostgreSQL** (for Docker).
+> If you are running **without Docker** (SQLite), comment out the PostgreSQL
+> lines and uncomment the SQLite lines in ``.env``.
+
 Setup (with uv -- recommended)
 --------------------------------
 
@@ -82,6 +86,10 @@ docker compose -f docker-compose.dev.yml up --build
 ```
 
 The application will be available at <http://localhost:8000>.
+
+[Adminer](https://www.adminer.org/) is also available at
+<http://localhost:8080> for database management. Select **PostgreSQL** as the
+driver, enter the credentials from ``.env``, and leave the server as ``db``.
 
 ### Production
 

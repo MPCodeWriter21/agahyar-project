@@ -1,6 +1,6 @@
 # Add adminer to development docker compose
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 - TAGS: dev, docker, database
 
