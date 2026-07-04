@@ -142,6 +142,9 @@ Run tests:
 uv run pytest
 ```
 
+For detailed development instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
+For production deployment, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ---
 
 ## 📂 Project Structure
