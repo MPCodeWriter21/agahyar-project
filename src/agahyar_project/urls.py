@@ -1,6 +1,8 @@
 from typing import List
 
 from decouple import config
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -29,3 +31,7 @@ urlpatterns: List[URLPattern] = [
     path(ADMIN_URL, admin.site.urls),
     path("", include("services.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

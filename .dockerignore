@@ -1,18 +1,53 @@
-.venv/
-__pycache__/
-*.pyc
-.env
-.git/
+# Git
+.git
 .gitignore
-.pytest_cache/
-.python-version
+
+# VS Code
 .vscode/
-.idea/
-db.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# OS generated files
 .DS_Store
-htmlcov/
+Thumbs.db
+
+# Logs
+*.log
+logs/
+*.logs
+
+# Local environment configuration
+.env
+.env.*
+*.env
+
+# Test artifacts
+.pytest_cache/
 .coverage
-.coverage.*
-*.md
-!DEPLOYMENT.md
-!DEVELOPMENT.md
+htmlcov/
+nosetests.xml
+coverage.xml
+
+# IDE specific
+.idea/
+*.iml
+
+# Other
+*.bak
+*.swp
+*~

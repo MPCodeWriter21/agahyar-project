@@ -41,6 +41,8 @@ git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
 cd agahyar-project
 
 cp .env.example .env
+# If running without Docker, switch .env to SQLite (comment PostgreSQL lines,
+# uncomment SQLite lines)
 uv venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate   # Linux / macOS
@@ -48,9 +50,9 @@ uv venv
 uv sync
 uv pip install -e ".[dev]"
 
-uv run python manage.py migrate
+uv run migrate
 uv run create-superuser
-uv run python manage.py runserver
+uv run run-server
 ```
 
 Open <http://127.0.0.1:8000>.
@@ -62,6 +64,8 @@ git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
 cd agahyar-project
 
 cp .env.example .env
+# If running without Docker, switch .env to SQLite (comment PostgreSQL lines,
+# uncomment SQLite lines)
 python -m venv .venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate   # Linux / macOS
@@ -80,7 +84,7 @@ git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
 cd agahyar-project
 
 cp .env.example .env
-docker compose up --build
+docker compose -f docker-compose.dev.yml up --build
 ```
 
 Open <http://127.0.0.1:8000>.
@@ -132,10 +136,22 @@ pytest                 # with plain pip
 Production Deployment
 ---------------------
 
+### Prerequisites
+
+Before deploying with Docker Compose, create the Traefik network:
+
+```bash
+docker network create traefik-network
+```
+
+Also set up [traefik-starter](https://github.com/MPCodeWriter21/traefik-starter)
+as a reverse proxy (or your own Traefik instance).
+
 ### Production Docker Compose
 
-The project includes a production-ready `docker-compose.prod.yml` with PostgreSQL
-and Redis services:
+The project includes a production-ready `docker-compose.prod.yml` with PostgreSQL,
+Redis, and Traefik labels for routing. The web service does **not** expose ports
+directly -- Traefik handles HTTPS termination and routing.
 
 ```bash
 docker compose -f docker-compose.prod.yml up --build -d
@@ -146,7 +162,9 @@ Update `.env` for production:
 ```ini
 SECRET_KEY=<generate-a-strong-random-key>
 DEBUG=False
-ALLOWED_HOSTS=yourdomain.com
+DOMAIN=yourdomain.com
+SITE_URL=https://yourdomain.com
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
 SECURE_SSL_REDIRECT=True
 SESSION_COOKIE_SECURE=True
 CSRF_COOKIE_SECURE=True
@@ -168,7 +186,12 @@ After the containers are running, create the admin user:
 docker compose -f docker-compose.prod.yml exec web uv run create-superuser
 ```
 
-The application will be available at <http://localhost:8000>.
+The application will be available at ``https://${DOMAIN}`` (where ``DOMAIN``
+is set in your ``.env``).
+
+> **Note:** A commented-out Adminer service is included in
+> `docker-compose.prod.yml`. Uncomment it and set `ADMINER_DEFAULT_SERVER=db`
+> to get a web-based database UI at <http://localhost:8080>.
 
 > **Note:** The Dockerfile uses a multi-stage build. The first stage installs
 > dependencies, minifies CSS/JS assets, and collects static files. The second

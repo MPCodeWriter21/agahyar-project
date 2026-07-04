@@ -20,6 +20,10 @@ cp .env.example .env
 > **Note:** ``.env`` is git-ignored and must **not** be committed. Only
 > ``.env.example`` (with placeholder values) is tracked.
 
+> **Note:** The default ``.env.example`` sets up **PostgreSQL** (for Docker).
+> If you are running **without Docker** (SQLite), comment out the PostgreSQL
+> lines and uncomment the SQLite lines in ``.env``.
+
 Setup (with uv -- recommended)
 --------------------------------
 
@@ -31,12 +35,6 @@ cd agahyar-project
 
 # Create a virtual environment with uv
 uv venv
-
-# Activate it
-# Windows:
-.venv\Scripts\activate
-# Linux / macOS:
-# source .venv/bin/activate
 
 # Install dependencies (from pyproject.toml)
 uv sync
@@ -73,8 +71,8 @@ Database
 Run migrations and create an admin user:
 
 ```bash
-uv run python manage.py migrate
-uv run python manage.py createsuperuser
+uv run migrate
+uv run create-superuser
 ```
 
 Docker
@@ -89,6 +87,10 @@ docker compose -f docker-compose.dev.yml up --build
 
 The application will be available at <http://localhost:8000>.
 
+[Adminer](https://www.adminer.org/) is also available at
+<http://localhost:8080> for database management. Select **PostgreSQL** as the
+driver, enter the credentials from ``.env``, and leave the server as ``db``.
+
 ### Production
 
 ```bash
@@ -102,7 +104,7 @@ Development Server
 ------------------
 
 ```bash
-uv run python manage.py runserver
+uv run run-server
 ```
 
 Then open <http://127.0.0.1:8000> in your browser.
@@ -124,7 +126,7 @@ realistic sample data:
   (idempotent, safe to re-run):
 
   ```bash
-  uv run python scripts/populate_services.py
+  uv run scripts/populate_services.py
   ```
 
 - ``populate_centers.py`` -- creates (or updates) 34 ServiceCenter records with
@@ -132,14 +134,14 @@ realistic sample data:
   ``populate_services.py`` has been run first (idempotent):
 
   ```bash
-  uv run python scripts/populate_centers.py
+  uv run scripts/populate_centers.py
   ```
 
 - ``populate_faq.py`` -- creates (or updates) 30 FAQ entries covering all 9
   service categories plus general questions (idempotent):
 
   ```bash
-  uv run python scripts/populate_faq.py
+  uv run scripts/populate_faq.py
   ```
 
 Project Structure
