@@ -449,6 +449,31 @@ body {
     margin-top: 20px;
 }
 
+.remember-me-group {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.remember-me-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    user-select: none;
+}
+
+.remember-me-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--color-accent);
+    padding: 0;
+    border: none;
+    border-radius: 0;
+}
+
 /* --- Services Grid --- */
 .services-grid {
     display: grid;

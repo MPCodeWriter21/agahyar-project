@@ -103,6 +103,10 @@ def login_view(request: HttpRequest) -> HttpResponse:
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
+                if form.cleaned_data.get("remember_me"):
+                    request.session.set_expiry(2592000)  # 30 days
+                else:
+                    request.session.set_expiry(0)  # expire on browser close
                 messages.success(
                     request,
                     get_error_message(

@@ -449,6 +449,26 @@ class TestLoginView:
         response = client.get("/login/")
         assert response.status_code == 302
 
+    def test_login_remember_me_sets_long_session(self):
+        User.objects.create_user("remuser", password="pass12345")
+        client = Client()
+        client.post(
+            "/login/",
+            {"username": "remuser", "password": "pass12345", "remember_me": True},
+        )
+        session = client.session
+        assert session.get_expiry_age() >= 2592000 - 10  # 30 days minus a small delta
+
+    def test_login_no_remember_me_expires_on_browser_close(self):
+        User.objects.create_user("noruser", password="pass12345")
+        client = Client()
+        client.post(
+            "/login/",
+            {"username": "noruser", "password": "pass12345", "remember_me": False},
+        )
+        session = client.session
+        assert session.get_expire_at_browser_close()
+
 
 @pytest.mark.django_db
 class TestAboutAndContactViews:

@@ -49,6 +49,12 @@ class LoginForm(forms.Form):
             attrs={"class": "form-control", "placeholder": "رمز عبور خود را وارد کنید"}
         ),
     )
+    remember_me = forms.BooleanField(
+        label="مرا به خاطر بسپار",
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={"class": "remember-me-checkbox"}),
+    )
 
 
 class RegisterForm(UserCreationForm):

@@ -30,9 +30,15 @@
  {% if form.password.errors %}
  <div class="field-error-msg">{{ form.password.errors.0 }}</div>
  {% endif %}
- </div>
- <button type="submit" class="btn-login"> ورود</button>
- </form>
+  </div>
+   <div class="remember-me-group">
+   <label class="remember-me-label">
+    <input type="checkbox" name="remember_me" id="remember_me" class="remember-me-checkbox">
+    مرا به خاطر بسپار
+   </label>
+  </div>
+  <button type="submit" class="btn-login"> ورود</button>
+  </form>
 
   <div class="register-link">
   <a href="{% url 'register' %}">ثبت‌نام جدید</a>
