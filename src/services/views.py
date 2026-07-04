@@ -82,7 +82,9 @@ def register_view(request: HttpRequest) -> HttpResponse:
         form = RegisterForm()
 
     return render(
-        request, "services/register.html", {"form": form, "city_choices": CITY_CHOICES}
+        request,
+        "services/auth/register.html",
+        {"form": form, "city_choices": CITY_CHOICES},
     )
 
 
@@ -119,7 +121,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
     else:
         form = LoginForm()
 
-    return render(request, "services/login.html", {"form": form})
+    return render(request, "services/auth/login.html", {"form": form})
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
@@ -250,7 +252,7 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
 
     return render(
         request,
-        "services/detail.html",
+        "services/service_detail.html",
         {
             "service": service,
             "documents": service.get_documents_list(),
@@ -274,7 +276,7 @@ def services_list(request: HttpRequest) -> HttpResponse:
     paginator: Paginator = Paginator(all_services, 12)
     page_number: str = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
-    return render(request, "services/list.html", {"page_obj": page_obj})
+    return render(request, "services/service_list.html", {"page_obj": page_obj})
 
 
 def faq_view(request: HttpRequest) -> HttpResponse:
@@ -337,7 +339,7 @@ def show_users(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return redirect("login")
     users: QuerySet = User.objects.select_related("profile").all().order_by("id")
-    return render(request, "services/show_users.html", {"users": users})
+    return render(request, "services/user_list.html", {"users": users})
 
 
 @login_required
