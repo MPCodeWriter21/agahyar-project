@@ -19,6 +19,8 @@ COPY templates ./templates
 # minify static files
 RUN if [[ -z "$DEBUG" ]]; then minify -air static; fi
 
+COPY scripts ./scripts
+
 # Collect static files into STATIC_ROOT
 RUN uv run --no-sync python manage.py collectstatic --noinput
 
@@ -36,6 +38,7 @@ COPY --from=builder /app/src /app/src
 COPY --from=builder /app/templates /app/templates
 COPY --from=builder /app/static /app/static
 COPY --from=builder /app/staticfiles /app/staticfiles
+COPY --from=builder /app/scripts /app/scripts
 COPY --from=builder /app/manage.py /app/manage.py
 COPY --from=builder /app/pyproject.toml /app/pyproject.toml
 
