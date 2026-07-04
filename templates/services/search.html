@@ -7,10 +7,11 @@
 {% block content %}
 
 <div class="search-header">
- <form action="{% url 'search' %}" method="get" class="search-form-row">
- <input type="text" name="q" value="{{ query }}" placeholder="جستجوی خدمت مورد نظر ..." required>
+ <form action="{% url 'search' %}" method="get">
+     <div class="search-form-row">
+ <input type="text" name="q" value="{{ query }}" placeholder="جستجوی خدمت مورد نظر ...">
  <button type="submit">جستجو</button>
- </form>
+     </div>
  <div class="filter-row">
   <select name="organization" onchange="this.form.submit()">
    <option value="">همه سازمان‌ها</option>
@@ -25,6 +26,7 @@
    {% endfor %}
   </select>
  </div>
+ </form>
 </div>
 
 {% if query or org_filter or city_filter %}
@@ -34,7 +36,7 @@
  <p>نتیجه‌ای برای "{{ query }}" پیدا نشد.</p>
  </div>
  {% else %}
- <h2 class="section-title result-heading">{{ count }} نتیجه برای "{{ query }}"</h2>
+  <h2 class="section-title result-heading">{{ count }} نتیجه{% if query %} برای "{{ query }}"{% endif %}</h2>
  {% for service in page_obj %}
  <div class="result-card">
  <h3>{{ service.name }}</h3>
@@ -71,7 +73,7 @@
 {% else %}
  <div class="no-results">
  <h3> جستجو کنید</h3>
- <p>لطفاً نام یک خدمت دولتی را وارد کنید.</p>
+  <p>لطفاً نام یک خدمت دولتی را وارد کنید یا از فیلترهای بالا استفاده نمایید.</p>
  </div>
 {% endif %}
 

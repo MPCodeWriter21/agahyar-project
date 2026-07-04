@@ -10,7 +10,18 @@ services:
       - ./src/services:/app/src/services
       - ./templates:/app/templates
       - ./static:/app/static
+      - ./staticfiles:/app/staticfiles
       - ./manage.py:/app/manage.py
+    command: >
+      sh -c "
+      uv run --no-sync python manage.py collectstatic --noinput &&
+      uv run --no-sync gunicorn agahyar_project.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers 1
+      --reload
+      --access-logfile -
+      --error-logfile -
+      "
     depends_on:
       db:
         condition: service_healthy

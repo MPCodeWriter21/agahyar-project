@@ -85,7 +85,7 @@
         <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="مثال: 09121234567" class="ltr-input{% if form.phone.errors %} field-error{% endif %}" dir="ltr" required>
         {% if form.phone.errors %}<div class="field-error-msg">{{ form.phone.errors.0 }}</div>{% endif %}
       </div>
-      <button type="submit" name="update_profile" class="btn-register">ذخیره تغییرات</button>
+      <button type="submit" name="update_profile" class="btn-primary">ذخیره تغییرات</button>
     </form>
   </div>
 
@@ -119,7 +119,7 @@
         <input type="password" name="new_password2" placeholder="تکرار رمز جدید" class="ltr-input{% if password_form.new_password2.errors %} field-error{% endif %}" dir="ltr" required>
         {% if password_form.new_password2.errors %}<div class="field-error-msg">{{ password_form.new_password2.errors.0 }}</div>{% endif %}
       </div>
-      <button type="submit" name="change_password" class="btn-register">تغییر رمز عبور</button>
+      <button type="submit" name="change_password" class="btn-primary">تغییر رمز عبور</button>
     </form>
   </div>
 

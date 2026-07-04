@@ -60,7 +60,7 @@
    <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="مثال: 09121234567" class="ltr-input{% if form.phone.errors %} field-error{% endif %}" dir="ltr" required>
    {% if form.phone.errors %}<div class="field-error-msg">{{ form.phone.errors.0 }}</div>{% endif %}
   </div>
-  <button type="submit" class="btn-register"> ثبت‌نام</button>
+  <button type="submit" class="btn-primary"> ثبت‌نام</button>
   </form>
 
   <div class="register-login-prompt">
