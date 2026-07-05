@@ -1,5 +1,8 @@
 # Implement proximity-based nearest center lookup
 
+- STATUS: OPEN
+- PRIORITY: 50
+
 STATUS: PENDING
 PRIORITY: MEDIUM
 TAGS: services, suggestion, location
@@ -21,3 +24,5 @@ None, causing views to fall back to a simple city-filtered DB query.
   service, city, and neighborhood
 - [ ] Write/update tests for the new behavior
 - [ ] Run full test suite to verify no regressions
+
+Related: Task(20260705-151433), Task(20260705-131600)
