@@ -1,8 +1,9 @@
-FROM astral/uv:python3.12-alpine AS builder
+FROM astral/uv:python3.12-bookworm-slim AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache minify
+RUN apt-get update && apt-get install -y minify libgdal-dev libgeos-dev libproj-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy application code
 COPY pyproject.toml uv.lock manage.py ./
@@ -25,10 +26,13 @@ COPY scripts ./scripts
 RUN uv run --no-sync python manage.py collectstatic --noinput
 
 # =====================================================================
-FROM astral/uv:python3.12-alpine AS runtime
+FROM astral/uv:python3.12-bookworm-slim AS runtime
 
 ENV TZ="Asia/Tehran"
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y libgdal-dev libgeos-dev libproj-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv

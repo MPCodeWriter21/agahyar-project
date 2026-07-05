@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.db import models
+from django.contrib.gis.db import models
 
 from services.validators import iranian_phone_number_validator
 
@@ -83,13 +83,12 @@ class ServiceCenter(models.Model):
     address = models.TextField("آدرس کامل")
     city = models.CharField("شهر", max_length=100)
     phone = models.CharField("شماره تماس", max_length=11, blank=True)
-    latitude = models.FloatField("عرض جغرافیایی", null=True, blank=True)
-    longitude = models.FloatField("طول جغرافیایی", null=True, blank=True)
     working_hours = models.TextField("ساعت کاری", blank=True)
     postal_code = models.CharField("کد پستی", max_length=20, blank=True)
-    coordinate = models.CharField(
+    coordinate = models.PointField(
         "مختصات (عرض,طول)",
-        max_length=100,
+        srid=4326,
+        null=True,
         blank=True,
         help_text="مختصات جغرافیایی به فرمت 'lat,lng' مثلاً '35.6892,51.3890'",
     )
@@ -104,9 +103,9 @@ class ServiceCenter(models.Model):
     def get_map_url(self) -> str:
         """Return a Google Maps URL preferring coordinate over address."""
         if self.coordinate:
-            return f"https://www.google.com/maps?q={self.coordinate}"
-        if self.latitude is not None and self.longitude is not None:
-            return f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+            return (
+                f"https://www.google.com/maps?q={self.coordinate.y},{self.coordinate.x}"
+            )
         return f"https://www.google.com/maps/search/{self.address}"
 
 

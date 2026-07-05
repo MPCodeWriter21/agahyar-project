@@ -60,7 +60,7 @@ find everything they need in one place.
 
 - 🐍 **Python 3.12 / Django 6.0** – Backend
 - ⚡ **uv** – Python package manager
-- 🗄️ **PostgreSQL / SQLite** – Database
+- 🗄️ **PostgreSQL / PostGIS** – Database
 - 🚀 **Redis** – Cache & sessions (production)
 - 🐳 **Docker** – Containerized development and deployment
 - 🎨 **HTML5 / CSS3 / JavaScript (vanilla)** – Frontend; Font Awesome icons
@@ -109,36 +109,31 @@ find everything they need in one place.
 
 ---
 
-## 🚀 How to Run the Project (Local Setup)
+## 🚀 How to Run the Project
 
-## ⚡ Quick Start
+## ⚡ Quick Start (Docker)
 
 ```bash
 git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
 cd agahyar-project
 
-# Install uv (if needed): https://docs.astral.sh/uv/
-uv venv
-uv sync
 cp .env.example .env
-uv run migrate
-uv run create-superuser
-uv run run-server
+docker compose -f docker-compose.dev.yml up --build
 ```
 
 Populate sample data (optional):
 
 ```bash
-uv run scripts/populate_services.py
-uv run scripts/populate_faq.py
+docker compose -f docker-compose.dev.yml exec web uv run scripts/populate_services.py
+docker compose -f docker-compose.dev.yml exec web uv run scripts/populate_faq.py
 ```
 
-Visit **<http://127.0.0.1:8000>** in your browser.
+Visit **<http://localhost:8000>** in your browser.
 
 Run tests:
 
 ```bash
-uv run pytest
+docker compose -f docker-compose.dev.yml exec web uv run pytest
 ```
 
 For detailed development instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).

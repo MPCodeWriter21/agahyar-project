@@ -22,6 +22,8 @@ import django  # noqa: E402
 
 django.setup()
 
+from django.contrib.gis.geos import Point  # noqa: E402
+
 from services.models import Service, ServiceCenter  # noqa: E402
 
 SERVICES = [
@@ -550,6 +552,12 @@ def populate_centers() -> int:
         for center_data in entry["centers"]:
             city = center_data["city"]
             name = center_data["name"]
+            coord_str = center_data.get("coordinate", "")
+            if coord_str:
+                lat, lng = coord_str.split(",")
+                coordinate = Point(float(lng), float(lat), srid=4326)
+            else:
+                coordinate = None
             obj, created = ServiceCenter.objects.update_or_create(
                 name=name,
                 city=city,
@@ -559,7 +567,7 @@ def populate_centers() -> int:
                     "phone": center_data["phone"],
                     "working_hours": center_data.get("working_hours", service_wh),
                     "postal_code": center_data.get("postal_code", ""),
-                    "coordinate": center_data.get("coordinate", ""),
+                    "coordinate": coordinate,
                 },
             )
             count += 1
