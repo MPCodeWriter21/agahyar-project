@@ -1,58 +1,63 @@
 {% extends 'services/base.html' %}
-
 {% block title %}تماس با ما | آگاه‌یار{% endblock %}
 {% block meta_description %}ارسال پیام و تماس با تیم پشتیبانی سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}تماس با ما, پشتیبانی, آگاه‌یار{% endblock %}
-
 {% block content %}
-
-<div class="contact-page">
- <h1>تماس با ما</h1>
-
- <div class="contact-grid">
- <!-- ===== فرم تماس ===== -->
-  <div class="contact-form">
-  <h3> ارسال پیام</h3>
-  <form method="post">
-  {% csrf_token %}
-  <div class="form-group{% if form.name.errors %} has-error{% endif %}">
-  <label>نام و نام خانوادگی</label>
-  <input type="text" name="name" value="{{ form.name.value|default:'' }}" placeholder="نام خود را وارد کنید" class="{% if form.name.errors %}field-error{% endif %}" required>
-  {% if form.name.errors %}<div class="field-error-msg">{{ form.name.errors.0 }}</div>{% endif %}
+  <div class="contact-page">
+    <h1>تماس با ما</h1>
+    <div class="contact-grid">
+      <!-- ===== فرم تماس ===== -->
+      <div class="contact-form">
+        <h3>ارسال پیام</h3>
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-group{% if form.name.errors %} has-error{% endif %}">
+            <label>نام و نام خانوادگی</label>
+            <input type="text"
+                   name="name"
+                   value="{{ form.name.value|default:'' }}"
+                   placeholder="نام خود را وارد کنید"
+                   class="{% if form.name.errors %}field-error{% endif %}"
+                   required>
+            {% if form.name.errors %}<div class="field-error-msg">{{ form.name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group{% if form.email.errors %} has-error{% endif %}">
+            <label>ایمیل</label>
+            <input type="email"
+                   name="email"
+                   value="{{ form.email.value|default:'' }}"
+                   placeholder="example@email.com"
+                   class="ltr-input{% if form.email.errors %} field-error{% endif %}"
+                   dir="ltr"
+                   required>
+            {% if form.email.errors %}<div class="field-error-msg">{{ form.email.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="form-group{% if form.message.errors %} has-error{% endif %}">
+            <label>پیام شما</label>
+            <textarea name="message"
+                      rows="5"
+                      placeholder="پیام خود را بنویسید..."
+                      class="{% if form.message.errors %}field-error{% endif %}"
+                      required>{{ form.message.value|default:'' }}</textarea>
+            {% if form.message.errors %}<div class="field-error-msg">{{ form.message.errors.0 }}</div>{% endif %}
+          </div>
+          <button type="submit" class="btn-send">ارسال پیام</button>
+        </form>
+      </div>
+      <!-- ===== اطلاعات تماس ===== -->
+      <div class="contact-info">
+        <h3>اطلاعات تماس</h3>
+        <p>info@agahyar.ir</p>
+        <p>۰۲۱-۱۲۳۴۵۶۷۸</p>
+        <p>شنبه تا چهارشنبه ۹ تا ۱۷</p>
+        <hr>
+        <h3>تیم ما</h3>
+        <p>پروژه آگاه‌یار توسط تیم آگاه‌ران طراحی و پیاده‌سازی شده است.</p>
+        <p class="team-note">پروژه درس مدیریت پروژه فناوری اطلاعات</p>
+      </div>
+    </div>
+    <div class="text-center">
+      <a href="#" onclick="history.back(); return false;" class="btn-back">بازگشت به صفحه قبل</a>
+    </div>
   </div>
-  <div class="form-group{% if form.email.errors %} has-error{% endif %}">
-  <label>ایمیل</label>
-   <input type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="example@email.com" class="ltr-input{% if form.email.errors %} field-error{% endif %}" dir="ltr" required>
-  {% if form.email.errors %}<div class="field-error-msg">{{ form.email.errors.0 }}</div>{% endif %}
-  </div>
-  <div class="form-group{% if form.message.errors %} has-error{% endif %}">
-  <label>پیام شما</label>
-  <textarea name="message" rows="5" placeholder="پیام خود را بنویسید..." class="{% if form.message.errors %}field-error{% endif %}" required>{{ form.message.value|default:'' }}</textarea>
-  {% if form.message.errors %}<div class="field-error-msg">{{ form.message.errors.0 }}</div>{% endif %}
-  </div>
-  <button type="submit" class="btn-send"> ارسال پیام</button>
-  </form>
-  </div>
-
- <!-- ===== اطلاعات تماس ===== -->
- <div class="contact-info">
- <h3> اطلاعات تماس</h3>
- <p> info@agahyar.ir</p>
- <p> ۰۲۱-۱۲۳۴۵۶۷۸</p>
- <p> شنبه تا چهارشنبه ۹ تا ۱۷</p>
-
- <hr>
-
- <h3> تیم ما</h3>
- <p>پروژه آگاه‌یار توسط تیم آگاه‌ران طراحی و پیاده‌سازی شده است.</p>
- <p class="team-note">
- پروژه درس مدیریت پروژه فناوری اطلاعات
- </p>
- </div>
- </div>
-
- <div class="text-center">
- <a href="#" onclick="history.back(); return false;" class="btn-back"> بازگشت به صفحه قبل</a>
- </div>
-</div>
 {% endblock %}

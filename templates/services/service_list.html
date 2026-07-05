@@ -1,41 +1,35 @@
 {% extends 'services/base.html' %}
-
 {% block title %}همه خدمات | آگاه‌یار{% endblock %}
 {% block meta_description %}فهرست کامل خدمات دولتی قابل ارائه در سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}خدمات دولتی, لیست خدمات, آگاه‌یار{% endblock %}
-
 {% block content %}
-
-<h1> همه خدمات دولتی</h1>
-
-<div class="services-grid">
- {% for service in page_obj %}
- <div class="service-card">
- <div class="service-icon"></div>
- <h3>{{ service.name }}</h3>
- <p class="org-name">{{ service.organization }}</p>
- <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات </a>
- </div>
- {% empty %}
- <p>هیچ خدمتی یافت نشد.</p>
- {% endfor %}
-</div>
-
-{% if page_obj.paginator.num_pages > 1 %}
-<div class="pagination">
- {% if page_obj.has_previous %}
- <a href="?page=1">&laquo; اول</a>
- <a href="?page={{ page_obj.previous_page_number }}">قبلی</a>
- {% endif %}
- <span>صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
- {% if page_obj.has_next %}
- <a href="?page={{ page_obj.next_page_number }}">بعدی</a>
- <a href="?page={{ page_obj.paginator.num_pages }}">آخر &raquo;</a>
- {% endif %}
-</div>
-{% endif %}
-
-<div class="text-center">
- <a href="{% url 'home' %}" class="btn-back"> بازگشت به خانه</a>
-</div>
+  <h1>همه خدمات دولتی</h1>
+  <div class="services-grid">
+    {% for service in page_obj %}
+      <div class="service-card">
+        <div class="service-icon"></div>
+        <h3>{{ service.name }}</h3>
+        <p class="org-name">{{ service.organization }}</p>
+        <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات</a>
+      </div>
+    {% empty %}
+      <p>هیچ خدمتی یافت نشد.</p>
+    {% endfor %}
+  </div>
+  {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page=1">&laquo; اول</a>
+        <a href="?page={{ page_obj.previous_page_number }}">قبلی</a>
+      {% endif %}
+      <span>صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">بعدی</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">آخر &raquo;</a>
+      {% endif %}
+    </div>
+  {% endif %}
+  <div class="text-center">
+    <a href="{% url 'home' %}" class="btn-back">بازگشت به خانه</a>
+  </div>
 {% endblock %}

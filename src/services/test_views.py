@@ -1035,7 +1035,7 @@ class TestResponsiveHamburger:
         )
         with open(css_path, encoding="utf-8") as f:
             content = f.read()
-        assert ".mobile-menu-btn {\n    display: none;" in content
+        assert ".mobile-menu-btn {\n  display: none;" in content
         assert "@media (max-width: 768px)" in content
         assert ".nav-links" in content
 
@@ -1048,8 +1048,8 @@ class TestResponsiveHamburger:
         with open(js_path, encoding="utf-8") as f:
             content = f.read()
         assert "function closeMenu" in content
-        assert "navLinks.querySelectorAll('a').forEach" in content
-        assert "link.addEventListener('click', closeMenu)" in content
+        assert 'navLinks.querySelectorAll("a").forEach' in content
+        assert 'link.addEventListener("click", closeMenu)' in content
 
     def test_nav_links_use_getElementById(self):
         import os
@@ -1059,7 +1059,7 @@ class TestResponsiveHamburger:
         )
         with open(js_path, encoding="utf-8") as f:
             content = f.read()
-        assert "document.getElementById('navLinks')" in content
+        assert 'document.getElementById("navLinks")' in content
         assert "navLinks" in content
 
 

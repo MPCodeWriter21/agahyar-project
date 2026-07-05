@@ -22,6 +22,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "bandit>=1.8",
+  "djlint>=1.40.3",
   "pre-commit>=4.2",
   "pytest>=8",
   "pytest-cov>=7.1",
@@ -51,3 +52,11 @@ addopts = ["-p", "services.test_plugin"]
 python_files = ["tests.py", "test_*.py"]
 testpaths = ["src/services"]
 pythonpath = ["src"]
+
+[tool.djlint]
+profile = "django"
+indent = 2
+extension = "html"
+format_css = true
+format_js = true
+max_line_length = 120

@@ -1,130 +1,157 @@
 {% extends 'services/base.html' %}
-
 {% block title %}پروفایل | آگاه‌یار{% endblock %}
 {% block meta_description %}مشاهده و ویرایش پروفایل کاربری در سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}پروفایل, ویرایش اطلاعات, آگاه‌یار{% endblock %}
-
 {% block content %}
-
-<div class="profile-container">
-  <h2>پروفایل کاربری</h2>
-
-  {% if messages %}
-  {% for message in messages %}
-  <div class="message-box {% if message.tags == 'success' %}message-success{% elif message.tags == 'error' %}message-error{% endif %}">
-    {{ message }}
-  </div>
-  {% endfor %}
-  {% endif %}
-
-  <div class="profile-section">
-    <div class="profile-info">
-      <div class="info-row"><span class="info-label">نام</span><span class="info-value">{{ user.first_name|default:"-" }}</span></div>
-      <div class="info-row"><span class="info-label">نام خانوادگی</span><span class="info-value">{{ user.last_name|default:"-" }}</span></div>
-      <div class="info-row"><span class="info-label">نام کاربری</span><span class="info-value">{{ user.username }}</span></div>
-      <div class="info-row"><span class="info-label">ایمیل</span><span class="info-value">{{ user.email|default:"-" }}</span></div>
-      {% if profile %}
-      <div class="info-row"><span class="info-label">شماره تماس</span><span class="info-value" dir="ltr">{{ profile.phone }}</span></div>
-      <div class="info-row"><span class="info-label">شهر</span><span class="info-value">{{ profile.city }}</span></div>
-      <div class="info-row"><span class="info-label">محله</span><span class="info-value">{{ profile.neighborhood|default:"-" }}</span></div>
-      {% else %}
-      <div class="info-row"><span class="info-label">شماره تماس</span><span class="info-value text-muted">ثبت نشده</span></div>
-      <div class="info-row"><span class="info-label">شهر</span><span class="info-value text-muted">ثبت نشده</span></div>
-      <div class="info-row"><span class="info-label">محله</span><span class="info-value text-muted">ثبت نشده</span></div>
-      {% endif %}
-      <div class="info-row"><span class="info-label">تاریخ عضویت</span><span class="info-value">{{ user.date_joined|date:"Y/m/d" }}</span></div>
-    </div>
-  </div>
-
-  <div class="profile-section">
-    <h3>ویرایش اطلاعات</h3>
-
-    {% if form.errors %}
-    <div class="form-group">
-      {% for field, errors in form.errors.items %}
-      {% for error in errors %}
-      <div class="error-message">{{ error }}</div>
+  <div class="profile-container">
+    <h2>پروفایل کاربری</h2>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="message-box {% if message.tags == 'success' %}message-success{% elif message.tags == 'error' %}message-error{% endif %}">
+          {{ message }}
+        </div>
       {% endfor %}
-      {% endfor %}
-    </div>
     {% endif %}
-
-    <form method="post">
-      {% csrf_token %}
-      <div class="form-group{% if form.first_name.errors %} has-error{% endif %}">
-        <label>نام</label>
-        <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" class="{% if form.first_name.errors %}field-error{% endif %}" required>
-        {% if form.first_name.errors %}<div class="field-error-msg">{{ form.first_name.errors.0 }}</div>{% endif %}
+    <div class="profile-section">
+      <div class="profile-info">
+        <div class="info-row"><span class="info-label">نام</span><span class="info-value">{{ user.first_name|default:"-" }}</span></div>
+        <div class="info-row"><span class="info-label">نام خانوادگی</span><span class="info-value">{{ user.last_name|default:"-" }}</span></div>
+        <div class="info-row"><span class="info-label">نام کاربری</span><span class="info-value">{{ user.username }}</span></div>
+        <div class="info-row"><span class="info-label">ایمیل</span><span class="info-value">{{ user.email|default:"-" }}</span></div>
+        {% if profile %}
+          <div class="info-row"><span class="info-label">شماره تماس</span><span class="info-value" dir="ltr">{{ profile.phone }}</span></div>
+          <div class="info-row"><span class="info-label">شهر</span><span class="info-value">{{ profile.city }}</span></div>
+          <div class="info-row"><span class="info-label">محله</span><span class="info-value">{{ profile.neighborhood|default:"-" }}</span></div>
+        {% else %}
+          <div class="info-row"><span class="info-label">شماره تماس</span><span class="info-value text-muted">ثبت نشده</span></div>
+          <div class="info-row"><span class="info-label">شهر</span><span class="info-value text-muted">ثبت نشده</span></div>
+          <div class="info-row"><span class="info-label">محله</span><span class="info-value text-muted">ثبت نشده</span></div>
+        {% endif %}
+        <div class="info-row"><span class="info-label">تاریخ عضویت</span><span class="info-value">{{ user.date_joined|date:"Y/m/d" }}</span></div>
       </div>
-      <div class="form-group{% if form.last_name.errors %} has-error{% endif %}">
-        <label>نام خانوادگی</label>
-        <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" class="{% if form.last_name.errors %}field-error{% endif %}" required>
-        {% if form.last_name.errors %}<div class="field-error-msg">{{ form.last_name.errors.0 }}</div>{% endif %}
-      </div>
-      <div class="form-group{% if form.email.errors %} has-error{% endif %}">
-        <label>ایمیل</label>
-        <input type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="example@email.com" class="ltr-input{% if form.email.errors %} field-error{% endif %}" dir="ltr">
-        {% if form.email.errors %}<div class="field-error-msg">{{ form.email.errors.0 }}</div>{% endif %}
-      </div>
-      <div class="form-group{% if form.city.errors %} has-error{% endif %}">
-        <label>شهر محل سکونت</label>
-        <select name="city" class="{% if form.city.errors %}field-error{% endif %}" required>
-          {% for value, label in city_choices %}
-          <option value="{{ value }}"{% if form.city.value == value %} selected{% endif %}>{{ label }}</option>
+    </div>
+    <div class="profile-section">
+      <h3>ویرایش اطلاعات</h3>
+      {% if form.errors %}
+        <div class="form-group">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+              <div class="error-message">{{ error }}</div>
+            {% endfor %}
           {% endfor %}
-        </select>
-        {% if form.city.errors %}<div class="field-error-msg">{{ form.city.errors.0 }}</div>{% endif %}
-      </div>
-      <div class="form-group{% if form.neighborhood.errors %} has-error{% endif %}">
-        <label>محله</label>
-        <input type="text" name="neighborhood" value="{{ form.neighborhood.value|default:'' }}" placeholder="مثال: سعادت‌آباد، ونک، ..." class="{% if form.neighborhood.errors %}field-error{% endif %}">
-        {% if form.neighborhood.errors %}<div class="field-error-msg">{{ form.neighborhood.errors.0 }}</div>{% endif %}
-      </div>
-      <div class="form-group{% if form.phone.errors %} has-error{% endif %}">
-        <label>شماره تماس</label>
-        <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="مثال: 09121234567" class="ltr-input{% if form.phone.errors %} field-error{% endif %}" dir="ltr" required>
-        {% if form.phone.errors %}<div class="field-error-msg">{{ form.phone.errors.0 }}</div>{% endif %}
-      </div>
-      <button type="submit" name="update_profile" class="btn-primary">ذخیره تغییرات</button>
-    </form>
-  </div>
-
-  <div class="profile-section">
-    <h3>تغییر رمز عبور</h3>
-
-    {% if password_form.errors %}
-    <div class="form-group">
-      {% for field, errors in password_form.errors.items %}
-      {% for error in errors %}
-      <div class="error-message">{{ error }}</div>
-      {% endfor %}
-      {% endfor %}
+        </div>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group{% if form.first_name.errors %} has-error{% endif %}">
+          <label>نام</label>
+          <input type="text"
+                 name="first_name"
+                 value="{{ form.first_name.value|default:'' }}"
+                 class="{% if form.first_name.errors %}field-error{% endif %}"
+                 required>
+          {% if form.first_name.errors %}<div class="field-error-msg">{{ form.first_name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group{% if form.last_name.errors %} has-error{% endif %}">
+          <label>نام خانوادگی</label>
+          <input type="text"
+                 name="last_name"
+                 value="{{ form.last_name.value|default:'' }}"
+                 class="{% if form.last_name.errors %}field-error{% endif %}"
+                 required>
+          {% if form.last_name.errors %}<div class="field-error-msg">{{ form.last_name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group{% if form.email.errors %} has-error{% endif %}">
+          <label>ایمیل</label>
+          <input type="email"
+                 name="email"
+                 value="{{ form.email.value|default:'' }}"
+                 placeholder="example@email.com"
+                 class="ltr-input{% if form.email.errors %} field-error{% endif %}"
+                 dir="ltr">
+          {% if form.email.errors %}<div class="field-error-msg">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group{% if form.city.errors %} has-error{% endif %}">
+          <label>شهر محل سکونت</label>
+          <select name="city"
+                  class="{% if form.city.errors %}field-error{% endif %}"
+                  required>
+            {% for value, label in city_choices %}
+              <option value="{{ value }}"
+                      {% if form.city.value == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if form.city.errors %}<div class="field-error-msg">{{ form.city.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group{% if form.neighborhood.errors %} has-error{% endif %}">
+          <label>محله</label>
+          <input type="text"
+                 name="neighborhood"
+                 value="{{ form.neighborhood.value|default:'' }}"
+                 placeholder="مثال: سعادت‌آباد، ونک، ..."
+                 class="{% if form.neighborhood.errors %}field-error{% endif %}">
+          {% if form.neighborhood.errors %}<div class="field-error-msg">{{ form.neighborhood.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group{% if form.phone.errors %} has-error{% endif %}">
+          <label>شماره تماس</label>
+          <input type="text"
+                 name="phone"
+                 value="{{ form.phone.value|default:'' }}"
+                 placeholder="مثال: 09121234567"
+                 class="ltr-input{% if form.phone.errors %} field-error{% endif %}"
+                 dir="ltr"
+                 required>
+          {% if form.phone.errors %}<div class="field-error-msg">{{ form.phone.errors.0 }}</div>{% endif %}
+        </div>
+        <button type="submit" name="update_profile" class="btn-primary">ذخیره تغییرات</button>
+      </form>
     </div>
-    {% endif %}
-
-    <form method="post">
-      {% csrf_token %}
-      <div class="form-group{% if password_form.old_password.errors %} has-error{% endif %}">
-        <label>رمز عبور فعلی</label>
-        <input type="password" name="old_password" placeholder="رمز عبور فعلی" class="ltr-input{% if password_form.old_password.errors %} field-error{% endif %}" dir="ltr" required>
-        {% if password_form.old_password.errors %}<div class="field-error-msg">{{ password_form.old_password.errors.0 }}</div>{% endif %}
-      </div>
-      <div class="form-group{% if password_form.new_password1.errors %} has-error{% endif %}">
-        <label>رمز عبور جدید</label>
-        <input type="password" name="new_password1" placeholder="حداقل ۸ کاراکتر" class="ltr-input{% if password_form.new_password1.errors %} field-error{% endif %}" dir="ltr" required>
-        {% if password_form.new_password1.errors %}<div class="field-error-msg">{{ password_form.new_password1.errors.0 }}</div>{% endif %}
-      </div>
-      <div class="form-group{% if password_form.new_password2.errors %} has-error{% endif %}">
-        <label>تکرار رمز عبور جدید</label>
-        <input type="password" name="new_password2" placeholder="تکرار رمز جدید" class="ltr-input{% if password_form.new_password2.errors %} field-error{% endif %}" dir="ltr" required>
-        {% if password_form.new_password2.errors %}<div class="field-error-msg">{{ password_form.new_password2.errors.0 }}</div>{% endif %}
-      </div>
-      <button type="submit" name="change_password" class="btn-primary">تغییر رمز عبور</button>
-    </form>
+    <div class="profile-section">
+      <h3>تغییر رمز عبور</h3>
+      {% if password_form.errors %}
+        <div class="form-group">
+          {% for field, errors in password_form.errors.items %}
+            {% for error in errors %}<div class="error-message">{{ error }}</div>{% endfor %}
+          {% endfor %}
+        </div>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group{% if password_form.old_password.errors %} has-error{% endif %}">
+          <label>رمز عبور فعلی</label>
+          <input type="password"
+                 name="old_password"
+                 placeholder="رمز عبور فعلی"
+                 class="ltr-input{% if password_form.old_password.errors %} field-error{% endif %}"
+                 dir="ltr"
+                 required>
+          {% if password_form.old_password.errors %}<div class="field-error-msg">{{ password_form.old_password.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group{% if password_form.new_password1.errors %} has-error{% endif %}">
+          <label>رمز عبور جدید</label>
+          <input type="password"
+                 name="new_password1"
+                 placeholder="حداقل ۸ کاراکتر"
+                 class="ltr-input{% if password_form.new_password1.errors %} field-error{% endif %}"
+                 dir="ltr"
+                 required>
+          {% if password_form.new_password1.errors %}<div class="field-error-msg">{{ password_form.new_password1.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="form-group{% if password_form.new_password2.errors %} has-error{% endif %}">
+          <label>تکرار رمز عبور جدید</label>
+          <input type="password"
+                 name="new_password2"
+                 placeholder="تکرار رمز جدید"
+                 class="ltr-input{% if password_form.new_password2.errors %} field-error{% endif %}"
+                 dir="ltr"
+                 required>
+          {% if password_form.new_password2.errors %}<div class="field-error-msg">{{ password_form.new_password2.errors.0 }}</div>{% endif %}
+        </div>
+        <button type="submit" name="change_password" class="btn-primary">تغییر رمز عبور</button>
+      </form>
+    </div>
+    <div class="profile-links">
+      <a href="{% url 'home' %}" class="btn-detail">بازگشت به خانه</a>
+    </div>
   </div>
-
-  <div class="profile-links">
-    <a href="{% url 'home' %}" class="btn-detail">بازگشت به خانه</a>
-  </div>
-</div>
 {% endblock %}

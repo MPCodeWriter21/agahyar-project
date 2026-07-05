@@ -1,62 +1,58 @@
 {% extends 'services/base.html' %}
 {% load static %}
-
 {% block title %}خانه | آگاه‌یار{% endblock %}
 {% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - جستجو و دریافت اطلاعات خدمات دولتی در ایران{% endblock %}
 {% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه دولتی, راهنمای خدمات, ایران{% endblock %}
-
 {% block content %}
-
-<section class="hero">
- <h2>آگاه‌یار</h2>
- <p>خدمات دولتی را هوشمند پیدا کنید<br>قبل از مراجعه، مدارک، هزینه و زمان انجام هر خدمت را بدانید.</p>
- <form class="search-box" action="{% url 'search' %}" method="get">
- <input type="text" name="q" placeholder="جستجوی خدمت مورد نظر ..." required>
- <button type="submit">جستجو</button>
- </form>
- {% if not user.is_authenticated %}
- <div class="hero-cta">
- <a href="{% url 'login' %}" class="btn-hero">ورود</a>
- <a href="{% url 'register' %}" class="btn-hero btn-hero-secondary">ثبت‌نام</a>
- </div>
- {% endif %}
-</section>
-
-<h2 class="section-title"> خدمات پرطرفدار</h2>
-<div class="services-grid">
- {% for service in popular_services %}
- <div class="service-card">
- <div class="service-icon"></div>
- <h3>{{ service.name }}</h3>
- <p class="org-name">{{ service.organization|truncatechars:45 }}</p>
- <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات </a>
- </div>
-  {% empty %}
-  <p class="empty-state-grid">
-  هیچ خدمتی یافت نشد. ابتدا در پنل ادمین خدمات اضافه کنید.
-  </p>
-  {% endfor %}
-</div>
-
-<div class="how-it-works">
- <h2> چگونه از آگاه‌یار استفاده کنم؟</h2>
- <div class="steps-container">
- <div class="step">
- <div class="step-number">۱</div>
- <h3>جستجو کنید</h3>
- <p>نام خدمت مورد نظر خود را در باکس جستجو وارد کنید</p>
- </div>
- <div class="step">
- <div class="step-number">۲</div>
- <h3>جزئیات را بخوانید</h3>
- <p>مدارک مورد نیاز، مراحل انجام، هزینه و زمان تقریبی را ببینید</p>
- </div>
- <div class="step">
- <div class="step-number">۳</div>
- <h3>آماده اقدام شوید</h3>
- <p>با آگاهی کامل و مدارک آماده به سازمان مربوطه مراجعه کنید</p>
- </div>
- </div>
-</div>
-
+  <section class="hero">
+    <h2>آگاه‌یار</h2>
+    <p>
+      خدمات دولتی را هوشمند پیدا کنید
+      <br>
+      قبل از مراجعه، مدارک، هزینه و زمان انجام هر خدمت را بدانید.
+    </p>
+    <form class="search-box" action="{% url 'search' %}" method="get">
+      <input type="text" name="q" placeholder="جستجوی خدمت مورد نظر ..." required>
+      <button type="submit">جستجو</button>
+    </form>
+    {% if not user.is_authenticated %}
+      <div class="hero-cta">
+        <a href="{% url 'login' %}" class="btn-hero">ورود</a>
+        <a href="{% url 'register' %}" class="btn-hero btn-hero-secondary">ثبت‌نام</a>
+      </div>
+    {% endif %}
+  </section>
+  <h2 class="section-title">خدمات پرطرفدار</h2>
+  <div class="services-grid">
+    {% for service in popular_services %}
+      <div class="service-card">
+        <div class="service-icon"></div>
+        <h3>{{ service.name }}</h3>
+        <p class="org-name">{{ service.organization|truncatechars:45 }}</p>
+        <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات</a>
+      </div>
+    {% empty %}
+      <p class="empty-state-grid">هیچ خدمتی یافت نشد. ابتدا در پنل ادمین خدمات اضافه کنید.</p>
+    {% endfor %}
+  </div>
+  <div class="how-it-works">
+    <h2>چگونه از آگاه‌یار استفاده کنم؟</h2>
+    <div class="steps-container">
+      <div class="step">
+        <div class="step-number">۱</div>
+        <h3>جستجو کنید</h3>
+        <p>نام خدمت مورد نظر خود را در باکس جستجو وارد کنید</p>
+      </div>
+      <div class="step">
+        <div class="step-number">۲</div>
+        <h3>جزئیات را بخوانید</h3>
+        <p>مدارک مورد نیاز، مراحل انجام، هزینه و زمان تقریبی را ببینید</p>
+      </div>
+      <div class="step">
+        <div class="step-number">۳</div>
+        <h3>آماده اقدام شوید</h3>
+        <p>با آگاهی کامل و مدارک آماده به سازمان مربوطه مراجعه کنید</p>
+      </div>
+    </div>
+  </div>
 {% endblock %}

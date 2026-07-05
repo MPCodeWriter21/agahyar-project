@@ -17,4 +17,26 @@ repos:
     hooks:
       - id: pyproject-fmt
 
+  - repo: https://github.com/djlint/djlint
+    rev: v1.40.3
+    hooks:
+      - id: djlint-reformat
+        files: 'templates/.*\.html$'
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: Format CSS and JS
+        entry: prettier --write
+        language: node
+        types_or: [css, javascript]
+        additional_dependencies: ['prettier@3.9.4']
+        exclude: >
+          (?x)^(
+            static/services/js/alpine\.min\.js|
+            static/services/css/fontawesome-all\.min\.css|
+            dist/|
+            .*\.min\.(css|js)$
+          )$
+
 
