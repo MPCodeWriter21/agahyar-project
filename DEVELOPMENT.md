@@ -122,19 +122,11 @@ Populating Sample Data
 The repository includes scripts under ``scripts/`` to populate the database with
 realistic sample data:
 
-- ``populate_services.py`` -- creates (or updates) 9 government services
-  (idempotent, safe to re-run):
+- ``populate_services.py`` -- creates (or updates) 9 government services and 34
+  ServiceCenter records in a single run (idempotent, safe to re-run):
 
   ```bash
   uv run scripts/populate_services.py
-  ```
-
-- ``populate_centers.py`` -- creates (or updates) 34 ServiceCenter records with
-  real addresses and phone numbers for Tehran, Karaj, and Qom. Requires that
-  ``populate_services.py`` has been run first (idempotent):
-
-  ```bash
-  uv run scripts/populate_centers.py
   ```
 
 - ``populate_faq.py`` -- creates (or updates) 30 FAQ entries covering all 9

@@ -25,12 +25,16 @@
             {% endif %}
           </div>
           <div class="center-address">{{ center.address }}</div>
+          {% if center.postal_code %}
+            <div class="center-postal">کد پستی: {{ center.postal_code }}</div>
+          {% endif %}
           {% if center.phone %}
             <div class="center-phone">{{ center.phone }}</div>
           {% endif %}
-          <a href="https://www.google.com/maps/search/{{ center.address|urlencode }}"
-             target="_blank"
-             class="btn-map">مشاهده در نقشه</a>
+          {% if center.working_hours %}
+            <div class="center-hours">{{ center.working_hours|linebreaksbr }}</div>
+          {% endif %}
+          <a href="{{ center.get_map_url }}" target="_blank" class="btn-map">مشاهده در نقشه</a>
           {% if not center.is_nearest %}
             <span class="badge-near badge-near-space">نزدیک</span>
           {% endif %}

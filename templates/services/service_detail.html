@@ -53,10 +53,16 @@
       <div class="nearest-box">
         <div class="center-name">{{ nearest_center.name }}</div>
         <div class="nearest-address">{{ nearest_center.address }}</div>
+        {% if nearest_center.postal_code %}
+          <div class="nearest-postal">کد پستی: {{ nearest_center.postal_code }}</div>
+        {% endif %}
         {% if nearest_center.phone %}
           <div class="nearest-phone">{{ nearest_center.phone }}</div>
         {% endif %}
-        <a href="https://www.google.com/maps/search/{{ nearest_center.address|urlencode }}"
+        {% if nearest_center.working_hours %}
+          <div class="nearest-hours">{{ nearest_center.working_hours|linebreaksbr }}</div>
+        {% endif %}
+        <a href="{{ nearest_center.get_map_url }}"
            target="_blank"
            class="nearest-map-link">مشاهده در نقشه</a>
       </div>

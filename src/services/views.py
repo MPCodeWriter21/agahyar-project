@@ -27,7 +27,7 @@ from .models import (
     ServiceCenter,
     UserProfile,
 )
-from .scraper import get_nearest_center
+from .suggestion import get_nearest_center
 
 
 def save_user_profile(

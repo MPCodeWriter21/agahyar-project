@@ -130,7 +130,6 @@ Populate sample data (optional):
 
 ```bash
 uv run scripts/populate_services.py
-uv run scripts/populate_centers.py
 uv run scripts/populate_faq.py
 ```
 

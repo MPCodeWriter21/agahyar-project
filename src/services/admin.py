@@ -42,8 +42,8 @@ class FAQAdmin(admin.ModelAdmin):
 class ServiceCenterAdmin(admin.ModelAdmin):
     """Admin configuration for the ServiceCenter model."""
 
-    list_display = ("name", "service", "city", "phone")
-    search_fields = ("name", "address", "city")
+    list_display = ("name", "service", "city", "phone", "postal_code", "working_hours")
+    search_fields = ("name", "address", "city", "postal_code")
     list_filter = ("service", "city")
 
 

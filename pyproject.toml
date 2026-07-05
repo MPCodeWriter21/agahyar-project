@@ -8,14 +8,12 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-  "beautifulsoup4>=4.15",
   "Django>=6.0.6",
   "django-ratelimit>=4.1",
   "django-redis>=5.4",
+  "httpx>=0.28.1",
   "log21>=3.3.2",
-  "lxml>=6.1.1",
   "python-decouple>=3.8",
-  "requests>=2.34.2",
   "sqlparse>=0.5.5",
   "tzdata>=2026.2",
 ]
