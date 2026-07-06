@@ -6,6 +6,7 @@ list displays, search fields, and filters.
 """
 
 from django.contrib import admin
+from django.contrib.gis.db import models
 
 from .models import (
     FAQ,
@@ -16,6 +17,7 @@ from .models import (
     ServiceCenter,
     UserProfile,
 )
+from .widgets import LocalOpenLayersWidget
 
 
 @admin.register(Service)
@@ -52,6 +54,9 @@ class ServiceCenterAdmin(admin.ModelAdmin):
     list_display = ("name", "service", "city", "phone", "postal_code", "working_hours")
     search_fields = ("name", "address", "city", "postal_code")
     list_filter = ("service", "city")
+    formfield_overrides = {
+        models.GeometryField: {"widget": LocalOpenLayersWidget},
+    }
 
 
 @admin.register(ContactMessage)

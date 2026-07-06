@@ -712,6 +712,8 @@ def test_static_js_files_exist():
     assert os.path.isfile(os.path.join(root, "libs", "alpine.min.js"))
     assert os.path.isfile(os.path.join(root, "services", "js", "main.js"))
     assert os.path.isfile(os.path.join(root, "services", "js", "error-translate.js"))
+    assert os.path.isfile(os.path.join(root, "libs", "ol", "ol.js"))
+    assert os.path.isfile(os.path.join(root, "libs", "ol", "ol.css"))
 
 
 def test_vazirmatn_font_files_exist():
@@ -824,6 +826,13 @@ class TestSecurityHeaders:
         csp = response["Content-Security-Policy"]
         assert "default-src 'self'" in csp
         assert "form-action 'self'" in csp
+
+    def test_csp_allows_osm_tiles(self):
+        client = Client()
+        response = client.get("/")
+        csp = response["Content-Security-Policy"]
+        assert "https://tile.openstreetmap.org" in csp
+        assert "https://*.tile.openstreetmap.org" in csp
 
     def test_x_content_type_options(self):
         client = Client()
