@@ -1,3 +1,10 @@
+"""Placeholder logic for nearest-center lookup and ranking.
+
+Functions are marked as TODO and currently return simple DB
+queries or hardcoded fallback data. See Tigo tasks for the
+full implementation.
+"""
+
 from __future__ import annotations
 
 from typing import Optional

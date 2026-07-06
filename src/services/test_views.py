@@ -1,3 +1,10 @@
+"""Tests for the Agahyar view functions.
+
+Covers authentication, CRUD operations, security headers,
+SEO endpoints, bookmarks, ratings, responsive design,
+and error-code rendering across all views.
+"""
+
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client

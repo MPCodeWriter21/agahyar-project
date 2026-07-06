@@ -73,22 +73,46 @@ Project Structure
 
 ```
 agahyar-project/
-├── src/                     # Python source packages
-│   ├── agahyar_project/     # Django project configuration
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   └── wsgi.py / asgi.py
-│   └── services/            # Main application
-│       ├── models.py        # Service, UserProfile, FAQ, ServiceCenter
-│       ├── views.py         # All view functions
-│       ├── scraper.py       # Nearest-center logic and AI simulation
-│       ├── urls.py          # App routes
-│       ├── forms.py         # LoginForm, RegisterForm
-│       ├── admin.py         # Admin panel registration
-│       └── migrations/      # Database migrations
+├── src/                          # Python source packages
+│   ├── agahyar_project/          # Django project configuration
+│   │   ├── __init__.py
+│   │   ├── asgi.py               # ASGI entry point
+│   │   ├── middleware.py          # SecurityHeadersMiddleware
+│   │   ├── scripts.py            # Console-script entry points
+│   │   ├── settings.py           # Django settings
+│   │   ├── urls.py               # Root URL config + 429 handler
+│   │   └── wsgi.py               # WSGI entry point
+│   └── services/                 # Main application
+│       ├── __init__.py
+│       ├── admin.py              # Admin panel registration
+│       ├── apps.py               # Django AppConfig
+│       ├── error_codes.py        # Persian error code catalog
+│       ├── forms.py              # LoginForm, RegisterForm, etc.
+│       ├── models.py             # Service, UserProfile, FAQ, etc.
+│       ├── suggestion.py         # Nearest-center lookup logic
+│       ├── urls.py               # App URL patterns
+│       ├── validators.py         # Iranian phone validator
+│       ├── views.py              # All view functions
+│       ├── migrations/           # Database migrations
+│       └── test_*.py             # Pytest test files
+├── scripts/                      # Data population scripts
+│   ├── populate_services.py
+│   └── populate_faq.py
 ├── templates/
-│   └── services/            # HTML templates
-└── pyproject.toml           # Project metadata, dependencies, and tool config
+│   └── services/                 # HTML templates
+├── static/
+│   └── services/                 # CSS, JS, fonts, icons (no CDN)
+├── Dockerfile                    # Multi-stage build
+├── docker-compose.dev.yml        # Dev compose (PostGIS + Redis + Adminer)
+├── docker-compose.prod.yml       # Prod compose (Traefik, Gunicorn)
+├── pyproject.toml                # Project metadata, dependencies, tooling
+├── .env.example                  # Environment variable template
+├── .pre-commit-config.yaml
+├── .github/workflows/ci.yml
+├── README.md
+├── DEVELOPMENT.md
+├── DEPLOYMENT.md
+└── AGENTS.md
 ```
 
 Coding Conventions

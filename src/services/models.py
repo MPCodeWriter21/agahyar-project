@@ -1,3 +1,10 @@
+"""Data models for the Agahyar services application.
+
+Defines ``Service``, ``UserProfile``, ``FAQ``, ``ServiceCenter``,
+``ContactMessage``, ``Rating``, and ``Bookmark`` with Persian
+verbose names and helper methods.
+"""
+
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 

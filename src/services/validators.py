@@ -1,3 +1,9 @@
+"""Custom validators for Iranian-specific data formats.
+
+Provides ``iranian_phone_number_validator`` for 11-digit mobile
+numbers starting with ``09``.
+"""
+
 import re
 
 from django.core.exceptions import ValidationError

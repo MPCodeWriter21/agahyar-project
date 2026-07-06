@@ -1,3 +1,10 @@
+"""View functions for the Agahyar services application.
+
+Covers authentication, dashboard, search, service detail,
+bookmarks, ratings, profile, FAQ, contact, nearby centers,
+and SEO endpoints, with rate limiting on sensitive views.
+"""
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required

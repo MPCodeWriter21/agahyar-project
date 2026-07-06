@@ -1,6 +1,6 @@
 # Use PostGIS
 
-- STATUS: COMPLETED
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: PostGIS, database, location
 

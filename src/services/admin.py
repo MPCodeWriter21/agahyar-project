@@ -1,3 +1,10 @@
+"""Admin panel configuration for all Agahyar models.
+
+Registers ``Service``, ``UserProfile``, ``FAQ``, ``ServiceCenter``,
+``ContactMessage``, ``Rating``, and ``Bookmark`` with appropriate
+list displays, search fields, and filters.
+"""
+
 from django.contrib import admin
 
 from .models import (

@@ -1,3 +1,10 @@
+"""Django forms for the Agahyar services application.
+
+Provides ``LoginForm``, ``RegisterForm``, ``ProfileForm``,
+``RatingForm``, and ``ContactForm`` with Persian error messages
+and Iranian phone number validation.
+"""
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User

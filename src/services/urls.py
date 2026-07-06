@@ -1,3 +1,9 @@
+"""URL configuration for the ``services`` application.
+
+Maps all application routes: core pages, authentication
+endpoints, bookmarks, ratings, and password reset flows.
+"""
+
 from typing import List
 
 from django.contrib.auth import views as auth_views

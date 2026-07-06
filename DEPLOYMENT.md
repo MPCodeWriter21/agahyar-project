@@ -49,7 +49,7 @@ Open <http://localhost:8000>.
 After migrating, create a superuser to access the admin panel:
 
 ```bash
-docker compose exec web uv run create-superuser
+docker compose -f docker-compose.dev.yml exec web uv run create-superuser
 ```
 
 You will be prompted for a username, email, and password (in English, as

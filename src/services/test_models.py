@@ -1,3 +1,10 @@
+"""Tests for the Agahyar data models.
+
+Covers ``__str__`` representations, helper methods
+(``get_documents_list``, ``get_steps_list``, ``get_map_url``),
+unique-together constraints, and score-range validation.
+"""
+
 import pytest
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point

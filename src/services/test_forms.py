@@ -1,3 +1,10 @@
+"""Tests for the Agahyar form classes.
+
+Validates city choices structure, field presence, duplicate
+detection (username, email, phone), and login/registration
+form behavior.
+"""
+
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client

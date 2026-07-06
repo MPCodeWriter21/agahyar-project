@@ -1,3 +1,10 @@
+"""Tests for the suggestion module.
+
+Verifies that ``get_nearest_center`` returns ``None`` as expected
+and that ``suggest_centers`` falls back to placeholder data
+when no matching centers exist.
+"""
+
 import pytest
 
 from services.suggestion import get_nearest_center, suggest_centers
