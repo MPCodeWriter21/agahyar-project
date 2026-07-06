@@ -1,6 +1,6 @@
 # Make the Admin panel RTL
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 60
 - TAGS: frontend, admin panel, enhancement
 

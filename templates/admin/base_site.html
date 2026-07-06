@@ -1,0 +1,70 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_("Django site admin") }}{% endblock %}
+{% block branding %}
+  <div id="site-name"><a href="{% url 'admin:index' %}">آگاه‌یار</a></div>
+  {% if user.is_anonymous %}
+    {% include "admin/color_theme_toggle.html" %}
+  {% endif %}
+{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block extrastyle %}
+  <style>
+      @font-face {
+          font-family: "Vazirmatn";
+          src: url("{% static 'Vazirmatn-Regular.woff2' %}") format("woff2");
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+      }
+
+      @font-face {
+          font-family: "Vazirmatn";
+          src: url("{% static 'Vazirmatn-Regular.woff2' %}") format("woff2");
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
+      }
+
+      body,
+      #container,
+      #header,
+      #content,
+      .module,
+      .form-row,
+      input,
+      select,
+      textarea,
+      button,
+      .button,
+      .submit-row input {
+          font-family: "Vazirmatn", "Segoe UI", Tahoma, sans-serif;
+      }
+
+      .field-phone input,
+      .field-postal_code input,
+      .field-working_hours input,
+      .field-cost input,
+      .field-duration input,
+      .field-email input,
+      .vIntegerField,
+      .vFloatField,
+      .vDecimalField,
+      input[name$="_regex"],
+      input[name$="_max_length"],
+      input[name$="_min_length"],
+      td.field-phone,
+      td.field-postal_code,
+      td.field-cost,
+      td.field-duration {
+          direction: ltr;
+          unicode-bidi: embed;
+          text-align: left;
+      }
+
+      .olControlZoom a {
+          font-family: "Segoe UI", Tahoma, sans-serif;
+      }
+  </style>
+  <link rel="stylesheet" href="{% static 'services/css/admin-rtl.css' %}">
+{% endblock %}
