@@ -45,4 +45,10 @@ curl -fsSL "$CDN/alpinejs@3.14.9/dist/cdn.min.js" -o static/libs/alpine.min.js
 echo "Downloading Vazirmatn ..."
 curl -fsSL "$CDN/vazirmatn@33.0.3/fonts/webfonts/Vazirmatn-Regular.woff2" -o static/Vazirmatn-Regular.woff2
 
+# Toastify 1.12.0
+echo "Downloading Toastify ..."
+mkdir -p static/libs/toastify
+curl -fsSL "$CDN/toastify-js@1.12.0/src/toastify.js" -o static/libs/toastify/toastify.js
+curl -fsSL "$CDN/toastify-js@1.12.0/src/toastify.css" -o static/libs/toastify/toastify.css
+
 echo "Done."

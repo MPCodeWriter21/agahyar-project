@@ -442,6 +442,10 @@ def profile_view(request: HttpRequest) -> HttpResponse:
                 password_form.save()
                 messages.success(request, get_error_message("password/changed"))
                 return redirect("profile")
+            else:
+                messages.error(
+                    request, "خطا در تغییر رمز عبور. لطفاً خطوط قرمز را بررسی کنید."
+                )
     else:
         form = ProfileForm(initial=profile_initial)
         password_form = PersianPasswordChangeForm(request.user)

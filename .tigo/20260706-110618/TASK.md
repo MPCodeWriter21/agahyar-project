@@ -1,6 +1,6 @@
 # Better toasts
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 60
 - TAGS: frontend, enhancement
 

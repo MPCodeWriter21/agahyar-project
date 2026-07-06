@@ -5,13 +5,6 @@
 {% block content %}
   <div class="profile-container">
     <h2>پروفایل کاربری</h2>
-    {% if messages %}
-      {% for message in messages %}
-        <div class="message-box {% if message.tags == 'success' %}message-success{% elif message.tags == 'error' %}message-error{% endif %}">
-          {{ message }}
-        </div>
-      {% endfor %}
-    {% endif %}
     <div class="profile-section">
       <div class="profile-info">
         <div class="info-row"><span class="info-label">نام</span><span class="info-value">{{ user.first_name|default:"-" }}</span></div>

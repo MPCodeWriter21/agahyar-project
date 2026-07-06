@@ -42,4 +42,10 @@ Invoke-WebRequest -Uri "$CDN/alpinejs@3.14.9/dist/cdn.min.js" -OutFile static/li
 Write-Host "Downloading Vazirmatn ..."
 Invoke-WebRequest -Uri "$CDN/vazirmatn@33.0.3/fonts/webfonts/Vazirmatn-Regular.woff2" -OutFile static/Vazirmatn-Regular.woff2
 
+# Toastify 1.12.0
+Write-Host "Downloading Toastify ..."
+$null = New-Item -ItemType Directory -Force -Path static/libs/toastify
+Invoke-WebRequest -Uri "$CDN/toastify-js@1.12.0/src/toastify.js" -OutFile static/libs/toastify/toastify.js
+Invoke-WebRequest -Uri "$CDN/toastify-js@1.12.0/src/toastify.css" -OutFile static/libs/toastify/toastify.css
+
 Write-Host "Done."

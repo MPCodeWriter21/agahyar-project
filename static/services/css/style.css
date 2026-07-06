@@ -2203,3 +2203,13 @@ body {
   direction: rtl;
   text-align: right;
 }
+
+/* --- Toastify --- */
+.toastify {
+  border-radius: 8px;
+  font-family: "Vazirmatn", sans-serif;
+  direction: rtl;
+  text-align: right;
+  padding: 12px 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}

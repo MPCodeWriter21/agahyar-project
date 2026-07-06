@@ -21,6 +21,8 @@ COPY static ./static
 # minify static files
 RUN minify -air static
 
+# Replace '\r\n' with '\n'
+RUN sed -i 's/\r$//' scripts/vendor_static.sh
 # Download vendored static assets from CDN
 RUN bash scripts/vendor_static.sh
 

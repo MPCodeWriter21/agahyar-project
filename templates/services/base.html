@@ -33,6 +33,7 @@
           content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
     <link rel="stylesheet"
           href="{% static 'libs/fontawesome/css/fontawesome-all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'libs/toastify/toastify.css' %}">
     <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
     <script defer src="{% static 'services/js/error-translate.js' %}"></script>
     <script defer src="{% static 'services/js/custom-select.js' %}"></script>
@@ -69,17 +70,6 @@
       </div>
     </header>
     <main class="main-content">
-      {% if messages %}
-        <div id="message-container">
-          {% for message in messages %}
-            {% if message.tags == 'success' %}
-              <div class="message-box message-success">{{ message }}</div>
-            {% elif message.tags == 'error' %}
-              <div class="message-box message-error">{{ message }}</div>
-            {% endif %}
-          {% endfor %}
-        </div>
-      {% endif %}
       {% block content %}{% endblock %}
     </main>
     <footer class="footer">
@@ -108,6 +98,49 @@
         <p>© ۱۴۰۴-۱۴۰۵ - تیم آگاه‌ران | پروژه درس مدیریت پروژه فناوری اطلاعات</p>
       </div>
     </footer>
-    {% block extra_js %}{% endblock %}
+    <script src="{% static 'libs/toastify/toastify.js' %}"></script>
+    <script>
+        var toastLevels = {
+            'success': {
+                style: {
+                    background: '#28a745'
+                }
+            },
+            'error': {
+                style: {
+                    background: '#dc3545'
+                }
+            },
+            'warning': {
+                style: {
+                    background: '#ffc107',
+                    color: '#212529'
+                }
+            },
+            'info': {
+                style: {
+                    background: '#17a2b8'
+                }
+            },
+        };
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if messages %}
+            {% for message in messages %}
+            var cfg = toastLevels['{{ message.tags }}'] || toastLevels['info'];
+            Toastify({
+                text: '{{ message|escapejs }}',
+                duration: 3000,
+                close: false,
+                gravity: 'bottom',
+                position: 'center',
+                stopOnFocus: true,
+                style: cfg.style,
+            }).showToast();
+            {% endfor %}
+            {% endif %}
+        });
+    </script>
+    {% block extra_js %}
+    {% endblock %}
   </body>
 </html>
