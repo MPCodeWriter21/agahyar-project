@@ -49,6 +49,7 @@ Build system
 ------------
 
 - use `uv` and `pyproject.toml`
+- uv.lock must be updated after every dependency change in pyproject.toml (run `uv lock` or `uv sync`)
 - **Python support**: 3.12+
 
 Commit convention
