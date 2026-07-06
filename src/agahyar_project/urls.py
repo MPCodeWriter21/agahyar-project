@@ -27,6 +27,22 @@ def rate_limit_exceeded(
 handler429 = "agahyar_project.urls.rate_limit_exceeded"
 
 
+def page_not_found(request: HttpRequest, exception: Exception = None) -> HttpResponse:
+    """Render a custom 404 page."""
+    return render(request, "404.html", status=404)
+
+
+handler404 = "agahyar_project.urls.page_not_found"
+
+
+def server_error(request: HttpRequest) -> HttpResponse:
+    """Render a custom 500 page."""
+    return render(request, "500.html", status=500)
+
+
+handler500 = "agahyar_project.urls.server_error"
+
+
 def health_check(request: HttpRequest) -> HttpResponse:
     """Return a simple 200 response for health check probes."""
     return HttpResponse("ok")
