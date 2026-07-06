@@ -354,7 +354,7 @@ class TestServiceListView:
 class TestServiceDetailView:
     def test_requires_login(self):
         client = Client()
-        response = client.get("/service/1/")
+        response = client.get("/service/9999/")
         assert response.status_code == 302
 
     def test_shows_service_details(self):
@@ -1093,18 +1093,18 @@ class TestSeoEndpoints:
     def test_sitemap_includes_services(self):
         from django.test.utils import override_settings
 
-        Service.objects.create(
+        svc1 = Service.objects.create(
             name="سرویس الف", organization="org1", documents="d", steps="s"
         )
-        Service.objects.create(
+        svc2 = Service.objects.create(
             name="سرویس ب", organization="org2", documents="d", steps="s"
         )
         with override_settings(SITE_URL="https://example.com"):
             client = Client()
             response = client.get("/sitemap.xml")
             content = response.content.decode()
-            assert "/service/1/" in content
-            assert "/service/2/" in content
+            assert f"/service/{svc1.id}/" in content
+            assert f"/service/{svc2.id}/" in content
 
     def test_homepage_has_meta_tags(self):
         client = Client()
@@ -1137,7 +1137,7 @@ class TestPrintableView:
     def test_print_button_on_detail_page(self):
         from services.models import Service
 
-        Service.objects.create(
+        svc = Service.objects.create(
             name="test-print",
             organization="org",
             documents="doc1|doc2",
@@ -1148,7 +1148,7 @@ class TestPrintableView:
         User.objects.create_user("printuser", password="pass12345")
         client = Client()
         client.login(username="printuser", password="pass12345")
-        response = client.get("/service/1/")
+        response = client.get(f"/service/{svc.id}/")
         content = response.content.decode()
         assert "btn-print" in content
         assert "window.print()" in content
