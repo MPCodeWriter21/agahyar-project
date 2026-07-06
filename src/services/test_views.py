@@ -708,21 +708,17 @@ class TestProfileView:
 def test_static_js_files_exist():
     import os
 
-    base = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "js"
-    )
-    assert os.path.isfile(os.path.join(base, "alpine.min.js"))
-    assert os.path.isfile(os.path.join(base, "main.js"))
-    assert os.path.isfile(os.path.join(base, "error-translate.js"))
+    root = os.path.join(os.path.dirname(__file__), "..", "..", "static")
+    assert os.path.isfile(os.path.join(root, "libs", "alpine.min.js"))
+    assert os.path.isfile(os.path.join(root, "services", "js", "main.js"))
+    assert os.path.isfile(os.path.join(root, "services", "js", "error-translate.js"))
 
 
 def test_vazirmatn_font_files_exist():
     import os
 
-    base = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "fonts"
-    )
-    assert os.path.isfile(os.path.join(base, "Vazirmatn-Regular.woff2"))
+    root = os.path.join(os.path.dirname(__file__), "..", "..", "static")
+    assert os.path.isfile(os.path.join(root, "Vazirmatn-Regular.woff2"))
 
 
 def test_vazirmatn_css_in_style_css():

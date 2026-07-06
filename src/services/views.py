@@ -25,6 +25,7 @@ from .forms import (
     RatingForm,
     RegisterForm,
 )
+from .maps import get_center_locations, get_city_center
 from .models import (
     FAQ,
     Bookmark,
@@ -246,6 +247,12 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             service=service, city__icontains=user_city
         ).first()
 
+    centers_in_city = ServiceCenter.objects.filter(
+        service=service, city__icontains=user_city
+    )
+    center_locations = get_center_locations(centers_in_city)
+    city_center = get_city_center(user_city)
+
     is_bookmarked = Bookmark.objects.filter(user=request.user, service=service).exists()
 
     ratings = (
@@ -267,6 +274,8 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "nearest_center": nearest_center,
             "user_city": user_city,
             "user_neighborhood": user_neighborhood,
+            "center_locations": center_locations,
+            "city_center": city_center,
             "is_bookmarked": is_bookmarked,
             "avg_rating": round(avg_rating, 1) if avg_rating else None,
             "rating_count": ratings.count(),

@@ -1,6 +1,6 @@
 # Add maps
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 65
 - TAGS: map, feature, enhancement
 

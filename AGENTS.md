@@ -100,5 +100,8 @@ We want a great UX and efficient backend.
 Dependencies and assets
 -----------------------
 
-- No CDN usage. All JS libraries must be vendor-downloaded into
-  `static/services/js/` and loaded locally.
+- No CDN usage. All JS/CSS/font libraries must be vendor-downloaded into
+  `static/libs/LIB_NAME/` and loaded locally. Single-file assets (e.g.,
+  alpine.min.js) may be placed directly in `static/libs/`. Single-file
+  non-library assets (e.g., Vazirmatn-Regular.woff2 font) go directly in
+  `static/`.

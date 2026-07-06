@@ -1,8 +1,12 @@
 {% extends 'services/base.html' %}
+{% load static %}
 {% block title %}جزئیات {{ service.name }} | آگاه‌یار{% endblock %}
 {% block meta_description %}مدارک، مراحل، هزینه و مدت زمان مورد نیاز برای {{ service.name }} - سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}{{ service.name }}, {{ service.organization }}, خدمات دولتی{% endblock %}
 {% block og_title %}آگاه‌یار | {{ service.name }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
+{% endblock %}
 {% block content %}
   <div class="detail-header">
     <h1>{{ service.name }}</h1>
@@ -69,6 +73,7 @@
       <p class="nearest-note">بر اساس محله شما ({{ user_neighborhood }}) نزدیک‌ترین مرکز معرفی شده است.</p>
     </div>
   {% endif %}
+  {% include "services/partials/service_map.html" %}
   <div class="alert-note">
     <strong>نکته مهم:</strong> قبل از مراجعه حضوری، تمام مدارک بالا را کامل آماده کنید و با {{ service.organization }} تماس بگیرید.
   </div>
@@ -162,4 +167,35 @@
       <button type="submit" class="btn-bookmark">{% if is_bookmarked %}حذف نشانک{% else %}افزودن به نشانک‌ها{% endif %}</button>
     </form>
   </div>
+{% endblock %}
+{% block extra_js %}
+  <script src="{% static 'libs/leaflet/leaflet.js' %}"></script>
+  {% if center_locations %}
+    <script>
+        (function() {
+            var dataEl = document.getElementById("center-locations-data");
+            if (!dataEl) return;
+            var locations = JSON.parse(dataEl.textContent);
+            var map = L.map("service-map");
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 18,
+                attribution: "&copy; OpenStreetMap contributors"
+            }).addTo(map);
+            var bounds = L.latLngBounds();
+            locations.forEach(function(loc) {
+                var marker = L.marker([loc.lat, loc.lng]).addTo(map).bindPopup(
+                    "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? "<br>" + loc.phone : "")
+                );
+                bounds.extend(marker.getLatLng());
+            });
+            if (locations.length === 1) {
+                map.setView(bounds.getCenter(), 15);
+            } else {
+                map.fitBounds(bounds, {
+                    padding: [30, 30]
+                });
+            }
+        })();
+    </script>
+  {% endif %}
 {% endblock %}

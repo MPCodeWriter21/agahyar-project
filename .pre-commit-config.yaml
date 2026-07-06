@@ -33,8 +33,7 @@ repos:
         additional_dependencies: ['prettier@3.9.4']
         exclude: >
           (?x)^(
-            static/services/js/alpine\.min\.js|
-            static/services/css/fontawesome-all\.min\.css|
+            static/libs/|
             dist/|
             .*\.min\.(css|js)$
           )$
