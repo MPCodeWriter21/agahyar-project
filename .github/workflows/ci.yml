@@ -54,6 +54,9 @@ jobs:
           echo "DB_HOST=localhost" >> "$GITHUB_ENV"
           echo "DB_PORT=5432" >> "$GITHUB_ENV"
 
+      - name: Download vendored static assets
+        run: bash scripts/vendor_static.sh
+
       - name: Run migrations
         run: uv run python manage.py migrate
 
