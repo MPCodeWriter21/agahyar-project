@@ -142,12 +142,20 @@ def home(request: HttpRequest) -> HttpResponse:
     """Render the public home page with popular services and recent FAQs."""
     popular_services: QuerySet = Service.objects.all()[:6]
     faqs: QuerySet = FAQ.objects.all()[:5]
+    bookmarked_ids: set[int] = set()
+    if request.user.is_authenticated:
+        bookmarked_ids = set(
+            Bookmark.objects.filter(user=request.user).values_list(
+                "service_id", flat=True
+            )
+        )
     return render(
         request,
         "services/home.html",
         {
             "popular_services": popular_services,
             "faqs": faqs,
+            "bookmarked_ids": bookmarked_ids,
         },
     )
 
@@ -157,12 +165,16 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     """Render the authenticated user dashboard."""
     popular_services: QuerySet = Service.objects.all()[:6]
     faqs: QuerySet = FAQ.objects.all()[:5]
+    bookmarked_ids: set[int] = set(
+        Bookmark.objects.filter(user=request.user).values_list("service_id", flat=True)
+    )
     return render(
         request,
         "services/dashboard.html",
         {
             "popular_services": popular_services,
             "faqs": faqs,
+            "bookmarked_ids": bookmarked_ids,
         },
     )
 
@@ -206,6 +218,13 @@ def search(request: HttpRequest) -> HttpResponse:
     paginator: Paginator = Paginator(results, 12)
     page_number: str = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
+    bookmarked_ids: set[int] = set()
+    if request.user.is_authenticated:
+        bookmarked_ids = set(
+            Bookmark.objects.filter(user=request.user).values_list(
+                "service_id", flat=True
+            )
+        )
     return render(
         request,
         "services/search.html",
@@ -217,6 +236,7 @@ def search(request: HttpRequest) -> HttpResponse:
             "cities": cities,
             "page_obj": page_obj,
             "count": paginator.count,
+            "bookmarked_ids": bookmarked_ids,
         },
     )
 
@@ -292,7 +312,18 @@ def services_list(request: HttpRequest) -> HttpResponse:
     paginator: Paginator = Paginator(all_services, 12)
     page_number: str = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
-    return render(request, "services/service_list.html", {"page_obj": page_obj})
+    bookmarked_ids: set[int] = set()
+    if request.user.is_authenticated:
+        bookmarked_ids = set(
+            Bookmark.objects.filter(user=request.user).values_list(
+                "service_id", flat=True
+            )
+        )
+    return render(
+        request,
+        "services/service_list.html",
+        {"page_obj": page_obj, "bookmarked_ids": bookmarked_ids},
+    )
 
 
 def faq_view(request: HttpRequest) -> HttpResponse:

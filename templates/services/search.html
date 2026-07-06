@@ -37,9 +37,21 @@
     {% else %}
       <h2 class="section-title result-heading">{{ count }} نتیجه{% if query %} برای "{{ query }}"{% endif %}</h2>
       {% for service in page_obj %}
-        <div class="result-card">
-          <h3>{{ service.name }}</h3>
-          <div class="org-badge">{{ service.organization }}</div>
+        <div class="service-card">
+          <div class="service-card-header">
+            <h3>{{ service.name }}</h3>
+            <form method="post"
+                  action="{% url 'toggle_bookmark' service.id %}"
+                  class="bookmark-icon-form">
+              {% csrf_token %}
+              <button type="submit"
+                      class="btn-bookmark-icon"
+                      title="{% if service.id in bookmarked_ids %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
+                <i class="{% if service.id in bookmarked_ids %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
+              </button>
+            </form>
+          </div>
+          <span class="org-badge">{{ service.organization }}</span>
           <div class="docs-preview">
             <strong>مدارک مورد نیاز:</strong>
             <ul class="docs-list">
@@ -49,8 +61,7 @@
               {% if service.get_documents_list|length > 2 %}...{% endif %}
             </ul>
           </div>
-          <a href="{% url 'service_detail' service.id %}"
-             class="btn-outline-custom">مشاهده جزئیات</a>
+          <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات</a>
         </div>
       {% endfor %}
       {% if page_obj.paginator.num_pages > 1 %}
@@ -73,7 +84,4 @@
       <p>لطفاً نام یک خدمت دولتی را وارد کنید یا از فیلترهای بالا استفاده نمایید.</p>
     </div>
   {% endif %}
-  <div class="text-center">
-    <a href="{% url 'home' %}" class="btn-back">بازگشت به خانه</a>
-  </div>
 {% endblock %}
