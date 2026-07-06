@@ -42,12 +42,11 @@
   <body>
     <header class="header">
       <div class="header-container">
-        <div class="logo">
+        <a class="logo" href="{% url 'home' %}">
           <h1>آگاه‌یار</h1>
           <p>راهنمای هوشمند خدمات دولتی</p>
-        </div>
+        </a>
         <nav class="nav-links" id="navLinks">
-          <a href="{% url 'home' %}">خانه</a>
           <a href="{% url 'services_list' %}">خدمات</a>
           <a href="{% url 'about' %}">درباره ما</a>
           <a href="{% url 'contact' %}">تماس با ما</a>
