@@ -399,6 +399,16 @@ body {
   margin-bottom: 30px;
 }
 
+.reset-description {
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.reset-result {
+  text-align: center;
+}
+
 .register-link {
   text-align: center;
   margin-top: 20px;
@@ -407,13 +417,13 @@ body {
 .register-link a,
 .register-login-prompt a {
   text-decoration: none;
-  color: #2563eb;
+  color: var(--color-accent);
   transition: color 0.15s;
 }
 
 .register-link a:hover,
 .register-login-prompt a:hover {
-  color: #1d4ed8;
+  color: var(--color-accent-hover);
 }
 
 .muted-link {
@@ -1625,6 +1635,18 @@ body {
 .error-page-wrap {
   text-align: center;
   padding: 80px 20px;
+}
+
+.error-page-wrap h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: var(--color-danger);
+}
+
+.error-page-wrap p {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  color: var(--text-secondary);
 }
 
 /* --- Show Users Table --- */
