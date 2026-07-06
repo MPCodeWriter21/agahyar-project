@@ -32,6 +32,7 @@
                placeholder="نام کاربری خود را وارد کنید"
                class="ltr-input{% if form.username.errors %} field-error{% endif %}"
                dir="ltr"
+               autocomplete="username"
                required>
         {% if form.username.errors %}
           <div class="field-error-msg">{{ form.username.errors.0 }}</div>
@@ -44,6 +45,7 @@
                placeholder="رمز عبور خود را وارد کنید"
                class="ltr-input{% if form.password.errors %} field-error{% endif %}"
                dir="ltr"
+               autocomplete="current-password"
                required>
         {% if form.password.errors %}
           <div class="field-error-msg">{{ form.password.errors.0 }}</div>

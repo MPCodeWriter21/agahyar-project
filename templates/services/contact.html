@@ -18,6 +18,7 @@
                    value="{{ form.name.value|default:'' }}"
                    placeholder="نام خود را وارد کنید"
                    class="{% if form.name.errors %}field-error{% endif %}"
+                   autocomplete="name"
                    required>
             {% if form.name.errors %}<div class="field-error-msg">{{ form.name.errors.0 }}</div>{% endif %}
           </div>
@@ -29,6 +30,7 @@
                    placeholder="example@email.com"
                    class="ltr-input{% if form.email.errors %} field-error{% endif %}"
                    dir="ltr"
+                   autocomplete="email"
                    required>
             {% if form.email.errors %}<div class="field-error-msg">{{ form.email.errors.0 }}</div>{% endif %}
           </div>
