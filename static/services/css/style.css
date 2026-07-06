@@ -171,40 +171,6 @@ body {
   min-height: 60vh;
 }
 
-/* --- Messages --- */
-#message-container {
-  max-width: 1280px;
-  margin: 0 auto 20px;
-  padding: 0 24px;
-}
-
-.message-box {
-  display: inline-block;
-  padding: 8px 20px;
-  border-radius: 16px;
-  transition: opacity 0.5s ease;
-  font-size: 0.95rem;
-}
-
-.message-success {
-  background: #e8f5e9;
-  color: var(--color-success);
-  border-right: 4px solid var(--color-success);
-}
-
-.message-error {
-  background: #fde8e8;
-  color: var(--color-danger);
-  border-right: 4px solid var(--color-danger);
-}
-
-.message-info {
-  padding: 12px 16px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  border-right: 4px solid;
-}
-
 /* --- Footer --- */
 .footer {
   background: var(--bg-footer);
@@ -1585,10 +1551,6 @@ body {
   color: var(--text-secondary);
   padding: 50px 0;
 }
-.forgot-password {
-  text-align: center;
-  margin-top: 10px;
-}
 .nearest-address {
   color: var(--text-primary);
   margin-top: 8px;
@@ -2169,9 +2131,6 @@ body {
   .alert-note,
   .icon-boxes,
   .hero-cta,
-  #message-container {
-    display: none !important;
-  }
   .main-content {
     padding: 0 !important;
     margin: 0 !important;

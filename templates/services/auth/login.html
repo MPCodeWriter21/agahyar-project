@@ -4,11 +4,23 @@
   <div class="login-container">
     <h2>ورود به آگاه‌یار</h2>
     {% if form.non_field_errors %}
-      <div class="message-box message-error">
-        {% for error in form.non_field_errors %}
-          {{ error }}
-        {% endfor %}
-      </div>
+      <script>
+          document.addEventListener('DOMContentLoaded', function() {
+              {% for error in form.non_field_errors %}
+              Toastify({
+                  text: '{{ error|escapejs }}',
+                  duration: 3000,
+                  close: false,
+                  gravity: 'bottom',
+                  position: 'center',
+                  stopOnFocus: true,
+                  style: {
+                      background: '#dc3545'
+                  },
+              }).showToast();
+              {% endfor %}
+          });
+      </script>
     {% endif %}
     <form method="post">
       {% csrf_token %}
@@ -51,7 +63,7 @@
     <div class="register-link">
       حساب کاربری ندارید؟ <a href="{% url 'register' %}">ثبت‌نام کنید</a>
     </div>
-    <div class="register-link" style="margin-top:10px;">
+    <div class="register-link">
       <a href="{% url 'password_reset' %}" class="muted-link">رمز عبور را فراموش کرده‌اید؟</a>
     </div>
   </div>
