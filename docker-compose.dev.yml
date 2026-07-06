@@ -12,7 +12,7 @@ services:
       - ./src/agahyar_project:/app/src/agahyar_project
       - ./src/services:/app/src/services
       - ./templates:/app/templates
-      - ./static:/app/static
+      - ./static/services:/app/static/services
       - ./manage.py:/app/manage.py
       - ./scripts:/app/scripts
     command: uv run --no-sync python manage.py runserver 0.0.0.0:8000

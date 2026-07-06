@@ -15,9 +15,17 @@ RUN ARCH="$(dpkg --print-architecture)" && \
 # Install dev dependencies when INSTALL_DEV is set (non-empty)
 ARG INSTALL_DEV=
 
-COPY pyproject.toml uv.lock ./
+COPY scripts ./scripts
+COPY static ./static
+
+# minify static files
+RUN minify -air static
+
+# Download vendored static assets from CDN
+RUN bash scripts/vendor_static.sh
 
 # Install dependencies
+COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --extra prod ${INSTALL_DEV:+--extra dev} --no-install-project
 
 COPY manage.py ./
@@ -26,13 +34,7 @@ COPY src ./src
 # Install the project itself
 RUN uv pip install -e .
 
-COPY static ./static
 COPY templates ./templates
-
-# minify static files
-RUN minify -air static
-
-COPY scripts ./scripts
 
 # Collect static files into STATIC_ROOT
 RUN uv run --no-sync python manage.py collectstatic --noinput
