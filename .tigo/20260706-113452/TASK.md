@@ -1,6 +1,6 @@
 # Import and export data
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 65
 - TAGS: export, import, feature, ddatabase, admin panel
 
