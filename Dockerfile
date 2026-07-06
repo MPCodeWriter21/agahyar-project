@@ -2,23 +2,35 @@ FROM astral/uv:python3.12-bookworm-slim AS builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y minify libgdal-dev libgeos-dev libproj-dev \
+RUN apt-get update && apt-get install -y curl libgdal-dev libgeos-dev libproj-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy application code
-COPY pyproject.toml uv.lock manage.py ./
-COPY src/agahyar_project ./src/agahyar_project
-COPY src/services ./src/services
+# Download minify from GitHub releases: https://github.com/tdewolff/minify/releases/download/v2.24.13/minify_linux_amd64.tar.gz
+# And extract it to /usr/local/bin
+RUN ARCH="$(dpkg --print-architecture)" && \
+    curl -fsSL \
+      "https://github.com/tdewolff/minify/releases/download/v2.24.13/minify_linux_${ARCH}.tar.gz" \
+    | tar -xz -C /usr/local/bin minify
 
-# Install project dependencies (including prod extras)
-RUN uv sync --frozen --no-dev --extra prod
+# Install dev dependencies when INSTALL_DEV is set (non-empty)
+ARG INSTALL_DEV=
+
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN uv sync --frozen --no-dev --extra prod ${INSTALL_DEV:+--extra dev} --no-install-project
+
+COPY manage.py ./
+COPY src ./src
+
+# Install the project itself
 RUN uv pip install -e .
 
 COPY static ./static
 COPY templates ./templates
 
 # minify static files
-RUN if [[ -z "$DEBUG" ]]; then minify -air static; fi
+RUN minify -air static
 
 COPY scripts ./scripts
 
