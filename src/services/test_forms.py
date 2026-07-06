@@ -1,3 +1,10 @@
+"""Tests for the Agahyar form classes.
+
+Validates city choices structure, field presence, duplicate
+detection (username, email, phone), and login/registration
+form behavior.
+"""
+
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client
@@ -148,7 +155,15 @@ class TestProfileForm:
 
 class TestLoginForm:
     def test_valid_form(self):
-        form = LoginForm(data={"username": "testuser", "password": "secret123"})
+        form = LoginForm(
+            data={"username": "testuser", "password": "secret123", "remember_me": True}
+        )
+        assert form.is_valid()
+
+    def test_valid_form_remember_me_unchecked(self):
+        form = LoginForm(
+            data={"username": "testuser", "password": "secret123", "remember_me": False}
+        )
         assert form.is_valid()
 
     def test_missing_username(self):

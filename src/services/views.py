@@ -1,3 +1,10 @@
+"""View functions for the Agahyar services application.
+
+Covers authentication, dashboard, search, service detail,
+bookmarks, ratings, profile, FAQ, contact, nearby centers,
+and SEO endpoints, with rate limiting on sensitive views.
+"""
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -18,6 +25,7 @@ from .forms import (
     RatingForm,
     RegisterForm,
 )
+from .maps import get_center_locations, get_city_center
 from .models import (
     FAQ,
     Bookmark,
@@ -27,7 +35,7 @@ from .models import (
     ServiceCenter,
     UserProfile,
 )
-from .scraper import get_nearest_center
+from .suggestion import get_nearest_center
 
 
 def save_user_profile(
@@ -82,7 +90,9 @@ def register_view(request: HttpRequest) -> HttpResponse:
         form = RegisterForm()
 
     return render(
-        request, "services/register.html", {"form": form, "city_choices": CITY_CHOICES}
+        request,
+        "services/auth/register.html",
+        {"form": form, "city_choices": CITY_CHOICES},
     )
 
 
@@ -103,6 +113,10 @@ def login_view(request: HttpRequest) -> HttpResponse:
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
+                if form.cleaned_data.get("remember_me"):
+                    request.session.set_expiry(2592000)  # 30 days
+                else:
+                    request.session.set_expiry(0)  # expire on browser close
                 messages.success(
                     request,
                     get_error_message(
@@ -115,7 +129,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
     else:
         form = LoginForm()
 
-    return render(request, "services/login.html", {"form": form})
+    return render(request, "services/auth/login.html", {"form": form})
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
@@ -233,6 +247,12 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             service=service, city__icontains=user_city
         ).first()
 
+    centers_in_city = ServiceCenter.objects.filter(
+        service=service, city__icontains=user_city
+    )
+    center_locations = get_center_locations(centers_in_city)
+    city_center = get_city_center(user_city)
+
     is_bookmarked = Bookmark.objects.filter(user=request.user, service=service).exists()
 
     ratings = (
@@ -246,7 +266,7 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
 
     return render(
         request,
-        "services/detail.html",
+        "services/service_detail.html",
         {
             "service": service,
             "documents": service.get_documents_list(),
@@ -254,6 +274,8 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "nearest_center": nearest_center,
             "user_city": user_city,
             "user_neighborhood": user_neighborhood,
+            "center_locations": center_locations,
+            "city_center": city_center,
             "is_bookmarked": is_bookmarked,
             "avg_rating": round(avg_rating, 1) if avg_rating else None,
             "rating_count": ratings.count(),
@@ -270,7 +292,7 @@ def services_list(request: HttpRequest) -> HttpResponse:
     paginator: Paginator = Paginator(all_services, 12)
     page_number: str = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
-    return render(request, "services/list.html", {"page_obj": page_obj})
+    return render(request, "services/service_list.html", {"page_obj": page_obj})
 
 
 def faq_view(request: HttpRequest) -> HttpResponse:
@@ -333,7 +355,7 @@ def show_users(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return redirect("login")
     users: QuerySet = User.objects.select_related("profile").all().order_by("id")
-    return render(request, "services/show_users.html", {"users": users})
+    return render(request, "services/user_list.html", {"users": users})
 
 
 @login_required

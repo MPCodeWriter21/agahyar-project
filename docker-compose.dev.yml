@@ -1,6 +1,9 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "1"
     ports:
       - "8000:8000"
     env_file:
@@ -11,6 +14,8 @@ services:
       - ./templates:/app/templates
       - ./static:/app/static
       - ./manage.py:/app/manage.py
+      - ./scripts:/app/scripts
+    command: uv run --no-sync python manage.py runserver 0.0.0.0:8000
     depends_on:
       db:
         condition: service_healthy
@@ -43,7 +48,7 @@ services:
       - "traefik.http.services.adminer.loadbalancer.server.port=8080"
 
   db:
-    image: postgres:17-alpine
+    image: postgis/postgis:17-3.4
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:

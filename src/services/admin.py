@@ -1,4 +1,13 @@
+"""Admin panel configuration for all Agahyar models.
+
+Registers ``Service``, ``UserProfile``, ``FAQ``, ``ServiceCenter``,
+``ContactMessage``, ``Rating``, and ``Bookmark`` with appropriate
+list displays, search fields, and filters, plus import/export support.
+"""
+
 from django.contrib import admin
+from django.contrib.gis.db import models
+from import_export.admin import ImportExportModelAdmin
 
 from .models import (
     FAQ,
@@ -9,66 +18,86 @@ from .models import (
     ServiceCenter,
     UserProfile,
 )
+from .resources import (
+    BookmarkResource,
+    ContactMessageResource,
+    FAQResource,
+    RatingResource,
+    ServiceCenterResource,
+    ServiceResource,
+    UserProfileResource,
+)
+from .widgets import LocalOpenLayersWidget
 
 
 @admin.register(Service)
-class ServiceAdmin(admin.ModelAdmin):
+class ServiceAdmin(ImportExportModelAdmin):
     """Admin configuration for the Service model."""
 
+    resource_classes = [ServiceResource]
     list_display = ("name", "organization", "cost", "duration")
     search_fields = ("name", "keywords", "organization")
     list_filter = ("organization",)
 
 
 @admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(ImportExportModelAdmin):
     """Admin configuration for the UserProfile model."""
 
+    resource_classes = [UserProfileResource]
     list_display = ("user", "city", "phone")
     search_fields = ("user__username", "city")
     list_filter = ("city",)
 
 
 @admin.register(FAQ)
-class FAQAdmin(admin.ModelAdmin):
+class FAQAdmin(ImportExportModelAdmin):
     """Admin configuration for the FAQ model."""
 
+    resource_classes = [FAQResource]
     list_display = ("question", "category", "order")
     search_fields = ("question", "answer")
     list_filter = ("category",)
 
 
 @admin.register(ServiceCenter)
-class ServiceCenterAdmin(admin.ModelAdmin):
+class ServiceCenterAdmin(ImportExportModelAdmin):
     """Admin configuration for the ServiceCenter model."""
 
-    list_display = ("name", "service", "city", "phone")
-    search_fields = ("name", "address", "city")
+    resource_classes = [ServiceCenterResource]
+    list_display = ("name", "service", "city", "phone", "postal_code", "working_hours")
+    search_fields = ("name", "address", "city", "postal_code")
     list_filter = ("service", "city")
+    formfield_overrides = {
+        models.GeometryField: {"widget": LocalOpenLayersWidget},
+    }
 
 
 @admin.register(ContactMessage)
-class ContactMessageAdmin(admin.ModelAdmin):
+class ContactMessageAdmin(ImportExportModelAdmin):
     """Admin configuration for the ContactMessage model."""
 
+    resource_classes = [ContactMessageResource]
     list_display = ("name", "email", "created_at")
     search_fields = ("name", "email", "message")
     readonly_fields = ("name", "email", "message", "created_at")
 
 
 @admin.register(Rating)
-class RatingAdmin(admin.ModelAdmin):
+class RatingAdmin(ImportExportModelAdmin):
     """Admin configuration for the Rating model."""
 
+    resource_classes = [RatingResource]
     list_display = ("user", "service", "score", "created_at")
     search_fields = ("user__username", "service__name", "comment")
     list_filter = ("score", "created_at")
 
 
 @admin.register(Bookmark)
-class BookmarkAdmin(admin.ModelAdmin):
+class BookmarkAdmin(ImportExportModelAdmin):
     """Admin configuration for the Bookmark model."""
 
+    resource_classes = [BookmarkResource]
     list_display = ("user", "service", "created_at")
     search_fields = ("user__username", "service__name")
     list_filter = ("created_at",)

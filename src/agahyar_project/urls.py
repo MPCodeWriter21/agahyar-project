@@ -1,3 +1,9 @@
+"""Root URL configuration for the Agahyar project.
+
+Maps top-level routes (health check, admin panel, services app)
+and registers the 429 rate-limit-exceeded handler.
+"""
+
 from typing import List
 
 from decouple import config

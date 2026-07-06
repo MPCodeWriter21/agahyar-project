@@ -1,0 +1,7 @@
+{% if center_locations %}
+  <div class="info-card map-card">
+    <h3>مراکز ارائه خدمت در {{ user_city }}</h3>
+    {{ center_locations|json_script:"center-locations-data" }}
+    <div id="service-map" class="leaflet-container"></div>
+  </div>
+{% endif %}

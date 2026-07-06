@@ -1,3 +1,10 @@
+"""Django forms for the Agahyar services application.
+
+Provides ``LoginForm``, ``RegisterForm``, ``ProfileForm``,
+``RatingForm``, and ``ContactForm`` with Persian error messages
+and Iranian phone number validation.
+"""
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
@@ -48,6 +55,12 @@ class LoginForm(forms.Form):
         widget=forms.PasswordInput(
             attrs={"class": "form-control", "placeholder": "رمز عبور خود را وارد کنید"}
         ),
+    )
+    remember_me = forms.BooleanField(
+        label="مرا به خاطر بسپار",
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={"class": "remember-me-checkbox"}),
     )
 
 

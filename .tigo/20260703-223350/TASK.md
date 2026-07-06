@@ -1,6 +1,6 @@
 # Improve website visual design
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 55
 - TAGS: ux, css, frontend
 

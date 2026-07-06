@@ -1,5 +1,13 @@
+"""Tests for the Agahyar data models.
+
+Covers ``__str__`` representations, helper methods
+(``get_documents_list``, ``get_steps_list``, ``get_map_url``),
+unique-together constraints, and score-range validation.
+"""
+
 import pytest
 from django.contrib.auth.models import User
+from django.contrib.gis.geos import Point
 
 from services.models import (
     FAQ,
@@ -86,6 +94,32 @@ class TestServiceCenterModel:
         )
         assert "مرکز تست" in str(center)
         assert "تهران" in str(center)
+
+    def test_get_map_url_with_coordinate(self):
+        service = Service.objects.create(
+            name="خدمت نقشه", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service,
+            name="مرکز نقشه",
+            address="آدرس",
+            city="تهران",
+            coordinate=Point(51.389, 35.6892, srid=4326),
+        )
+        assert "google.com/maps?q=35.6892,51.389" in center.get_map_url()
+
+    def test_get_map_url_without_coordinate(self):
+        service = Service.objects.create(
+            name="خدمت بدون مختصات", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service,
+            name="مرکز بدون مختصات",
+            address="تهران، خیابان آزادی",
+            city="تهران",
+        )
+        expected = "https://www.google.com/maps/search/تهران، خیابان آزادی"
+        assert center.get_map_url() == expected
 
 
 @pytest.mark.django_db

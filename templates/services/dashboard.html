@@ -1,70 +1,61 @@
 {% extends 'services/base.html' %}
 {% load static %}
-
 {% block title %}داشبورد | آگاه‌یار{% endblock %}
 {% block meta_description %}داشبورد کاربری سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}داشبورد, پروفایل, آگاه‌یار{% endblock %}
-
 {% block content %}
-
-<div class="dashboard-header">
-  <h2>خوش آمدید، {{ user.first_name|default:user.username }}</h2>
-  <p>از اینجا به خدمات و اطلاعات خود دسترسی داشته باشید.</p>
-</div>
-
-<div class="icon-boxes">
-  <a href="{% url 'search' %}" class="icon-box">
-    <span class="icon"><i class="fas fa-search"></i></span>
-    <span class="label">جستجوی خدمات</span>
-  </a>
-  <a href="{% url 'services_list' %}" class="icon-box">
-    <span class="icon"><i class="fas fa-list"></i></span>
-    <span class="label">همه خدمات</span>
-  </a>
-  <a href="{% url 'faq' %}" class="icon-box">
-    <span class="icon"><i class="fas fa-question-circle"></i></span>
-    <span class="label">پرسش‌های متداول</span>
-  </a>
-  <a href="{% url 'nearby_centers' %}" class="icon-box">
-    <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
-    <span class="label">نزدیک‌ترین مراکز</span>
-  </a>
-  <a href="{% url 'profile' %}" class="icon-box">
-    <span class="icon"><i class="fas fa-user"></i></span>
-    <span class="label">پروفایل</span>
-  </a>
-  <a href="{% url 'bookmarks_list' %}" class="icon-box">
-    <span class="icon"><i class="fas fa-bookmark"></i></span>
-    <span class="label">نشانک‌ها</span>
-  </a>
-</div>
-
-<h2 class="section-title">خدمات پرطرفدار</h2>
-<div class="services-grid">
-  {% for service in popular_services %}
-  <div class="service-card">
-    <div class="service-icon"></div>
-    <h3>{{ service.name }}</h3>
-    <p class="org-name">{{ service.organization|truncatechars:45 }}</p>
-    <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات</a>
+  <div class="dashboard-header">
+    <h2>خوش آمدید، {{ user.first_name|default:user.username }}</h2>
+    <p>از اینجا به خدمات و اطلاعات خود دسترسی داشته باشید.</p>
   </div>
-  {% empty %}
-  <p class="empty-state">
-    هیچ خدمتی یافت نشد.
-  </p>
-  {% endfor %}
-</div>
-
-<h2 class="section-title">پرسش‌های متداول</h2>
-<div class="faq-section">
-  {% for faq in faqs %}
-  <div class="faq-item">
-    <div class="faq-question">{{ faq.question }}</div>
-    <div class="faq-answer">{{ faq.answer }}</div>
+  <div class="icon-boxes">
+    <a href="{% url 'search' %}" class="icon-box">
+      <span class="icon"><i class="fas fa-search"></i></span>
+      <span class="label">جستجوی خدمات</span>
+    </a>
+    <a href="{% url 'services_list' %}" class="icon-box">
+      <span class="icon"><i class="fas fa-list"></i></span>
+      <span class="label">همه خدمات</span>
+    </a>
+    <a href="{% url 'faq' %}" class="icon-box">
+      <span class="icon"><i class="fas fa-question-circle"></i></span>
+      <span class="label">پرسش‌های متداول</span>
+    </a>
+    <a href="{% url 'nearby_centers' %}" class="icon-box">
+      <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+      <span class="label">نزدیک‌ترین مراکز</span>
+    </a>
+    <a href="{% url 'profile' %}" class="icon-box">
+      <span class="icon"><i class="fas fa-user"></i></span>
+      <span class="label">پروفایل</span>
+    </a>
+    <a href="{% url 'bookmarks_list' %}" class="icon-box">
+      <span class="icon"><i class="fas fa-bookmark"></i></span>
+      <span class="label">نشانک‌ها</span>
+    </a>
   </div>
-  {% empty %}
-  <p class="empty-faq">هنوز پرسشی ثبت نشده است.</p>
-  {% endfor %}
-</div>
-
+  <h2 class="section-title">خدمات پرطرفدار</h2>
+  <div class="services-grid">
+    {% for service in popular_services %}
+      <div class="service-card">
+        <div class="service-icon"></div>
+        <h3>{{ service.name }}</h3>
+        <p class="org-name">{{ service.organization|truncatechars:45 }}</p>
+        <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات</a>
+      </div>
+    {% empty %}
+      <p class="empty-state">هیچ خدمتی یافت نشد.</p>
+    {% endfor %}
+  </div>
+  <h2 class="section-title">پرسش‌های متداول</h2>
+  <div class="faq-section">
+    {% for faq in faqs %}
+      <div class="faq-item">
+        <div class="faq-question">{{ faq.question }}</div>
+        <div class="faq-answer">{{ faq.answer }}</div>
+      </div>
+    {% empty %}
+      <p class="empty-faq">هنوز پرسشی ثبت نشده است.</p>
+    {% endfor %}
+  </div>
 {% endblock %}

@@ -1,48 +1,46 @@
 {% extends 'services/base.html' %}
-
 {% block title %}نشانک‌ها | آگاه‌یار{% endblock %}
 {% block meta_description %}خدمات نشانک‌شده من در آگاه‌یار{% endblock %}
 {% block meta_keywords %}نشانک, نشانک‌ها, خدمات مورد علاقه{% endblock %}
-
 {% block content %}
-
-<div class="dashboard-header">
- <h2>نشانک‌های من</h2>
- <p>خدماتی که برای دسترسی سریع نشانک کرده‌اید.</p>
-</div>
-
-{% if bookmarks %}
- <div class="services-grid">
- {% for bookmark in bookmarks %}
- <div class="result-card">
-  <h3>{{ bookmark.service.name }}</h3>
-  <div class="org-badge">{{ bookmark.service.organization }}</div>
-  <div class="docs-preview">
-   <strong>مدارک مورد نیاز:</strong>
-   <ul class="docs-list">
-   {% for doc in bookmark.service.get_documents_list|slice:":2" %}
-   <li>{{ doc }}</li>
-   {% endfor %}
-   {% if bookmark.service.get_documents_list|length > 2 %}...{% endif %}
-   </ul>
+  <div class="dashboard-header">
+    <h2>نشانک‌های من</h2>
+    <p>خدماتی که برای دسترسی سریع نشانک کرده‌اید.</p>
   </div>
-  <a href="{% url 'service_detail' bookmark.service.id %}" class="btn-outline-custom">مشاهده جزئیات</a>
-  <form method="post" action="{% url 'toggle_bookmark' bookmark.service.id %}" style="display:inline">
-   {% csrf_token %}
-   <button type="submit" class="btn-bookmark">حذف نشانک</button>
-  </form>
- </div>
- {% endfor %}
- </div>
-{% else %}
- <div class="no-results">
- <h3>نشانکی وجود ندارد</h3>
- <p>شما هنوز هیچ خدمتی را نشانک نکرده‌اید. با مراجعه به صفحه خدمات می‌توانید خدمت مورد نظر خود را نشانک کنید.</p>
- <a href="{% url 'services_list' %}" class="btn-back">مشاهده خدمات</a>
- </div>
-{% endif %}
-
-<div class="text-center">
- <a href="{% url 'dashboard' %}" class="btn-back">بازگشت به داشبورد</a>
-</div>
+  {% if bookmarks %}
+    <div class="services-grid">
+      {% for bookmark in bookmarks %}
+        <div class="result-card">
+          <h3>{{ bookmark.service.name }}</h3>
+          <div class="org-badge">{{ bookmark.service.organization }}</div>
+          <div class="docs-preview">
+            <strong>مدارک مورد نیاز:</strong>
+            <ul class="docs-list">
+              {% for doc in bookmark.service.get_documents_list|slice:":2" %}
+                <li>{{ doc }}</li>
+              {% endfor %}
+              {% if bookmark.service.get_documents_list|length > 2 %}...{% endif %}
+            </ul>
+          </div>
+          <a href="{% url 'service_detail' bookmark.service.id %}"
+             class="btn-outline-custom">مشاهده جزئیات</a>
+          <form method="post"
+                action="{% url 'toggle_bookmark' bookmark.service.id %}"
+                style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn-bookmark">حذف نشانک</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="no-results">
+      <h3>نشانکی وجود ندارد</h3>
+      <p>شما هنوز هیچ خدمتی را نشانک نکرده‌اید. با مراجعه به صفحه خدمات می‌توانید خدمت مورد نظر خود را نشانک کنید.</p>
+      <a href="{% url 'services_list' %}" class="btn-back">مشاهده خدمات</a>
+    </div>
+  {% endif %}
+  <div class="text-center">
+    <a href="{% url 'dashboard' %}" class="btn-back">بازگشت به داشبورد</a>
+  </div>
 {% endblock %}

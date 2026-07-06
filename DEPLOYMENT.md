@@ -6,10 +6,8 @@ This document covers deployment for **local testing** and **production**.
 Prerequisites
 -------------
 
-- Python 3.12+
 - Git
-- Docker & Docker Compose (optional, for containerized deployment)
-- PostgreSQL (optional, for production)
+- Docker & Docker Compose
 
 Environment Variables
 ---------------------
@@ -34,50 +32,7 @@ cp .env.example .env
 Local Deployment (for testing)
 -------------------------------
 
-### Option A: uv (recommended)
-
-```bash
-git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
-cd agahyar-project
-
-cp .env.example .env
-# If running without Docker, switch .env to SQLite (comment PostgreSQL lines,
-# uncomment SQLite lines)
-uv venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # Linux / macOS
-
-uv sync
-uv pip install -e ".[dev]"
-
-uv run migrate
-uv run create-superuser
-uv run run-server
-```
-
-Open <http://127.0.0.1:8000>.
-
-### Option B: pip (without uv)
-
-```bash
-git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
-cd agahyar-project
-
-cp .env.example .env
-# If running without Docker, switch .env to SQLite (comment PostgreSQL lines,
-# uncomment SQLite lines)
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # Linux / macOS
-
-pip install -e ".[dev]"
-
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-```
-
-### Option C: Docker Compose
+### Docker Compose
 
 ```bash
 git clone https://github.com/Fatemehmohammadganji/agahyar-project.git
@@ -87,22 +42,14 @@ cp .env.example .env
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-Open <http://127.0.0.1:8000>.
+Open <http://localhost:8000>.
 
 ### Creating an Admin User
 
 After migrating, create a superuser to access the admin panel:
 
 ```bash
-uv run create-superuser        # with uv
-# or
-python manage.py createsuperuser           # without uv
-```
-
-For Docker Compose (non-production), run it inside the running container:
-
-```bash
-docker compose exec web uv run create-superuser
+docker compose -f docker-compose.dev.yml exec web uv run create-superuser
 ```
 
 You will be prompted for a username, email, and password (in English, as
@@ -128,9 +75,7 @@ can manage:
 ### Running Tests
 
 ```bash
-uv run pytest          # with uv
-# or
-pytest                 # with plain pip
+docker compose -f docker-compose.dev.yml exec web uv run pytest
 ```
 
 Production Deployment
@@ -171,7 +116,7 @@ CSRF_COOKIE_SECURE=True
 SECURE_HSTS_SECONDS=31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS=True
 SECURE_HSTS_PRELOAD=True
-DB_ENGINE=django.db.backends.postgresql
+DB_ENGINE=django.contrib.gis.db.backends.postgis
 DB_NAME=agahyar
 DB_USER=agahyar
 DB_PASSWORD=<strong-db-password>
@@ -197,71 +142,6 @@ is set in your ``.env``).
 > dependencies, minifies CSS/JS assets, and collects static files. The second
 > (runtime) stage is a minimal image containing only what is needed to serve
 > the application via Gunicorn.
-
-### Manual Deployment (bare metal / VPS)
-
-1. Clone and set up the project (see Local Deployment above).
-2. Install and configure PostgreSQL, then set `DB_ENGINE`, `DB_NAME`, `DB_USER`,
-   `DB_PASSWORD`, `DB_HOST`, `DB_PORT` in `.env`.
-3. Install a production WSGI server:
-
-   ```bash
-   pip install gunicorn
-   ```
-
-4. Collect static files:
-
-   ```bash
-   python manage.py collectstatic --noinput
-   ```
-
-5. Run with Gunicorn:
-
-   ```bash
-   gunicorn agahyar_project.wsgi:application --bind 0.0.0.0:8000 --workers 4
-   ```
-
-6. Create the admin superuser:
-
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-7. Set up a reverse proxy (nginx / Caddy) in front of Gunicorn to handle
-   SSL termination and static file serving.
-
-The admin panel is then available at ``https://yourdomain.com/admin/``.
-
-### Static and Media Files
-
-In production, configure your reverse proxy to serve:
-
-- `STATIC_URL` (`/static/`) from `<project-root>/staticfiles/` (created by `collectstatic`)
-- `MEDIA_URL` (`/media/`) from `<project-root>/media/`
-
-Example nginx snippet:
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name yourdomain.com;
-
-    location /static/ {
-        alias /path/to/agahyar-project/staticfiles/;
-    }
-
-    location /media/ {
-        alias /path/to/agahyar-project/media/;
-    }
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
 
 Security Checklist
 ------------------

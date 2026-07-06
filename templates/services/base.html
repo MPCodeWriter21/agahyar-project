@@ -1,91 +1,113 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
- <head>
-  <script>(function(){var t=localStorage.getItem("theme");if(t){document.documentElement.setAttribute("data-theme",t)}})()</script>
-  <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
- <meta name="description" content="{% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - آگاه‌یار{% endblock %}">
- <meta name="keywords" content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی{% endblock %}">
- <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
- <meta property="og:title" content="{% block og_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
- <meta property="og:description" content="{% block og_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
- <meta property="og:type" content="{% block og_type %}website{% endblock %}">
- <meta property="og:url" content="{{ request.build_absolute_uri }}">
- <meta name="twitter:card" content="{% block twitter_card %}summary{% endblock %}">
- <meta name="twitter:title" content="{% block twitter_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
- <meta name="twitter:description" content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
-  <link rel="stylesheet" href="{% static 'services/css/fontawesome-all.min.css' %}">
-  <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
-  <script defer src="{% static 'services/js/error-translate.js' %}"></script>
-  <script defer src="{% static 'services/js/main.js' %}"></script>
-  {% block extra_css %}{% endblock %}
-</head>
-<body>
-
-<header class="header">
- <div class="header-container">
- <div class="logo">
- <h1>آگاه‌یار</h1>
- <p>راهنمای هوشمند خدمات دولتی</p>
- </div>
-  <nav class="nav-links" id="navLinks">
-   <a href="{% url 'home' %}">خانه</a>
-   <a href="{% url 'services_list' %}">خدمات</a>
-   <a href="{% url 'about' %}">درباره ما</a>
-   <a href="{% url 'contact' %}">تماس با ما</a>
-   {% if user.is_authenticated %}
-   <a href="{% url 'dashboard' %}">داشبورد</a>
-   <a href="{% url 'profile' %}">پروفایل</a>
-    <a href="{% url 'app_logout' %}" class="logout-link">خروج</a>
-   {% else %}
-   <a href="{% url 'login' %}" class="login-link">ورود</a>
-    {% endif %}
-   <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" aria-label="تغییر تم"><i class="fas fa-moon"></i></button>
-   </nav>
- <button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="منو">☰</button>
- </div>
-</header>
-
-<main class="main-content">
-  {% if messages %}
- <div id="message-container">
- {% for message in messages %}
- {% if message.tags == 'success' %}
- <div class="message-box message-success">{{ message }}</div>
- {% elif message.tags == 'error' %}
- <div class="message-box message-error">{{ message }}</div>
- {% endif %}
- {% endfor %}
- </div>
- {% endif %}
-
- {% block content %}{% endblock %}
-</main>
-
-<footer class="footer">
- <div class="footer-container">
- <div class="footer-section">
- <h4>آگاه‌یار</h4>
- <p>سامانه اطلاع‌رسانی مردمی<br>خدمات دولتی</p>
- </div>
- <div class="footer-section">
- <h4>دسترسی سریع</h4>
- <a href="{% url 'services_list' %}">همه خدمات</a>
- <a href="{% url 'contact' %}">تماس با ما</a>
- <a href="{% url 'about' %}">درباره تیم</a>
- </div>
- <div class="footer-section">
- <h4>تماس با ما</h4>
- <a href="#">info@agahyar.ir</a>
- <a href="#">۰۲۱-۱۲۳۴۵۶۷۸</a>
- </div>
- </div>
- <div class="footer-bottom">
- <p>© ۱۴۰۴ - تیم آگاه‌ران | پروژه درس مدیریت پروژه فناوری اطلاعات</p>
- </div>
-</footer>
-
-</body>
+  <head>
+    <script>
+        (function() {
+            var t = localStorage.getItem("theme");
+            if (t) {
+                document.documentElement.setAttribute("data-theme", t)
+            }
+        })()
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
+    <meta name="description"
+          content="{% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - آگاه‌یار{% endblock %}">
+    <meta name="keywords"
+          content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی{% endblock %}">
+    <link rel="canonical"
+          href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+    <meta property="og:title"
+          content="{% block og_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
+    <meta property="og:description"
+          content="{% block og_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta name="twitter:card"
+          content="{% block twitter_card %}summary{% endblock %}">
+    <meta name="twitter:title"
+          content="{% block twitter_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
+    <meta name="twitter:description"
+          content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
+    <link rel="stylesheet"
+          href="{% static 'libs/fontawesome/css/fontawesome-all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
+    <script defer src="{% static 'services/js/error-translate.js' %}"></script>
+    <script defer src="{% static 'services/js/custom-select.js' %}"></script>
+    <script defer src="{% static 'services/js/main.js' %}"></script>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-container">
+        <div class="logo">
+          <h1>آگاه‌یار</h1>
+          <p>راهنمای هوشمند خدمات دولتی</p>
+        </div>
+        <nav class="nav-links" id="navLinks">
+          <a href="{% url 'home' %}">خانه</a>
+          <a href="{% url 'services_list' %}">خدمات</a>
+          <a href="{% url 'about' %}">درباره ما</a>
+          <a href="{% url 'contact' %}">تماس با ما</a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}">داشبورد</a>
+            <a href="{% url 'profile' %}">پروفایل</a>
+            <a href="{% url 'app_logout' %}" class="logout-link">خروج</a>
+          {% else %}
+            <a href="{% url 'login' %}" class="login-link">ورود</a>
+          {% endif %}
+          <button class="theme-toggle-btn"
+                  id="themeToggle"
+                  onclick="toggleTheme()"
+                  aria-label="تغییر تم">
+            <i class="fas fa-moon"></i>
+          </button>
+        </nav>
+        <button class="mobile-menu-btn" onclick="toggleMenu()" aria-label="منو">☰</button>
+      </div>
+    </header>
+    <main class="main-content">
+      {% if messages %}
+        <div id="message-container">
+          {% for message in messages %}
+            {% if message.tags == 'success' %}
+              <div class="message-box message-success">{{ message }}</div>
+            {% elif message.tags == 'error' %}
+              <div class="message-box message-error">{{ message }}</div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+      <div class="footer-container">
+        <div class="footer-section">
+          <h4>آگاه‌یار</h4>
+          <p>
+            سامانه اطلاع‌رسانی مردمی
+            <br>
+            خدمات دولتی
+          </p>
+        </div>
+        <div class="footer-section">
+          <h4>دسترسی سریع</h4>
+          <a href="{% url 'services_list' %}">همه خدمات</a>
+          <a href="{% url 'contact' %}">تماس با ما</a>
+          <a href="{% url 'about' %}">درباره تیم</a>
+        </div>
+        <div class="footer-section">
+          <h4>تماس با ما</h4>
+          <a href="#">info@agahyar.ir</a>
+          <a href="#">۰۲۱-۱۲۳۴۵۶۷۸</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© ۱۴۰۴ - تیم آگاه‌ران | پروژه درس مدیریت پروژه فناوری اطلاعات</p>
+      </div>
+    </footer>
+    {% block extra_js %}{% endblock %}
+  </body>
 </html>

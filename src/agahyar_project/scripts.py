@@ -1,3 +1,9 @@
+"""Console-script entry points for common Django management commands.
+
+Thin wrappers around ``migrate``, ``createsuperuser``, and ``runserver``,
+exposed via ``[project.scripts]`` in ``pyproject.toml``.
+"""
+
 import os
 import sys
 

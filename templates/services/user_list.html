@@ -1,0 +1,36 @@
+{% extends 'services/base.html' %}
+{% block title %}لیست کاربران | آگاه‌یار{% endblock %}
+{% block meta_description %}لیست کاربران سامانه آگاه‌یار{% endblock %}
+{% block meta_keywords %}کاربران, لیست, آگاه‌یار{% endblock %}
+{% block content %}
+  <h1>لیست کاربران</h1>
+  <table class="user-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>نام کاربری</th>
+        <th>ایمیل</th>
+        <th>تاریخ عضویت</th>
+        <th>شهر</th>
+        <th>تلفن</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ user.id }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email|default:"-" }}</td>
+          <td>{{ user.date_joined|date:"Y/m/d" }}</td>
+          <td>{% if user.profile %}{{ user.profile.city }}{% else %}---{% endif %}</td>
+          <td>{% if user.profile %}{{ user.profile.phone }}{% else %}---{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" class="text-center">هیچ کاربری یافت نشد</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <a href="{% url 'home' %}" class="btn-detail">بازگشت به خانه</a>
+{% endblock %}

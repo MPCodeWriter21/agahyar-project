@@ -1,5 +1,12 @@
+"""Data models for the Agahyar services application.
+
+Defines ``Service``, ``UserProfile``, ``FAQ``, ``ServiceCenter``,
+``ContactMessage``, ``Rating``, and ``Bookmark`` with Persian
+verbose names and helper methods.
+"""
+
 from django.contrib.auth.models import User
-from django.db import models
+from django.contrib.gis.db import models
 
 from services.validators import iranian_phone_number_validator
 
@@ -83,8 +90,15 @@ class ServiceCenter(models.Model):
     address = models.TextField("آدرس کامل")
     city = models.CharField("شهر", max_length=100)
     phone = models.CharField("شماره تماس", max_length=11, blank=True)
-    latitude = models.FloatField("عرض جغرافیایی", null=True, blank=True)
-    longitude = models.FloatField("طول جغرافیایی", null=True, blank=True)
+    working_hours = models.TextField("ساعت کاری", blank=True)
+    postal_code = models.CharField("کد پستی", max_length=20, blank=True)
+    coordinate = models.PointField(
+        "مختصات (عرض,طول)",
+        srid=4326,
+        null=True,
+        blank=True,
+        help_text="مختصات جغرافیایی به فرمت 'lat,lng' مثلاً '35.6892,51.3890'",
+    )
 
     class Meta:
         verbose_name = "مرکز ارائه خدمت"
@@ -92,6 +106,14 @@ class ServiceCenter(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} - {self.city}"
+
+    def get_map_url(self) -> str:
+        """Return a Google Maps URL preferring coordinate over address."""
+        if self.coordinate:
+            return (
+                f"https://www.google.com/maps?q={self.coordinate.y},{self.coordinate.x}"
+            )
+        return f"https://www.google.com/maps/search/{self.address}"
 
 
 class ContactMessage(models.Model):

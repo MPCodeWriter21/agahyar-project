@@ -1,3 +1,10 @@
+"""Tests for the Agahyar view functions.
+
+Covers authentication, CRUD operations, security headers,
+SEO endpoints, bookmarks, ratings, responsive design,
+and error-code rendering across all views.
+"""
+
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client
@@ -354,7 +361,7 @@ class TestServiceListView:
 class TestServiceDetailView:
     def test_requires_login(self):
         client = Client()
-        response = client.get("/service/1/")
+        response = client.get("/service/9999/")
         assert response.status_code == 302
 
     def test_shows_service_details(self):
@@ -448,6 +455,26 @@ class TestLoginView:
         client.login(username="alreadyin", password="pass12345")
         response = client.get("/login/")
         assert response.status_code == 302
+
+    def test_login_remember_me_sets_long_session(self):
+        User.objects.create_user("remuser", password="pass12345")
+        client = Client()
+        client.post(
+            "/login/",
+            {"username": "remuser", "password": "pass12345", "remember_me": True},
+        )
+        session = client.session
+        assert session.get_expiry_age() >= 2592000 - 10  # 30 days minus a small delta
+
+    def test_login_no_remember_me_expires_on_browser_close(self):
+        User.objects.create_user("noruser", password="pass12345")
+        client = Client()
+        client.post(
+            "/login/",
+            {"username": "noruser", "password": "pass12345", "remember_me": False},
+        )
+        session = client.session
+        assert session.get_expire_at_browser_close()
 
 
 @pytest.mark.django_db
@@ -681,21 +708,19 @@ class TestProfileView:
 def test_static_js_files_exist():
     import os
 
-    base = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "js"
-    )
-    assert os.path.isfile(os.path.join(base, "alpine.min.js"))
-    assert os.path.isfile(os.path.join(base, "main.js"))
-    assert os.path.isfile(os.path.join(base, "error-translate.js"))
+    root = os.path.join(os.path.dirname(__file__), "..", "..", "static")
+    assert os.path.isfile(os.path.join(root, "libs", "alpine.min.js"))
+    assert os.path.isfile(os.path.join(root, "services", "js", "main.js"))
+    assert os.path.isfile(os.path.join(root, "services", "js", "error-translate.js"))
+    assert os.path.isfile(os.path.join(root, "libs", "ol", "ol.js"))
+    assert os.path.isfile(os.path.join(root, "libs", "ol", "ol.css"))
 
 
 def test_vazirmatn_font_files_exist():
     import os
 
-    base = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "fonts"
-    )
-    assert os.path.isfile(os.path.join(base, "Vazirmatn-Regular.woff2"))
+    root = os.path.join(os.path.dirname(__file__), "..", "..", "static")
+    assert os.path.isfile(os.path.join(root, "Vazirmatn-Regular.woff2"))
 
 
 def test_vazirmatn_css_in_style_css():
@@ -801,6 +826,13 @@ class TestSecurityHeaders:
         csp = response["Content-Security-Policy"]
         assert "default-src 'self'" in csp
         assert "form-action 'self'" in csp
+
+    def test_csp_allows_osm_tiles(self):
+        client = Client()
+        response = client.get("/")
+        csp = response["Content-Security-Policy"]
+        assert "https://tile.openstreetmap.org" in csp
+        assert "https://*.tile.openstreetmap.org" in csp
 
     def test_x_content_type_options(self):
         client = Client()
@@ -1015,7 +1047,7 @@ class TestResponsiveHamburger:
         )
         with open(css_path, encoding="utf-8") as f:
             content = f.read()
-        assert ".mobile-menu-btn {\n    display: none;" in content
+        assert ".mobile-menu-btn {\n  display: none;" in content
         assert "@media (max-width: 768px)" in content
         assert ".nav-links" in content
 
@@ -1028,8 +1060,8 @@ class TestResponsiveHamburger:
         with open(js_path, encoding="utf-8") as f:
             content = f.read()
         assert "function closeMenu" in content
-        assert "navLinks.querySelectorAll('a').forEach" in content
-        assert "link.addEventListener('click', closeMenu)" in content
+        assert 'navLinks.querySelectorAll("a").forEach' in content
+        assert 'link.addEventListener("click", closeMenu)' in content
 
     def test_nav_links_use_getElementById(self):
         import os
@@ -1039,7 +1071,7 @@ class TestResponsiveHamburger:
         )
         with open(js_path, encoding="utf-8") as f:
             content = f.read()
-        assert "document.getElementById('navLinks')" in content
+        assert 'document.getElementById("navLinks")' in content
         assert "navLinks" in content
 
 
@@ -1073,18 +1105,18 @@ class TestSeoEndpoints:
     def test_sitemap_includes_services(self):
         from django.test.utils import override_settings
 
-        Service.objects.create(
+        svc1 = Service.objects.create(
             name="سرویس الف", organization="org1", documents="d", steps="s"
         )
-        Service.objects.create(
+        svc2 = Service.objects.create(
             name="سرویس ب", organization="org2", documents="d", steps="s"
         )
         with override_settings(SITE_URL="https://example.com"):
             client = Client()
             response = client.get("/sitemap.xml")
             content = response.content.decode()
-            assert "/service/1/" in content
-            assert "/service/2/" in content
+            assert f"/service/{svc1.id}/" in content
+            assert f"/service/{svc2.id}/" in content
 
     def test_homepage_has_meta_tags(self):
         client = Client()
@@ -1117,7 +1149,7 @@ class TestPrintableView:
     def test_print_button_on_detail_page(self):
         from services.models import Service
 
-        Service.objects.create(
+        svc = Service.objects.create(
             name="test-print",
             organization="org",
             documents="doc1|doc2",
@@ -1128,7 +1160,7 @@ class TestPrintableView:
         User.objects.create_user("printuser", password="pass12345")
         client = Client()
         client.login(username="printuser", password="pass12345")
-        response = client.get("/service/1/")
+        response = client.get(f"/service/{svc.id}/")
         content = response.content.decode()
         assert "btn-print" in content
         assert "window.print()" in content

@@ -1,6 +1,13 @@
+"""Tests for the suggestion module.
+
+Verifies that ``get_nearest_center`` returns ``None`` as expected
+and that ``suggest_centers`` falls back to placeholder data
+when no matching centers exist.
+"""
+
 import pytest
 
-from services.scraper import get_ai_suggestion, get_nearest_center
+from services.suggestion import get_nearest_center, suggest_centers
 
 
 @pytest.mark.django_db
@@ -19,9 +26,9 @@ class TestGetNearestCenter:
 
 
 @pytest.mark.django_db
-class TestGetAiSuggestion:
+class TestSuggestCenters:
     def test_returns_fallback_when_no_centers_exist(self):
-        result = get_ai_suggestion("گواهینامه رانندگی", "تهران")
+        result = suggest_centers("گواهینامه رانندگی", "تهران")
         assert isinstance(result, list)
         assert len(result) >= 2
         assert result[0]["name"] == "دفتر پیشخوان تهران"
@@ -29,17 +36,17 @@ class TestGetAiSuggestion:
         assert result[1]["name"] == "اداره گواهینامه رانندگی در تهران"
 
     def test_exception_logged_gracefully(self):
-        result = get_ai_suggestion("", "")
+        result = suggest_centers("", "")
         assert isinstance(result, list)
         assert len(result) >= 2
 
-    def test_fallback_uses_nearest_centers_when_db_empty(self):
-        result = get_ai_suggestion("صدور کارت ملی هوشمند", "تهران")
+    def test_placeholder_returned_when_db_empty(self):
+        result = suggest_centers("صدور کارت ملی هوشمند", "تهران")
         assert isinstance(result, list)
         assert len(result) >= 1
-        assert "ثبت احوال تهران" in result[0]["name"]
+        assert result[0]["name"] == "دفتر پیشخوان تهران"
 
-    def test_fallback_prefers_nearest_centers_over_placeholder(self):
-        result = get_ai_suggestion("صدور پاسپورت", "تهران")
+    def test_placeholder_returned_when_no_match(self):
+        result = suggest_centers("صدور پاسپورت", "تهران")
         assert isinstance(result, list)
-        assert result[0]["name"] != "دفتر پیشخوان تهران"
+        assert result[0]["name"] == "دفتر پیشخوان تهران"

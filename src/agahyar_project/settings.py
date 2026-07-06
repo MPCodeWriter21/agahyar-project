@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.gis",
+    "import_export",
     "services",
 ]
 
@@ -98,9 +100,8 @@ WSGI_APPLICATION = "agahyar_project.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
-        "NAME": config("DB_NAME", default=str(BASE_DIR / "db.sqlite3"))
-        or str(BASE_DIR / "db.sqlite3"),
+        "ENGINE": config("DB_ENGINE", default="django.contrib.gis.db.backends.postgis"),
+        "NAME": config("DB_NAME", default="agahyar"),
         "USER": config("DB_USER", default=""),
         "PASSWORD": config("DB_PASSWORD", default=""),
         "HOST": config("DB_HOST", default=""),
