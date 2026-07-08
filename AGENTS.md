@@ -100,8 +100,14 @@ We want a great UX and efficient backend.
 Dependencies and assets
 -----------------------
 
-- No CDN usage. All JS/CSS/font libraries must be vendor-downloaded into
-  `static/libs/LIB_NAME/` and loaded locally. Single-file assets (e.g.,
-  alpine.min.js) may be placed directly in `static/libs/`. Single-file
-  non-library assets (e.g., Vazirmatn-Regular.woff2 font) go directly in
-  `static/`.
+- No CDN usage at runtime. All JS/CSS/font libraries are downloaded from CDN
+  via `scripts/vendor_static.sh` (Linux/Docker) or `scripts/vendor_static.ps1`
+  (Windows) and placed into `static/libs/LIB_NAME/`. The Docker build runs
+  `vendor_static.sh` automatically.
+
+- `static/libs/` and `static/Vazirmatn-Regular.woff2` are gitignored (generated
+  by the vendor scripts). Only project-specific files under `static/services/`
+  are tracked in git.
+
+- To update a library version, edit the version in both `vendor_static.sh` and
+  `vendor_static.ps1`, then re-run the appropriate script locally and rebuild.

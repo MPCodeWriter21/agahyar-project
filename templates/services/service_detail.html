@@ -9,7 +9,19 @@
 {% endblock %}
 {% block content %}
   <div class="detail-header">
-    <h1>{{ service.name }}</h1>
+    <div class="detail-header-row">
+      <h1>{{ service.name }}</h1>
+      <form method="post"
+            action="{% url 'toggle_bookmark' service.id %}"
+            class="bookmark-icon-form">
+        {% csrf_token %}
+        <button type="submit"
+                class="btn-bookmark-icon"
+                title="{% if is_bookmarked %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
+          <i class="{% if is_bookmarked %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
+        </button>
+      </form>
+    </div>
     <div class="org-address-box">
       <strong>سازمان مسئول:</strong> {{ service.organization }}
     </div>
@@ -156,15 +168,6 @@
                   placeholder="نظر خود را بنویسید (اختیاری)...">{{ user_rating.comment|default:"" }}</textarea>
       </div>
       <button type="submit" class="btn-rate">{% if user_rating %}به‌روزرسانی امتیاز{% else %}ثبت امتیاز{% endif %}</button>
-    </form>
-  </div>
-  <div class="text-center">
-    <a href="{% url 'services_list' %}" class="btn-back">بازگشت به لیست خدمات</a>
-    <form method="post"
-          action="{% url 'toggle_bookmark' service.id %}"
-          style="display:inline">
-      {% csrf_token %}
-      <button type="submit" class="btn-bookmark">{% if is_bookmarked %}حذف نشانک{% else %}افزودن به نشانک‌ها{% endif %}</button>
     </form>
   </div>
 {% endblock %}

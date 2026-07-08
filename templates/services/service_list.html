@@ -7,9 +7,22 @@
   <div class="services-grid">
     {% for service in page_obj %}
       <div class="service-card">
-        <div class="service-icon"></div>
-        <h3>{{ service.name }}</h3>
-        <p class="org-name">{{ service.organization }}</p>
+        <div class="service-card-header">
+          <h3>{{ service.name }}</h3>
+          {% if user.is_authenticated %}
+            <form method="post"
+                  action="{% url 'toggle_bookmark' service.id %}"
+                  class="bookmark-icon-form">
+              {% csrf_token %}
+              <button type="submit"
+                      class="btn-bookmark-icon"
+                      title="{% if service.id in bookmarked_ids %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
+                <i class="{% if service.id in bookmarked_ids %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
+              </button>
+            </form>
+          {% endif %}
+        </div>
+        <span class="org-badge">{{ service.organization }}</span>
         <a href="{% url 'service_detail' service.id %}" class="btn-detail">مشاهده جزئیات</a>
       </div>
     {% empty %}
@@ -29,7 +42,4 @@
       {% endif %}
     </div>
   {% endif %}
-  <div class="text-center">
-    <a href="{% url 'home' %}" class="btn-back">بازگشت به خانه</a>
-  </div>
 {% endblock %}

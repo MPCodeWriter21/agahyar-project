@@ -26,3 +26,7 @@ db.sqlite3
 dist/
 build/
 staticfiles/
+
+# Vendored static assets
+static/libs/
+static/Vazirmatn-Regular.woff2

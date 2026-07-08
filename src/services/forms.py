@@ -6,7 +6,8 @@ and Iranian phone number validation.
 """
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import password_validation
+from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm
 from django.contrib.auth.models import User
 
 from .error_codes import get_error_message
@@ -195,6 +196,44 @@ class ProfileForm(forms.Form):
             if qs.exists():
                 raise forms.ValidationError(get_error_message("phone/duplicate"))
         return phone
+
+
+class PersianPasswordChangeForm(PasswordChangeForm):
+    """PasswordChangeForm with Persian error messages."""
+
+    error_messages = {
+        "password_mismatch": get_error_message("password/mismatch"),
+        "password_incorrect": get_error_message("password/wrong-old"),
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["old_password"].error_messages["required"] = REQUIRED_MSG
+        self.fields["new_password1"].error_messages["required"] = REQUIRED_MSG
+        self.fields["new_password2"].error_messages["required"] = REQUIRED_MSG
+
+    def validate_password_for_user(self, user, password_field_name="new_password2"):
+        password = self.cleaned_data.get(password_field_name)
+        if password:
+            try:
+                password_validation.validate_password(password, user)
+            except forms.ValidationError as error:
+                if error.error_list:
+                    first_error = error.error_list[0]
+                    code = first_error.code
+                    if code == "password_too_short":
+                        msg = get_error_message("password/too-short")
+                    elif code == "password_too_common":
+                        msg = get_error_message("password/too-common")
+                    elif code == "password_entirely_numeric":
+                        msg = get_error_message("password/numeric-only")
+                    elif code == "password_too_similar":
+                        msg = get_error_message("password/too-similar")
+                    else:
+                        msg = str(first_error)
+                    self.add_error(
+                        "new_password1", forms.ValidationError(msg, code=code)
+                    )
 
 
 class RatingForm(forms.Form):

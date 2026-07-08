@@ -704,6 +704,107 @@ class TestProfileView:
         client.login(username="puser5", password="newpass456")
         assert client.session is not None
 
+    def _assert_no_english_password_errors(self, content: str) -> None:
+        assert "This password is too short" not in content
+        assert "This password is too common" not in content
+        assert "This password is entirely numeric" not in content
+
+    def test_password_change_shows_persian_error_on_short_password(self):
+        User.objects.create_user("puser6", password="oldpass123")
+        client = Client()
+        client.login(username="puser6", password="oldpass123")
+        response = client.post(
+            "/profile/",
+            {
+                "change_password": "1",
+                "old_password": "oldpass123",
+                "new_password1": "short",
+                "new_password2": "short",
+            },
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        self._assert_no_english_password_errors(content)
+        assert "رمز عبور باید حداقل ۸ کاراکتر باشد." in content
+        assert "رمز عبور وارد شده خیلی ساده است." not in content
+        assert "رمز عبور نمی‌تواند فقط عدد باشد." not in content
+
+    def test_password_change_shows_persian_error_on_common_password(self):
+        User.objects.create_user("puser7", password="oldpass123")
+        client = Client()
+        client.login(username="puser7", password="oldpass123")
+        response = client.post(
+            "/profile/",
+            {
+                "change_password": "1",
+                "old_password": "oldpass123",
+                "new_password1": "password",
+                "new_password2": "password",
+            },
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        self._assert_no_english_password_errors(content)
+        assert "رمز عبور وارد شده خیلی ساده است." in content
+        assert "رمز عبور نمی‌تواند فقط عدد باشد." not in content
+
+    def test_password_change_shows_persian_error_on_numeric_password(self):
+        User.objects.create_user("puser8", password="oldpass123")
+        client = Client()
+        client.login(username="puser8", password="oldpass123")
+        response = client.post(
+            "/profile/",
+            {
+                "change_password": "1",
+                "old_password": "oldpass123",
+                "new_password1": "3571598264",
+                "new_password2": "3571598264",
+            },
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        self._assert_no_english_password_errors(content)
+        assert "رمز عبور نمی‌تواند فقط عدد باشد." in content
+
+    def test_password_change_shows_persian_error_on_wrong_old_and_short_password(self):
+        User.objects.create_user("puser9", password="oldpass123")
+        client = Client()
+        client.login(username="puser9", password="oldpass123")
+        response = client.post(
+            "/profile/",
+            {
+                "change_password": "1",
+                "old_password": "wrongold",
+                "new_password1": "123",
+                "new_password2": "123",
+            },
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        self._assert_no_english_password_errors(content)
+        assert "رمز عبور فعلی اشتباه است." in content
+        assert "رمز عبور باید حداقل ۸ کاراکتر باشد." in content
+        assert "رمز عبور وارد شده خیلی ساده است." not in content
+        assert "رمز عبور نمی‌تواند فقط عدد باشد." not in content
+
+    def test_password_change_shows_persian_error_on_mismatch(self):
+        User.objects.create_user("puser10", password="oldpass123")
+        client = Client()
+        client.login(username="puser10", password="oldpass123")
+        response = client.post(
+            "/profile/",
+            {
+                "change_password": "1",
+                "old_password": "oldpass123",
+                "new_password1": "validpass123",
+                "new_password2": "mismatch789",
+            },
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        self._assert_no_english_password_errors(content)
+        assert "رمز عبور و تکرار آن مطابقت ندارند." in content
+
 
 def test_static_js_files_exist():
     import os

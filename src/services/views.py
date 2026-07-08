@@ -8,7 +8,6 @@ and SEO endpoints, with rate limiting on sensitive views.
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Avg, Q, QuerySet
@@ -21,6 +20,7 @@ from .forms import (
     CITY_CHOICES,
     ContactForm,
     LoginForm,
+    PersianPasswordChangeForm,
     ProfileForm,
     RatingForm,
     RegisterForm,
@@ -142,12 +142,20 @@ def home(request: HttpRequest) -> HttpResponse:
     """Render the public home page with popular services and recent FAQs."""
     popular_services: QuerySet = Service.objects.all()[:6]
     faqs: QuerySet = FAQ.objects.all()[:5]
+    bookmarked_ids: set[int] = set()
+    if request.user.is_authenticated:
+        bookmarked_ids = set(
+            Bookmark.objects.filter(user=request.user).values_list(
+                "service_id", flat=True
+            )
+        )
     return render(
         request,
         "services/home.html",
         {
             "popular_services": popular_services,
             "faqs": faqs,
+            "bookmarked_ids": bookmarked_ids,
         },
     )
 
@@ -157,12 +165,16 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     """Render the authenticated user dashboard."""
     popular_services: QuerySet = Service.objects.all()[:6]
     faqs: QuerySet = FAQ.objects.all()[:5]
+    bookmarked_ids: set[int] = set(
+        Bookmark.objects.filter(user=request.user).values_list("service_id", flat=True)
+    )
     return render(
         request,
         "services/dashboard.html",
         {
             "popular_services": popular_services,
             "faqs": faqs,
+            "bookmarked_ids": bookmarked_ids,
         },
     )
 
@@ -206,6 +218,13 @@ def search(request: HttpRequest) -> HttpResponse:
     paginator: Paginator = Paginator(results, 12)
     page_number: str = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
+    bookmarked_ids: set[int] = set()
+    if request.user.is_authenticated:
+        bookmarked_ids = set(
+            Bookmark.objects.filter(user=request.user).values_list(
+                "service_id", flat=True
+            )
+        )
     return render(
         request,
         "services/search.html",
@@ -217,6 +236,7 @@ def search(request: HttpRequest) -> HttpResponse:
             "cities": cities,
             "page_obj": page_obj,
             "count": paginator.count,
+            "bookmarked_ids": bookmarked_ids,
         },
     )
 
@@ -292,7 +312,18 @@ def services_list(request: HttpRequest) -> HttpResponse:
     paginator: Paginator = Paginator(all_services, 12)
     page_number: str = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
-    return render(request, "services/service_list.html", {"page_obj": page_obj})
+    bookmarked_ids: set[int] = set()
+    if request.user.is_authenticated:
+        bookmarked_ids = set(
+            Bookmark.objects.filter(user=request.user).values_list(
+                "service_id", flat=True
+            )
+        )
+    return render(
+        request,
+        "services/service_list.html",
+        {"page_obj": page_obj, "bookmarked_ids": bookmarked_ids},
+    )
 
 
 def faq_view(request: HttpRequest) -> HttpResponse:
@@ -372,10 +403,24 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     except UserProfile.DoesNotExist:
         pass
 
+    profile_initial = {
+        "first_name": request.user.first_name,
+        "last_name": request.user.last_name,
+        "email": request.user.email,
+    }
+    if profile:
+        profile_initial.update(
+            {
+                "city": profile.city,
+                "neighborhood": profile.neighborhood,
+                "phone": profile.phone,
+            }
+        )
+
     if request.method == "POST":
         if "update_profile" in request.POST:
             form = ProfileForm(request.POST, user_id=request.user.id)
-            password_form = PasswordChangeForm(request.user)
+            password_form = PersianPasswordChangeForm(request.user)
             if form.is_valid():
                 user = request.user
                 user.first_name = form.cleaned_data["first_name"]
@@ -391,28 +436,19 @@ def profile_view(request: HttpRequest) -> HttpResponse:
                 messages.success(request, get_error_message("profile/updated"))
                 return redirect("profile")
         elif "change_password" in request.POST:
-            form = ProfileForm()
-            password_form = PasswordChangeForm(request.user, request.POST)
+            form = ProfileForm(initial=profile_initial)
+            password_form = PersianPasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
                 password_form.save()
                 messages.success(request, get_error_message("password/changed"))
                 return redirect("profile")
+            else:
+                messages.error(
+                    request, "خطا در تغییر رمز عبور. لطفاً خطوط قرمز را بررسی کنید."
+                )
     else:
-        initial = {
-            "first_name": request.user.first_name,
-            "last_name": request.user.last_name,
-            "email": request.user.email,
-        }
-        if profile:
-            initial.update(
-                {
-                    "city": profile.city,
-                    "neighborhood": profile.neighborhood,
-                    "phone": profile.phone,
-                }
-            )
-        form = ProfileForm(initial=initial)
-        password_form = PasswordChangeForm(request.user)
+        form = ProfileForm(initial=profile_initial)
+        password_form = PersianPasswordChangeForm(request.user)
 
     return render(
         request,

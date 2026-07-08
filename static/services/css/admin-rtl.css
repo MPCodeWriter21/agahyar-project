@@ -1,0 +1,73 @@
+/* Admin RTL overrides for Agahyar */
+
+body {
+  font-size: 0.9rem;
+}
+
+#header {
+  background: #1a5f7a;
+  color: #fff;
+}
+
+#branding h1,
+#branding h1 a:link,
+#branding h1 a:visited {
+  color: #fff;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  background: #1a5f7a;
+}
+
+div.breadcrumbs {
+  background: #134b61;
+  padding: 12px 20px;
+}
+
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+  background: #1a5f7a;
+}
+
+.button:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover {
+  background: #134b61;
+}
+
+.button.default,
+input[type="submit"].default,
+.submit-row input.default {
+  background: #1a5f7a;
+}
+
+.button.default:hover,
+input[type="submit"].default:hover {
+  background: #134b61;
+}
+
+a:link,
+a:visited {
+  color: #1a5f7a;
+}
+
+/* OpenLayers map widget in admin should remain LTR */
+#id_coordinate_map,
+.olMap {
+  direction: ltr;
+}
+
+/* Fix pagination alignment */
+.paginator {
+  text-align: center;
+}
+
+/* Fix filter horizontal margin */
+.selector {
+  direction: ltr;
+}
