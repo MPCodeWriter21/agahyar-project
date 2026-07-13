@@ -1,6 +1,6 @@
 # The users must verify their phone number before they're registered
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: sms, auth, feature, register, verification
 

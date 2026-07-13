@@ -230,7 +230,7 @@ class PersianPasswordChangeForm(PasswordChangeForm):
                     elif code == "password_too_similar":
                         msg = get_error_message("password/too-similar")
                     else:
-                        msg = str(first_error)
+                        msg = first_error.message
                     self.add_error(
                         "new_password1", forms.ValidationError(msg, code=code)
                     )
@@ -277,5 +277,31 @@ class ContactForm(forms.Form):
         error_messages={"required": REQUIRED_MSG},
         widget=forms.Textarea(
             attrs={"rows": 5, "placeholder": "پیام خود را بنویسید..."}
+        ),
+    )
+
+
+class OTPVerifyForm(forms.Form):
+    """Form for entering the OTP code sent via SMS."""
+
+    otp_code = forms.CharField(
+        label="کد تأیید",
+        max_length=6,
+        min_length=6,
+        error_messages={
+            "required": REQUIRED_MSG,
+            "max_length": "کد تأیید وارد شده نامعتبر است.",
+            "min_length": "کد تأیید وارد شده نامعتبر است.",
+        },
+        widget=forms.TextInput(
+            attrs={
+                "class": "otp-input ltr-input",
+                "placeholder": "۰۰۰۰۰۰",
+                "dir": "ltr",
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "pattern": "[0-9]{6}",
+                "maxlength": "6",
+            }
         ),
     )

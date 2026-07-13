@@ -116,16 +116,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "services.validators.PersianUserAttributeSimilarityValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "services.validators.PersianMinimumLengthValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": "services.validators.PersianCommonPasswordValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "services.validators.PersianNumericPasswordValidator",
     },
 ]
 
@@ -175,12 +175,19 @@ CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default=_csrf_default).spl
 # Cache (Redis in production, local-memory fallback)
 REDIS_URL = config("REDIS_URL", default="")
 if REDIS_URL:
+    from redis.maint_notifications import MaintNotificationsConfig
+
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": REDIS_URL,
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "REDIS_CLIENT_KWARGS": {
+                    "maint_notifications_config": MaintNotificationsConfig(
+                        enabled=False
+                    ),
+                },
             },
         }
     }
@@ -188,12 +195,21 @@ if REDIS_URL:
     SESSION_CACHE_ALIAS = "default"
 
 # Rate limiting
-RATELIMIT_ENABLE = True
+RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)
 RATELIMIT_FAIL_OPEN = False
 
 # Auth
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
+
+# SMS.ir configuration
+SMS_IR_API_KEY = config("SMS_IR_API_KEY", default="")
+SMS_IR_OTP_TEMPLATE_ID = config("SMS_IR_OTP_TEMPLATE_ID", default=0, cast=int)
+DISABLE_SMS = config("DISABLE_SMS", default=False, cast=bool)
+OTP_EXPIRE_MINUTES = config("OTP_EXPIRE_MINUTES", default=5, cast=int)
+OTP_RESEND_COOLDOWN_SECONDS = config(
+    "OTP_RESEND_COOLDOWN_SECONDS", default=60, cast=int
+)
 
 # Email backend for development (prints to console)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

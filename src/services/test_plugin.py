@@ -3,3 +3,4 @@
 import os
 
 os.environ.setdefault("REDIS_URL", "")
+os.environ.setdefault("RATELIMIT_ENABLE", "False")
