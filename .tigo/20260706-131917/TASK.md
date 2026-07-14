@@ -1,6 +1,6 @@
 # Update deployment and release documentation
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 - TAGS: documentation, release
 
