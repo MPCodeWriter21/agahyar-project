@@ -126,6 +126,7 @@ cd agahyar-project
 
 cp .env.example .env
 docker compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml exec web uv run migrate
 ```
 
 Populate sample data (optional):
