@@ -170,3 +170,71 @@ Security Checklist
 - [ ] `SMS_IR_API_KEY` is set and valid
 - [ ] `DISABLE_SMS=False` in production
 - [ ] Regular database backups are configured
+
+Data Management
+---------------
+
+### Seed Data
+
+Sample services, service centers, and FAQs can be loaded with:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run scripts/populate_services.py
+docker compose -f docker-compose.prod.yml exec web uv run scripts/populate_faq.py
+```
+
+Both scripts are idempotent -- running them multiple times updates existing
+records rather than creating duplicates.
+
+### Export and Import
+
+Export all application data to JSON:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py export_data --output backup.json
+```
+
+Export to CSV:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py export_data --format csv --output backup.csv
+```
+
+Import from a JSON export:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py import_data backup.json
+```
+
+Preview an import without writing to the database:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py import_data backup.json --dry-run
+```
+
+### Database Backup
+
+A backup script is provided in `scripts/backup_db.py`. It uses `pg_dump`
+when available, and falls back to Django's `dumpdata` otherwise:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run scripts/backup_db.py
+docker compose -f docker-compose.prod.yml exec web uv run scripts/backup_db.py --output-dir /path/to/backups
+```
+
+Backups are gzip-compressed and timestamped (e.g.
+`backup_20260714_120000.sql.gz`).
+
+### Restore
+
+To restore from a `pg_dump` backup:
+
+```bash
+gunzip -c backups/backup_20260714_120000.sql.gz | psql -d agahyar
+```
+
+To restore from a `dumpdata` JSON backup:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py import_data backups/backup_20260714_120000.json.gz
+```
