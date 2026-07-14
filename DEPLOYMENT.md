@@ -101,8 +101,15 @@ The project includes a production-ready `docker-compose.prod.yml` with PostgreSQ
 Redis, and Traefik labels for routing. The web service does **not** expose ports
 directly -- Traefik handles HTTPS termination and routing.
 
+You can either build locally or pull a pre-built image from GHCR:
+
 ```bash
+# Build locally
 docker compose -f docker-compose.prod.yml up --build -d
+
+# Or pull from GHCR (replace with the correct image name for your fork)
+VERSION=0.1.0
+docker pull ghcr.io/fatemehmohammadganji/agahyar-project:$VERSION
 ```
 
 Update `.env` for production:

@@ -147,3 +147,22 @@ arg, which is set to the ``org.opencontainers.image.version`` OCI label.
 
 To bump the version, edit only the ``version`` field in ``pyproject.toml``
 and run ``uv lock`` to update the lockfile.
+
+Release Workflow
+----------------
+
+The ``release.yml`` GitHub Actions workflow automates Docker image releases.
+On every push to ``main``, it:
+
+1. Reads the version from ``pyproject.toml``.
+2. Checks if a Git tag ``v<version>`` already exists.
+3. If the tag exists, the workflow exits early (already released).
+4. If the tag does not exist, it builds the Docker image, pushes it to
+   GHCR (``ghcr.io/<owner>/<repo>``), creates the Git tag, and publishes
+   a GitHub Release with auto-generated notes.
+
+The image name is derived from ``${{ github.repository }}``, so forks
+automatically release images under their own GHCR namespace.
+
+To release a new version, simply bump the version in ``pyproject.toml``,
+push to ``main``, and the workflow handles the rest.
