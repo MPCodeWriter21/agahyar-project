@@ -1,6 +1,6 @@
 # Set up versioning strategy and centralize version source of truth
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 75
 - TAGS: enhancement, release, versioning
 

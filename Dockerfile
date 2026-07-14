@@ -44,6 +44,11 @@ RUN uv run --no-sync python manage.py collectstatic --noinput
 # =====================================================================
 FROM astral/uv:python3.12-bookworm-slim AS runtime
 
+ARG VERSION=unknown
+LABEL org.opencontainers.image.title="agahyar" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.source="https://github.com/Fatemehmohammadganji/agahyar-project"
+
 ENV TZ="Asia/Tehran"
 WORKDIR /app
 

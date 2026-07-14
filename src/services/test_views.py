@@ -1654,3 +1654,45 @@ class TestResendOTPApi:
         assert PhoneVerification.objects.filter(
             phone="09121000005", is_used=False
         ).exists()
+
+
+@pytest.mark.django_db
+class TestHealthCheck:
+    def test_health_returns_200(self):
+        client = Client()
+        response = client.get("/health/")
+        assert response.status_code == 200
+
+    def test_health_returns_json(self):
+        client = Client()
+        response = client.get("/health/")
+        data = response.json()
+        assert "status" in data
+        assert "version" in data
+
+    def test_health_status_is_ok(self):
+        client = Client()
+        response = client.get("/health/")
+        assert response.json()["status"] == "ok"
+
+    def test_health_version_is_nonempty_string(self):
+        client = Client()
+        response = client.get("/health/")
+        version = response.json()["version"]
+        assert isinstance(version, str)
+        assert len(version) > 0
+
+
+class TestVersion:
+    def test_version_is_accessible(self):
+        from agahyar_project import __version__
+
+        assert isinstance(__version__, str)
+        assert len(__version__) > 0
+
+    def test_version_matches_package(self):
+        from importlib.metadata import version
+
+        from agahyar_project import __version__
+
+        assert __version__ == version("agahyar")

@@ -10,9 +10,11 @@ from decouple import config
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.urls import URLPattern, include, path
+
+from agahyar_project import __version__
 
 ADMIN_URL: str = config("ADMIN_URL", default="admin/")
 
@@ -44,8 +46,8 @@ handler500 = "agahyar_project.urls.server_error"
 
 
 def health_check(request: HttpRequest) -> HttpResponse:
-    """Return a simple 200 response for health check probes."""
-    return HttpResponse("ok")
+    """Return version and status for health check probes."""
+    return JsonResponse({"status": "ok", "version": __version__})
 
 
 urlpatterns: List[URLPattern] = [

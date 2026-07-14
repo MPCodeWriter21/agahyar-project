@@ -130,3 +130,20 @@ Coding Conventions
 - Do not use ``python -c ...``; write a temporary script instead
 - Docstrings follow reStructuredText (Sphinx) format
 - Use ASCII only in source code -- avoid non-ASCII characters in .py files
+
+Versioning
+----------
+
+The project version is defined in a single place: the ``version`` field
+under ``[project]`` in ``pyproject.toml``. This is the canonical source of
+truth -- do not duplicate the version string in any other file.
+
+At runtime, the version is accessible via ``agahyar_project.__version__``,
+which reads from ``importlib.metadata`` (so it always reflects the installed
+package version without duplication).
+
+Docker images receive the version at build time through a ``VERSION`` build
+arg, which is set to the ``org.opencontainers.image.version`` OCI label.
+
+To bump the version, edit only the ``version`` field in ``pyproject.toml``
+and run ``uv lock`` to update the lockfile.
