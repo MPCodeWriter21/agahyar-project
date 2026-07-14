@@ -1,5 +1,12 @@
 # 🏛️ Agahyar (آگاه‌یار)
 
+[![CI](https://github.com/Fatemehmohammadganji/agahyar-project/actions/workflows/ci.yml/badge.svg)](https://github.com/Fatemehmohammadganji/agahyar-project/actions/workflows/ci.yml)
+[![Release](https://github.com/Fatemehmohammadganji/agahyar-project/actions/workflows/release.yml/badge.svg)](https://github.com/Fatemehmohammadganji/agahyar-project/actions/workflows/release.yml)
+![Python](https://img.shields.io/badge/python-3.12%2B-3776AB)
+![License](https://img.shields.io/badge/license-MIT-green)
+![GHCR](https://img.shields.io/badge/image-GHCR-blue?logo=docker)
+![Repo size](https://img.shields.io/github/repo-size/Fatemehmohammadganji/agahyar-project)
+
 **Smart Citizen Information System for Government Services.**
 
 ## 📖 About the Project
@@ -233,7 +240,7 @@ Agahyar was created to centralize this information into a single platform where 
 -  Fatemeh Mohammadganji – Project Manager & Frontend Developer
 -  Zahra Kamalian – Backend Developer
 -  Mohsen Ali Ahmadi – Database Developer & Organization Liaison
-- Mehrad Pooryousef Full Stack Developer
+-  Mehrad Pooryoussof – Full Stack Developer
 
 ---
 

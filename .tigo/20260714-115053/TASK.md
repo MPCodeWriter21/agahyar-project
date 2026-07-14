@@ -1,6 +1,6 @@
 # Add badges to README
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: docs, badges, github, readme
 
