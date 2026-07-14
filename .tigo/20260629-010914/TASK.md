@@ -1,6 +1,6 @@
 # Data management and backup
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 55
 - TAGS: data, ops
 

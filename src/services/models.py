@@ -63,6 +63,27 @@ class UserProfile(models.Model):
         return f"{self.user.username} - {self.city} - {self.neighborhood}"
 
 
+class PhoneVerification(models.Model):
+    """Stores OTP codes for phone number verification during registration."""
+
+    phone = models.CharField(
+        "شماره تماس",
+        max_length=11,
+        validators=[iranian_phone_number_validator],
+    )
+    otp_code = models.CharField("کد OTP", max_length=128)
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
+    is_used = models.BooleanField("استفاده شده", default=False)
+
+    class Meta:
+        verbose_name = "احراز هویت شماره"
+        verbose_name_plural = "احراز هویت شماره‌ها"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.phone} - {self.created_at}"
+
+
 class FAQ(models.Model):
     """Frequently Asked Question entry."""
 

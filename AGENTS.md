@@ -73,6 +73,12 @@ stored as `TASK.md` files under `.tigo/YYYYMMDD-HHmmss/`. Each task has:
 Changes that are significant enough to warrant a new task should be added as
 a new `TASK.md` file.
 
+- Use ``tigo --help`` to discover all available commands. Use
+  ``tigo -c list`` to view open tasks, ``tigo -c top N`` for top
+  priorities, ``tigo -c next`` for the next due task, and
+  ``tigo -c show <id>`` for task details. Always check the current task
+  board before starting new work.
+
 Code conventions
 ----------------
 

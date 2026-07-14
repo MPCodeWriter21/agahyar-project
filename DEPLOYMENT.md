@@ -28,6 +28,9 @@ cp .env.example .env
 > - `SESSION_COOKIE_SECURE=True`
 > - `CSRF_COOKIE_SECURE=True`
 > - `SECURE_HSTS_SECONDS=31536000`
+> - `SMS_IR_API_KEY=<your-sms-api-key>`
+> - `SMS_IR_OTP_TEMPLATE_ID=<template-id>`
+> - `DISABLE_SMS=False`
 
 Local Deployment (for testing)
 -------------------------------
@@ -98,8 +101,15 @@ The project includes a production-ready `docker-compose.prod.yml` with PostgreSQ
 Redis, and Traefik labels for routing. The web service does **not** expose ports
 directly -- Traefik handles HTTPS termination and routing.
 
+You can either build locally or pull a pre-built image from GHCR:
+
 ```bash
+# Build locally
 docker compose -f docker-compose.prod.yml up --build -d
+
+# Or pull from GHCR (replace with the correct image name for your fork)
+VERSION=0.1.0
+docker pull ghcr.io/fatemehmohammadganji/agahyar-project:$VERSION
 ```
 
 Update `.env` for production:
@@ -123,6 +133,11 @@ DB_PASSWORD=<strong-db-password>
 DB_HOST=db
 DB_PORT=5432
 REDIS_URL=redis://redis:6379/1
+SMS_IR_API_KEY=<your-sms-api-key>
+SMS_IR_OTP_TEMPLATE_ID=<template-id>
+DISABLE_SMS=False
+OTP_EXPIRE_MINUTES=5
+OTP_RESEND_COOLDOWN_SECONDS=60
 ```
 
 After the containers are running, create the admin user:
@@ -152,4 +167,74 @@ Security Checklist
 - [ ] HTTPS is enforced (SSL redirect + HSTS)
 - [ ] Database password is strong and not shared
 - [ ] `.env` is **not** committed to the repository
+- [ ] `SMS_IR_API_KEY` is set and valid
+- [ ] `DISABLE_SMS=False` in production
 - [ ] Regular database backups are configured
+
+Data Management
+---------------
+
+### Seed Data
+
+Sample services, service centers, and FAQs can be loaded with:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run scripts/populate_services.py
+docker compose -f docker-compose.prod.yml exec web uv run scripts/populate_faq.py
+```
+
+Both scripts are idempotent -- running them multiple times updates existing
+records rather than creating duplicates.
+
+### Export and Import
+
+Export all application data to JSON:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py export_data --output backup.json
+```
+
+Export to CSV:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py export_data --format csv --output backup.csv
+```
+
+Import from a JSON export:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py import_data backup.json
+```
+
+Preview an import without writing to the database:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py import_data backup.json --dry-run
+```
+
+### Database Backup
+
+A backup script is provided in `scripts/backup_db.py`. It uses `pg_dump`
+when available, and falls back to Django's `dumpdata` otherwise:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run scripts/backup_db.py
+docker compose -f docker-compose.prod.yml exec web uv run scripts/backup_db.py --output-dir /path/to/backups
+```
+
+Backups are gzip-compressed and timestamped (e.g.
+`backup_20260714_120000.sql.gz`).
+
+### Restore
+
+To restore from a `pg_dump` backup:
+
+```bash
+gunzip -c backups/backup_20260714_120000.sql.gz | psql -d agahyar
+```
+
+To restore from a `dumpdata` JSON backup:
+
+```bash
+docker compose -f docker-compose.prod.yml exec web uv run manage.py import_data backups/backup_20260714_120000.json.gz
+```

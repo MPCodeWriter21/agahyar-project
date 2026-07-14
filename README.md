@@ -1,5 +1,12 @@
 # 🏛️ Agahyar (آگاه‌یار)
 
+[![CI](https://github.com/Fatemehmohammadganji/agahyar-project/actions/workflows/ci.yml/badge.svg)](https://github.com/Fatemehmohammadganji/agahyar-project/actions/workflows/ci.yml)
+[![Release](https://github.com/Fatemehmohammadganji/agahyar-project/actions/workflows/release.yml/badge.svg)](https://github.com/Fatemehmohammadganji/agahyar-project/actions/workflows/release.yml)
+![Python](https://img.shields.io/badge/python-3.12%2B-3776AB)
+![License](https://img.shields.io/badge/license-MIT-green)
+![GHCR](https://img.shields.io/badge/image-GHCR-blue?logo=docker)
+![Repo size](https://img.shields.io/github/repo-size/Fatemehmohammadganji/agahyar-project)
+
 **Smart Citizen Information System for Government Services.**
 
 ## 📖 About the Project
@@ -25,7 +32,7 @@ place.
 
 - 📍 **Nearest Centers** – Discover the closest service center based on the user's city and neighborhood, with direct Google Maps links for easy navigation.
 
-- 🔐 **User Authentication** – Secure sign up and login system with city and neighborhood preferences stored for a personalized experience.
+- 🔐 **User Authentication** – Secure sign up and login system with city and neighborhood preferences stored for a personalized experience, with SMS-based phone verification (OTP) during registration.
 
 - ⭐ **Rating & Feedback** – Share your experience by rating services from 1–5 stars and leaving public comments to help other citizens.
 
@@ -176,6 +183,7 @@ Agahyar is currently in an active development stage.
 ✅ Core features have been implemented, including:
 
 - User authentication
+- SMS-based phone verification (OTP)
 - Smart service search
 - Service details
 - Service center locator
@@ -233,7 +241,7 @@ Agahyar was created to centralize this information into a single platform where 
 -  Fatemeh Mohammadganji – Project Manager & Frontend Developer
 -  Zahra Kamalian – Backend Developer
 -  Mohsen Ali Ahmadi – Database Developer & Organization Liaison
-- Mehrad Pooryousef Full Stack Developer
+-  Mehrad Pooryoussof – Full Stack Developer
 
 ---
 

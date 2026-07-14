@@ -5,14 +5,19 @@ bookmarks, ratings, profile, FAQ, contact, nearby centers,
 and SEO endpoints, with rate limiting on sensitive views.
 """
 
+import logging
+from datetime import timedelta
+
+from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Avg, Q, QuerySet
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 
 from .error_codes import get_error_message
@@ -20,6 +25,7 @@ from .forms import (
     CITY_CHOICES,
     ContactForm,
     LoginForm,
+    OTPVerifyForm,
     PersianPasswordChangeForm,
     ProfileForm,
     RatingForm,
@@ -30,12 +36,17 @@ from .models import (
     FAQ,
     Bookmark,
     ContactMessage,
+    PhoneVerification,
     Rating,
     Service,
     ServiceCenter,
     UserProfile,
 )
+from .otp import generate_otp, hash_otp, verify_otp
+from .sms import SMSAPIError, get_sms_client
 from .suggestion import get_nearest_center
+
+logger = logging.getLogger(__name__)
 
 
 def save_user_profile(
@@ -56,11 +67,11 @@ def save_user_profile(
 
 @ratelimit(key="ip", rate="5/m", method="POST", block=True)
 def register_view(request: HttpRequest) -> HttpResponse:
-    """Handle user registration.
+    """Handle the first step of user registration.
 
-    If the user is already authenticated, redirect to home.
-    On POST, validates :class:`RegisterForm`, creates the user and profile,
-    logs the user in, and redirects to home.
+    On POST, validates :class:`RegisterForm`, stores the data in the
+    session, generates and sends an OTP to the user's phone, then
+    redirects to the verification step.
     """
     if request.user.is_authenticated:
         return redirect("home")
@@ -68,15 +79,128 @@ def register_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.first_name = form.cleaned_data["first_name"]
-            user.last_name = form.cleaned_data["last_name"]
-            user.save()
-            form.save_m2m()
-            city = form.cleaned_data["city"]
-            neighborhood = form.cleaned_data["neighborhood"]
             phone = form.cleaned_data["phone"]
-            save_user_profile(user.id, city, neighborhood, phone)
+            request.session["pending_registration"] = form.cleaned_data
+
+            otp = generate_otp()
+            PhoneVerification.objects.create(
+                phone=phone,
+                otp_code=hash_otp(otp),
+            )
+
+            sms_client = get_sms_client()
+            try:
+                sms_client.send_otp(phone, otp)
+            except SMSAPIError:
+                logger.exception("Failed to send OTP to %s", phone)
+                messages.error(request, get_error_message("otp/send-failed"))
+                return render(
+                    request,
+                    "services/auth/register.html",
+                    {"form": form, "city_choices": CITY_CHOICES},
+                )
+
+            messages.success(request, get_error_message("otp/sent"))
+            return redirect("verify_otp")
+    else:
+        form = RegisterForm()
+
+    return render(
+        request,
+        "services/auth/register.html",
+        {"form": form, "city_choices": CITY_CHOICES},
+    )
+
+
+def _otp_remaining_cooldown(phone: str) -> int:
+    """Return the seconds remaining before a new OTP can be sent for *phone*.
+
+    Returns ``0`` if the cooldown has already elapsed or no OTP has been sent
+    yet.
+    """
+    cooldown = getattr(django_settings, "OTP_RESEND_COOLDOWN_SECONDS", 60)
+    last_verification = (
+        PhoneVerification.objects.filter(phone=phone).order_by("-created_at").first()
+    )
+    if not last_verification:
+        return 0
+    elapsed = (timezone.now() - last_verification.created_at).total_seconds()
+    return max(0, int(cooldown - elapsed))
+
+
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
+def verify_otp_view(request: HttpRequest) -> HttpResponse:
+    """Handle the second step of registration: OTP verification.
+
+    GET: displays the OTP input form.
+    POST: verifies the OTP and completes registration if valid.
+    """
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    pending = request.session.get("pending_registration")
+    if not pending:
+        messages.error(request, get_error_message("otp/no-pending-registration"))
+        return redirect("register")
+
+    phone = pending["phone"]
+    cooldown = _otp_remaining_cooldown(phone)
+
+    if request.method == "POST":
+        form = OTPVerifyForm(request.POST)
+        if form.is_valid():
+            otp_code = form.cleaned_data["otp_code"]
+            verification = (
+                PhoneVerification.objects.filter(phone=phone, is_used=False)
+                .order_by("-created_at")
+                .first()
+            )
+
+            if not verification:
+                messages.error(request, get_error_message("otp/invalid"))
+                return render(
+                    request,
+                    "services/auth/verify_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            otp_max_age = timedelta(
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+            )
+            if timezone.now() - verification.created_at > otp_max_age:
+                messages.error(request, get_error_message("otp/expired"))
+                return render(
+                    request,
+                    "services/auth/verify_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            if not verify_otp(verification.otp_code, otp_code):
+                messages.error(request, get_error_message("otp/invalid"))
+                return render(
+                    request,
+                    "services/auth/verify_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            verification.is_used = True
+            verification.save(update_fields=["is_used"])
+
+            user = User.objects.create_user(
+                username=pending["username"],
+                password=pending["password1"],
+                first_name=pending["first_name"],
+                last_name=pending["last_name"],
+                email=pending.get("email", ""),
+            )
+            save_user_profile(
+                user.id,
+                pending["city"],
+                pending.get("neighborhood", ""),
+                phone,
+            )
+
+            del request.session["pending_registration"]
             login(request, user)
             messages.success(
                 request,
@@ -87,12 +211,129 @@ def register_view(request: HttpRequest) -> HttpResponse:
             )
             return redirect("home")
     else:
-        form = RegisterForm()
+        form = OTPVerifyForm()
 
     return render(
         request,
-        "services/auth/register.html",
-        {"form": form, "city_choices": CITY_CHOICES},
+        "services/auth/verify_otp.html",
+        {
+            "form": form,
+            "phone": phone,
+            "cooldown": cooldown,
+        },
+    )
+
+
+@ratelimit(key="ip", rate="2/m", method="POST", block=True)
+def resend_otp_view(request: HttpRequest) -> HttpResponse:
+    """Resend an OTP code for the pending registration.
+
+    Marks all previous OTPs for the phone as used, generates a new one,
+    and sends it via SMS.
+    """
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    pending = request.session.get("pending_registration")
+    if not pending:
+        messages.error(request, get_error_message("otp/no-pending-registration"))
+        return redirect("register")
+
+    phone = pending["phone"]
+
+    if request.method == "POST":
+        PhoneVerification.objects.filter(phone=phone, is_used=False).update(
+            is_used=True
+        )
+
+        otp = generate_otp()
+        PhoneVerification.objects.create(
+            phone=phone,
+            otp_code=hash_otp(otp),
+        )
+
+        sms_client = get_sms_client()
+        try:
+            sms_client.send_otp(phone, otp)
+        except SMSAPIError:
+            logger.exception("Failed to resend OTP to %s", phone)
+            messages.error(request, get_error_message("otp/send-failed"))
+            return redirect("verify_otp")
+
+        messages.success(request, get_error_message("otp/resend-success"))
+
+    return redirect("verify_otp")
+
+
+@ratelimit(key="ip", rate="2/m", method="POST", block=False)
+def resend_otp_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint for resending OTP codes via AJAX.
+
+    POST: validates cooldown, generates a new OTP, sends it, and returns JSON
+    with the remaining cooldown for the next resend.
+
+    Rate limiting is checked but does not block -- the response body reports
+    the error so the frontend can display it gracefully.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    if request.user.is_authenticated:
+        return JsonResponse(
+            {"error": get_error_message("otp/no-pending-registration")},
+            status=400,
+        )
+
+    pending = request.session.get("pending_registration")
+    if not pending:
+        return JsonResponse(
+            {"error": get_error_message("otp/no-pending-registration")},
+            status=400,
+        )
+
+    phone = pending["phone"]
+    remaining = _otp_remaining_cooldown(phone)
+
+    if remaining > 0:
+        return JsonResponse(
+            {
+                "error": get_error_message("otp/cooldown", seconds=str(remaining)),
+                "cooldown": remaining,
+            },
+            status=429,
+        )
+
+    was_limited = getattr(request, "view_limited", False)
+    if was_limited:
+        return JsonResponse(
+            {"error": get_error_message("otp/too-many-resends")},
+            status=429,
+        )
+
+    PhoneVerification.objects.filter(phone=phone, is_used=False).update(is_used=True)
+
+    otp = generate_otp()
+    PhoneVerification.objects.create(
+        phone=phone,
+        otp_code=hash_otp(otp),
+    )
+
+    sms_client = get_sms_client()
+    try:
+        sms_client.send_otp(phone, otp)
+    except SMSAPIError:
+        logger.exception("Failed to resend OTP to %s", phone)
+        return JsonResponse(
+            {"error": get_error_message("otp/send-failed")},
+            status=500,
+        )
+
+    return JsonResponse(
+        {
+            "message": get_error_message("otp/resend-success"),
+            "cooldown": getattr(django_settings, "OTP_RESEND_COOLDOWN_SECONDS", 60),
+        },
+        status=200,
     )
 
 

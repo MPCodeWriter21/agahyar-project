@@ -36,6 +36,9 @@ urlpatterns: List[URLPattern] = [
     # ===== Authentication =====
     path("login/", views.login_view, name="login"),
     path("register/", views.register_view, name="register"),
+    path("verify-otp/", views.verify_otp_view, name="verify_otp"),
+    path("resend-otp/", views.resend_otp_view, name="resend_otp"),
+    path("api/resend-otp/", views.resend_otp_api, name="resend_otp_api"),
     path("logout/", views.logout_view, name="app_logout"),
     # ===== Password reset =====
     path(

@@ -5,9 +5,11 @@ SEO endpoints, bookmarks, ratings, responsive design,
 and error-code rendering across all views.
 """
 
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth.models import User
-from django.test import Client
+from django.test import Client, override_settings
 from django.urls import reverse
 
 from services.forms import RegisterForm
@@ -15,11 +17,13 @@ from services.models import (
     FAQ,
     Bookmark,
     ContactMessage,
+    PhoneVerification,
     Rating,
     Service,
     ServiceCenter,
     UserProfile,
 )
+from services.otp import generate_otp, hash_otp
 from services.views import save_user_profile
 
 
@@ -77,7 +81,8 @@ class TestRegisterView:
         assert response.status_code == 200
         assert "form" in response.context
 
-    def test_register_creates_user(self):
+    @override_settings(DISABLE_SMS=True)
+    def test_register_redirects_to_otp_verification(self):
         client = Client()
         data = {
             "username": "newuser",
@@ -92,11 +97,48 @@ class TestRegisterView:
         }
         response = client.post("/register/", data)
         assert response.status_code == 302
-        user = User.objects.get(username="newuser")
-        assert user.first_name == "علی"
-        assert user.last_name == "محمدی"
-        assert user.profile.phone == "09121234567"
+        assert "/verify-otp/" in response.url
+        assert not User.objects.filter(username="newuser").exists()
 
+    @override_settings(DISABLE_SMS=True)
+    def test_register_creates_phone_verification(self):
+        client = Client()
+        data = {
+            "username": "newuser",
+            "first_name": "علی",
+            "last_name": "محمدی",
+            "email": "new@example.com",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": "09121234567",
+        }
+        client.post("/register/", data)
+        assert PhoneVerification.objects.filter(phone="09121234567").exists()
+
+    @override_settings(DISABLE_SMS=True)
+    def test_register_stores_data_in_session(self):
+        client = Client()
+        data = {
+            "username": "sessionuser",
+            "first_name": "رضا",
+            "last_name": "احمدی",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "مشهد",
+            "neighborhood": "سجاد",
+            "phone": "09351234567",
+        }
+        client.post("/register/", data)
+        session = client.session
+        pending = session.get("pending_registration")
+        assert pending is not None
+        assert pending["username"] == "sessionuser"
+        assert pending["phone"] == "09351234567"
+
+    @override_settings(DISABLE_SMS=True)
     def test_register_with_phone(self):
         client = Client()
         data = {
@@ -112,10 +154,8 @@ class TestRegisterView:
         }
         response = client.post("/register/", data)
         assert response.status_code == 302
-        user = User.objects.get(username="phonetest")
-        assert user.first_name == "مریم"
-        assert user.last_name == "احمدی"
-        assert user.profile.phone == "09121234567"
+        assert "/verify-otp/" in response.url
+        assert not User.objects.filter(username="phonetest").exists()
 
     def test_register_requires_login_redirect_when_authenticated(self):
         User.objects.create_user("loggedin", password="pass12345")
@@ -197,6 +237,28 @@ class TestRegisterView:
         )
         assert isinstance(response.context["form"], RegisterForm)
         assert response.context["form"].is_bound is True
+
+    def test_register_shows_persian_error_on_short_password(self):
+        client = Client()
+        response = client.post(
+            "/register/",
+            {
+                "username": "shortpw",
+                "first_name": "",
+                "last_name": "",
+                "email": "",
+                "password1": "123",
+                "password2": "123",
+                "city": "",
+                "neighborhood": "",
+                "phone": "",
+            },
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "This password is too short" not in content
+        assert "It must contain at least" not in content
+        assert "رمز عبور باید حداقل ۸ کاراکتر باشد." in content
 
 
 @pytest.mark.django_db
@@ -1265,3 +1327,372 @@ class TestPrintableView:
         content = response.content.decode()
         assert "btn-print" in content
         assert "window.print()" in content
+
+
+@pytest.mark.django_db
+class TestVerifyOTPView:
+    FIXED_OTP = "123456"
+
+    def _setup_pending_registration(self, client, phone="09121234567"):
+        """Helper: perform a valid registration POST and return the known OTP code."""
+        data = {
+            "username": "otpuser",
+            "first_name": "علی",
+            "last_name": "محمدی",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": phone,
+        }
+        with (
+            override_settings(DISABLE_SMS=True),
+            patch("services.views.generate_otp", return_value=self.FIXED_OTP),
+        ):
+            client.post("/register/", data)
+        verification = PhoneVerification.objects.filter(phone=phone).first()
+        assert verification is not None
+        return self.FIXED_OTP
+
+    def test_verify_otp_page_loads(self):
+        client = Client()
+        response = client.get("/verify-otp/")
+        assert response.status_code == 302
+        assert "/register/" in response.url
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_redirects_to_register_without_session(self):
+        client = Client()
+        response = client.post("/verify-otp/", {"otp_code": "123456"})
+        assert response.status_code == 302
+        assert "/register/" in response.url
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_shows_form_with_session(self):
+        client = Client()
+        self._setup_pending_registration(client)
+        response = client.get("/verify-otp/")
+        assert response.status_code == 200
+        assert "form" in response.context
+        assert response.context["phone"] == "09121234567"
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_success_creates_user(self):
+        client = Client()
+        otp = self._setup_pending_registration(client)
+        response = client.post("/verify-otp/", {"otp_code": otp})
+        assert response.status_code == 302
+        assert response.url == "/"
+        user = User.objects.get(username="otpuser")
+        assert user.first_name == "علی"
+        assert user.last_name == "محمدی"
+        assert user.profile.phone == "09121234567"
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_success_logs_in_user(self):
+        client = Client()
+        otp = self._setup_pending_registration(client)
+        client.post("/verify-otp/", {"otp_code": otp})
+        response = client.get("/dashboard/")
+        assert response.status_code == 200
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_wrong_code(self):
+        client = Client()
+        self._setup_pending_registration(client)
+        response = client.post("/verify-otp/", {"otp_code": "999999"})
+        assert response.status_code == 200
+        assert "form" in response.context
+        assert not User.objects.filter(username="otpuser").exists()
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_clears_session_after_success(self):
+        client = Client()
+        otp = self._setup_pending_registration(client)
+        client.post("/verify-otp/", {"otp_code": otp})
+        session = client.session
+        assert "pending_registration" not in session
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_marks_verification_as_used(self):
+        client = Client()
+        otp = self._setup_pending_registration(client)
+        client.post("/verify-otp/", {"otp_code": otp})
+        verification = PhoneVerification.objects.filter(phone="09121234567").first()
+        assert verification is not None
+        assert verification.is_used is True
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_empty_code(self):
+        client = Client()
+        self._setup_pending_registration(client)
+        response = client.post("/verify-otp/", {"otp_code": ""})
+        assert response.status_code == 200
+        assert response.context["form"].errors
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_expired_code(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        client = Client()
+        otp = self._setup_pending_registration(client)
+        verification = PhoneVerification.objects.filter(phone="09121234567").first()
+        verification.created_at = timezone.now() - timedelta(minutes=30)
+        verification.save(update_fields=["created_at"])
+        response = client.post("/verify-otp/", {"otp_code": otp})
+        assert response.status_code == 200
+        assert not User.objects.filter(username="otpuser").exists()
+
+
+@pytest.mark.django_db
+class TestResendOTPView:
+    @override_settings(DISABLE_SMS=True)
+    def test_resend_otp_creates_new_verification(self):
+        client = Client()
+        data = {
+            "username": "resenduser",
+            "first_name": "رضا",
+            "last_name": "احمدی",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": "09121234567",
+        }
+        client.post("/register/", data)
+        initial_count = PhoneVerification.objects.filter(phone="09121234567").count()
+        client.post("/resend-otp/")
+        final_count = PhoneVerification.objects.filter(phone="09121234567").count()
+        assert final_count == initial_count + 1
+
+    @override_settings(DISABLE_SMS=True)
+    def test_resend_otp_marks_old_as_used(self):
+        client = Client()
+        data = {
+            "username": "resenduser2",
+            "first_name": "علی",
+            "last_name": "رضایی",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": "09351234567",
+        }
+        client.post("/register/", data)
+        client.post("/resend-otp/")
+        old_verifications = PhoneVerification.objects.filter(
+            phone="09351234567", is_used=True
+        )
+        assert old_verifications.exists()
+        new_verification = PhoneVerification.objects.filter(
+            phone="09351234567", is_used=False
+        ).first()
+        assert new_verification is not None
+
+    @override_settings(DISABLE_SMS=True)
+    def test_resend_otp_redirects_to_verify(self):
+        client = Client()
+        data = {
+            "username": "resenduser3",
+            "first_name": "مریم",
+            "last_name": "اکبری",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": "09191234567",
+        }
+        client.post("/register/", data)
+        response = client.post("/resend-otp/")
+        assert response.status_code == 302
+        assert "/verify-otp/" in response.url
+
+    def test_resend_otp_redirects_to_register_without_session(self):
+        client = Client()
+        response = client.post("/resend-otp/")
+        assert response.status_code == 302
+        assert "/register/" in response.url
+
+    @override_settings(DISABLE_SMS=True)
+    def test_resend_otp_allows_login_with_new_code(self):
+        client = Client()
+        data = {
+            "username": "resenduser4",
+            "first_name": "حسن",
+            "last_name": "علی",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "ونک",
+            "phone": "09171234567",
+        }
+        client.post("/register/", data)
+        client.post("/resend-otp/")
+        new_verification = PhoneVerification.objects.filter(
+            phone="09171234567", is_used=False
+        ).first()
+        assert new_verification is not None
+        plain_otp = generate_otp()
+        new_verification.otp_code = hash_otp(plain_otp)
+        new_verification.save(update_fields=["otp_code"])
+        response = client.post("/verify-otp/", {"otp_code": plain_otp})
+        assert response.status_code == 302
+        assert User.objects.filter(username="resenduser4").exists()
+
+
+@pytest.mark.django_db
+class TestResendOTPApi:
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_returns_json_success(self):
+        client = Client()
+        data = {
+            "username": "apiuser1",
+            "first_name": "Ali",
+            "last_name": "Rezaei",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "Tehran",
+            "neighborhood": "Vanak",
+            "phone": "09121000001",
+        }
+        client.post("/register/", data)
+        response = client.post("/api/resend-otp/", content_type="application/json")
+        assert response.status_code == 200
+        body = response.json()
+        assert "message" in body
+        assert "cooldown" in body
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=120)
+    def test_enforces_cooldown(self):
+        client = Client()
+        data = {
+            "username": "apiuser2",
+            "first_name": "Sara",
+            "last_name": "Ahmadi",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "Tehran",
+            "neighborhood": "Vanak",
+            "phone": "09121000002",
+        }
+        client.post("/register/", data)
+        response = client.post("/api/resend-otp/", content_type="application/json")
+        assert response.status_code == 429
+        body = response.json()
+        assert "error" in body
+        assert "cooldown" in body
+        assert body["cooldown"] > 0
+
+    def test_returns_400_without_session(self):
+        client = Client()
+        response = client.post("/api/resend-otp/", content_type="application/json")
+        assert response.status_code == 400
+        body = response.json()
+        assert "error" in body
+
+    def test_returns_405_for_get(self):
+        client = Client()
+        response = client.get("/api/resend-otp/")
+        assert response.status_code == 405
+
+    @override_settings(DISABLE_SMS=True)
+    def test_returns_400_for_authenticated_user(self):
+        User.objects.create_user(username="apiuser3", password="ComplexPass1!")
+        client = Client()
+        client.login(username="apiuser3", password="ComplexPass1!")
+        response = client.post("/api/resend-otp/", content_type="application/json")
+        assert response.status_code == 400
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_creates_new_verification_on_success(self):
+        client = Client()
+        data = {
+            "username": "apiuser4",
+            "first_name": "Mohsen",
+            "last_name": "Karimi",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "Tehran",
+            "neighborhood": "Vanak",
+            "phone": "09121000004",
+        }
+        client.post("/register/", data)
+        initial = PhoneVerification.objects.filter(phone="09121000004").count()
+        client.post("/api/resend-otp/", content_type="application/json")
+        final = PhoneVerification.objects.filter(phone="09121000004").count()
+        assert final == initial + 1
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_marks_old_otp_as_used(self):
+        client = Client()
+        data = {
+            "username": "apiuser5",
+            "first_name": "Reza",
+            "last_name": "Hosseini",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "Tehran",
+            "neighborhood": "Vanak",
+            "phone": "09121000005",
+        }
+        client.post("/register/", data)
+        client.post("/api/resend-otp/", content_type="application/json")
+        assert PhoneVerification.objects.filter(
+            phone="09121000005", is_used=True
+        ).exists()
+        assert PhoneVerification.objects.filter(
+            phone="09121000005", is_used=False
+        ).exists()
+
+
+@pytest.mark.django_db
+class TestHealthCheck:
+    def test_health_returns_200(self):
+        client = Client()
+        response = client.get("/health/")
+        assert response.status_code == 200
+
+    def test_health_returns_json(self):
+        client = Client()
+        response = client.get("/health/")
+        data = response.json()
+        assert "status" in data
+        assert "version" in data
+
+    def test_health_status_is_ok(self):
+        client = Client()
+        response = client.get("/health/")
+        assert response.json()["status"] == "ok"
+
+    def test_health_version_is_nonempty_string(self):
+        client = Client()
+        response = client.get("/health/")
+        version = response.json()["version"]
+        assert isinstance(version, str)
+        assert len(version) > 0
+
+
+class TestVersion:
+    def test_version_is_accessible(self):
+        from agahyar_project import __version__
+
+        assert isinstance(__version__, str)
+        assert len(__version__) > 0
+
+    def test_version_matches_package(self):
+        from importlib.metadata import version
+
+        from agahyar_project import __version__
+
+        assert __version__ == version("agahyar")

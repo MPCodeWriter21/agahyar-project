@@ -23,6 +23,11 @@ cp .env.example .env
 > and is designed to run via Docker. Local (non-Docker) development is not
 > supported.
 
+> **Note:** SMS phone verification (OTP) is enabled by default. In
+> development, set ``DISABLE_SMS=True`` in your ``.env`` to skip sending
+> actual SMS messages -- OTP codes will be printed to the container console
+> instead.
+
 Docker
 ------
 
@@ -87,11 +92,13 @@ agahyar-project/
 │       ├── admin.py              # Admin panel registration
 │       ├── apps.py               # Django AppConfig
 │       ├── error_codes.py        # Persian error code catalog
-│       ├── forms.py              # LoginForm, RegisterForm, etc.
-│       ├── models.py             # Service, UserProfile, FAQ, etc.
+│       ├── forms.py              # LoginForm, RegisterForm, OTPVerifyForm, etc.
+│       ├── models.py             # Service, UserProfile, FAQ, PhoneVerification, etc.
+│       ├── otp.py                # OTP generation, hashing, and verification
+│       ├── sms.py                # SMS.ir API client for sending OTP codes
 │       ├── suggestion.py         # Nearest-center lookup logic
 │       ├── urls.py               # App URL patterns
-│       ├── validators.py         # Iranian phone validator
+│       ├── validators.py         # Iranian phone & password validators
 │       ├── views.py              # All view functions
 │       ├── migrations/           # Database migrations
 │       └── test_*.py             # Pytest test files
@@ -123,3 +130,39 @@ Coding Conventions
 - Do not use ``python -c ...``; write a temporary script instead
 - Docstrings follow reStructuredText (Sphinx) format
 - Use ASCII only in source code -- avoid non-ASCII characters in .py files
+
+Versioning
+----------
+
+The project version is defined in a single place: the ``version`` field
+under ``[project]`` in ``pyproject.toml``. This is the canonical source of
+truth -- do not duplicate the version string in any other file.
+
+At runtime, the version is accessible via ``agahyar_project.__version__``,
+which reads from ``importlib.metadata`` (so it always reflects the installed
+package version without duplication).
+
+Docker images receive the version at build time through a ``VERSION`` build
+arg, which is set to the ``org.opencontainers.image.version`` OCI label.
+
+To bump the version, edit only the ``version`` field in ``pyproject.toml``
+and run ``uv lock`` to update the lockfile.
+
+Release Workflow
+----------------
+
+The ``release.yml`` GitHub Actions workflow automates Docker image releases.
+On every push to ``main``, it:
+
+1. Reads the version from ``pyproject.toml``.
+2. Checks if a Git tag ``v<version>`` already exists.
+3. If the tag exists, the workflow exits early (already released).
+4. If the tag does not exist, it builds the Docker image, pushes it to
+   GHCR (``ghcr.io/<owner>/<repo>``), creates the Git tag, and publishes
+   a GitHub Release with auto-generated notes.
+
+The image name is derived from ``${{ github.repository }}``, so forks
+automatically release images under their own GHCR namespace.
+
+To release a new version, simply bump the version in ``pyproject.toml``,
+push to ``main``, and the workflow handles the rest.
