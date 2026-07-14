@@ -1,4 +1,5 @@
 {% extends 'services/base.html' %}
+{% load jalali_tags %}
 {% block title %}همه خدمات | آگاه‌یار{% endblock %}
 {% block meta_description %}فهرست کامل خدمات دولتی قابل ارائه در سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}خدمات دولتی, لیست خدمات, آگاه‌یار{% endblock %}
@@ -35,7 +36,7 @@
         <a href="?page=1">&laquo; اول</a>
         <a href="?page={{ page_obj.previous_page_number }}">قبلی</a>
       {% endif %}
-      <span>صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}</span>
+      <span>صفحه {{ page_obj.number|fa }} از {{ page_obj.paginator.num_pages|fa }}</span>
       {% if page_obj.has_next %}
         <a href="?page={{ page_obj.next_page_number }}">بعدی</a>
         <a href="?page={{ page_obj.paginator.num_pages }}">آخر &raquo;</a>

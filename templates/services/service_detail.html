@@ -1,5 +1,5 @@
 {% extends 'services/base.html' %}
-{% load static %}
+{% load static jalali_tags %}
 {% block title %}جزئیات {{ service.name }} | آگاه‌یار{% endblock %}
 {% block meta_description %}مدارک، مراحل، هزینه و مدت زمان مورد نیاز برای {{ service.name }} - سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}{{ service.name }}, {{ service.organization }}, خدمات دولتی{% endblock %}
@@ -75,7 +75,7 @@
               <a href="{% url 'center_detail' center.id %}" class="center-item-name">{{ center.name }}</a>
               {% if center.avg_score %}
                 <span class="center-item-rating">
-                  <i class="fas fa-star"></i> {{ center.avg_score }}
+                  <i class="fas fa-star"></i> {{ center.avg_score|fa }}
                 </span>
               {% endif %}
             </div>
@@ -122,11 +122,19 @@
   <div class="comments-section info-card">
     <h3>نظرات</h3>
     {% if comments %}
-      <div class="comments-list">
+      <div class="comments-list" id="comments-list">
         {% for comment in comments %}
           {% include "services/partials/comment.html" with comment=comment depth=0 %}
         {% endfor %}
       </div>
+      {% if has_more_comments %}
+        <button type="button"
+                class="btn-load-more"
+                data-target="service"
+                data-target-id="{{ service.id }}"
+                data-page="2"
+                onclick="loadMoreComments(this)">نمایش نظرات بیشتر</button>
+      {% endif %}
     {% else %}
       <p class="empty-text">هنوز نظری ثبت نشده است.</p>
     {% endif %}

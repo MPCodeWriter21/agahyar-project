@@ -27,14 +27,24 @@
   --color-accent: #1a5f7a;
   --color-accent-hover: #134b61;
   --color-secondary: #f5a623;
+  --color-secondary-hover: #e09520;
   --color-danger: #c62828;
   --color-danger-light: #ffebee;
   --color-success: #2e7d32;
+  --color-success-hover: #256b29;
   --border-color: var(--border-color);
   --border-light: #e0e0e0;
   --border-input: #dee2e6;
   --shadow-card: rgba(0, 0, 0, 0.08);
   --shadow-light: rgba(0, 0, 0, 0.05);
+
+  /* Button design tokens */
+  --btn-radius: 12px;
+  --btn-radius-pill: 24px;
+  --btn-padding-sm: 8px 16px;
+  --btn-padding-md: 10px 24px;
+  --btn-padding-lg: 12px 28px;
+  --btn-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
@@ -161,6 +171,19 @@ body {
   border: none;
   cursor: pointer;
   color: var(--color-accent);
+  padding: 4px;
+  border-radius: 8px;
+  transition: var(--btn-transition);
+  line-height: 1;
+}
+
+.mobile-menu-btn:hover {
+  background: var(--bg-light);
+}
+
+.mobile-menu-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
 /* --- Main Content --- */
@@ -221,24 +244,29 @@ body {
 .btn-detail {
   background: var(--color-accent);
   color: var(--text-on-accent);
-  padding: 12px 28px;
-  border-radius: 40px;
+  padding: var(--btn-padding-lg);
+  border-radius: var(--btn-radius);
   text-decoration: none;
   display: inline-block;
   margin-top: 16px;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  transition: 0.2s;
+  font-weight: 600;
+  transition: var(--btn-transition);
 }
 
-.btn-back:hover {
-  background: var(--color-accent-hover);
-  transform: translateY(-2px);
-}
-
+.btn-back:hover,
 .btn-detail:hover {
   background: var(--color-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 95, 122, 0.25);
+}
+
+.btn-back:focus-visible,
+.btn-detail:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .btn-print {
@@ -246,18 +274,25 @@ body {
   margin-top: 12px;
   background: var(--color-success);
   color: var(--text-on-accent);
-  padding: 8px 20px;
+  padding: var(--btn-padding-sm);
   border: none;
-  border-radius: 40px;
-  font-size: 0.95rem;
+  border-radius: var(--btn-radius);
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: 0.2s;
+  transition: var(--btn-transition);
 }
 
 .btn-print:hover {
-  background: #218838;
-  transform: translateY(-2px);
+  background: var(--color-success-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);
+}
+
+.btn-print:focus-visible {
+  outline: 2px solid var(--color-success);
+  outline-offset: 2px;
 }
 
 .form-group {
@@ -316,17 +351,22 @@ body {
   background: linear-gradient(135deg, var(--color-accent), #2c8faa);
   color: var(--text-on-accent);
   border: none;
-  border-radius: 40px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  border-radius: var(--btn-radius);
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: 0.2s;
+  transition: var(--btn-transition);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(26, 95, 122, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(26, 95, 122, 0.3);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* --- Pagination --- */
@@ -550,19 +590,24 @@ button.muted-link:disabled {
 .btn-hero {
   display: inline-block;
   padding: 14px 36px;
-  border-radius: 40px;
+  border-radius: var(--btn-radius);
   font-size: 1.05rem;
-  font-weight: bold;
+  font-weight: 700;
   text-decoration: none;
   font-family: inherit;
-  transition: 0.2s;
+  transition: var(--btn-transition);
   background: var(--bg-card);
   color: var(--color-accent);
 }
 
 .btn-hero:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 6px 20px var(--shadow-card);
+}
+
+.btn-hero:focus-visible {
+  outline: 2px solid var(--bg-card);
+  outline-offset: 2px;
 }
 
 .btn-hero-secondary {
@@ -604,15 +649,22 @@ button.muted-link:disabled {
   border: none;
   padding: 14px 35px;
   border-radius: 40px;
-  font-weight: bold;
+  font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   font-family: inherit;
-  transition: 0.2s;
+  transition: var(--btn-transition);
 }
 
 .search-box button:hover {
   background: var(--color-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 95, 122, 0.25);
+}
+
+.search-box button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .icon-boxes {
@@ -789,11 +841,23 @@ button.muted-link:disabled {
   background: var(--color-accent);
   color: var(--text-on-accent);
   border: none;
-  padding: 12px 28px;
-  border-radius: 40px;
+  padding: var(--btn-padding-lg);
+  border-radius: var(--btn-radius);
   cursor: pointer;
   font-family: inherit;
-  font-weight: bold;
+  font-weight: 700;
+  transition: var(--btn-transition);
+}
+
+.search-form-row button:hover {
+  background: var(--color-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 95, 122, 0.25);
+}
+
+.search-form-row button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .org-badge {
@@ -813,21 +877,28 @@ button.muted-link:disabled {
 }
 
 .btn-bookmark {
-  background: #ffc107;
+  background: var(--color-secondary);
   color: #212529;
   border: none;
-  padding: 8px 20px;
-  border-radius: 30px;
-  font-size: 0.95rem;
+  padding: var(--btn-padding-sm);
+  border-radius: var(--btn-radius);
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   margin-top: 12px;
-  transition: 0.2s;
+  transition: var(--btn-transition);
 }
 
 .btn-bookmark:hover {
-  background: #e0a800;
-  transform: translateY(-2px);
+  background: var(--color-secondary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+}
+
+.btn-bookmark:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
 }
 
 /* --- Rating Section --- */
@@ -919,14 +990,22 @@ button.muted-link:disabled {
   border: none;
   color: var(--color-accent);
   font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
   padding: 4px 8px;
   font-family: inherit;
-  transition: 0.2s;
+  transition: var(--btn-transition);
+  border-radius: 8px;
 }
 
 .btn-reply:hover {
   color: var(--color-accent-hover);
+  background: rgba(26, 95, 122, 0.06);
+}
+
+.btn-reply:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
 .reply-form {
@@ -958,20 +1037,89 @@ button.muted-link:disabled {
 }
 
 .btn-rate-sm {
-  padding: 6px 16px;
+  padding: var(--btn-padding-sm);
   font-size: 0.85rem;
   margin-top: 0;
 }
 
 .btn-cancel-reply {
   background: none;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  padding: 6px 16px;
-  border-radius: 40px;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border-radius: 8px;
   font-size: 0.85rem;
   cursor: pointer;
   font-family: inherit;
+  transition: var(--btn-transition);
+  margin-top: 12px;
+}
+
+.btn-cancel-reply:hover {
+  background: var(--bg-light);
+  color: var(--text-primary);
+}
+
+.btn-cancel-reply:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 1px;
+}
+
+.btn-toggle-replies {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-top: 6px;
+  font-family: inherit;
+  transition: 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-toggle-replies:hover {
+  color: var(--color-accent-hover);
+}
+
+.btn-toggle-replies .toggle-icon {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+
+.btn-load-more {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: var(--bg-light);
+  border: 2px dashed var(--border-light);
+  border-radius: var(--btn-radius);
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--btn-transition);
+}
+
+.btn-load-more:hover {
+  background: var(--border-light);
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.btn-load-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-load-more:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* --- Comment Form --- */
@@ -1093,19 +1241,25 @@ button.muted-link:disabled {
   background: var(--color-accent);
   color: var(--text-on-accent);
   border: none;
-  padding: 10px 28px;
-  border-radius: 40px;
+  padding: var(--btn-padding-md);
+  border-radius: var(--btn-radius);
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 700;
   cursor: pointer;
   font-family: inherit;
   margin-top: 12px;
-  transition: 0.2s;
+  transition: var(--btn-transition);
 }
 
 .btn-rate:hover {
   background: var(--color-accent-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 95, 122, 0.25);
+}
+
+.btn-rate:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* --- Geolocation Button --- */
@@ -1113,22 +1267,32 @@ button.muted-link:disabled {
   background: var(--color-accent);
   color: var(--text-on-accent);
   border: none;
-  padding: 8px 20px;
-  border-radius: 40px;
+  padding: var(--btn-padding-sm);
+  border-radius: var(--btn-radius);
   font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   margin-top: 10px;
-  transition: 0.2s;
+  transition: var(--btn-transition);
 }
 
 .btn-geolocate:hover {
   background: var(--color-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 95, 122, 0.25);
 }
 
 .btn-geolocate:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-geolocate:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .geolocate-result {
@@ -1184,13 +1348,19 @@ button.muted-link:disabled {
   font-family: inherit;
   padding: 8px;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: var(--btn-transition);
   line-height: 1;
   color: var(--color-accent);
 }
 
 .btn-bookmark-icon:hover {
   background: var(--bg-light);
+  transform: scale(1.05);
+}
+
+.btn-bookmark-icon:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
 .info-card {
@@ -1252,13 +1422,25 @@ button.muted-link:disabled {
   display: inline-block;
   margin-right: 15px;
   color: var(--color-accent);
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
   background: var(--bg-light);
-  padding: 4px 12px;
-  border-radius: 16px;
+  padding: var(--btn-padding-sm);
+  border-radius: var(--btn-radius);
   font-size: 0.85rem;
   font-family: inherit;
+  transition: var(--btn-transition);
+  border: 1px solid var(--border-light);
+}
+
+.btn-map:hover {
+  background: var(--border-light);
+  transform: translateY(-1px);
+}
+
+.btn-map:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .btn-map:hover {
@@ -1354,32 +1536,6 @@ button.muted-link:disabled {
   font-size: 0.75rem;
 }
 
-.btn-load-more {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  background: var(--bg-light);
-  border: 2px dashed var(--border-light);
-  border-radius: 12px;
-  color: var(--color-accent);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  font-family: inherit;
-  transition: 0.2s;
-}
-
-.btn-load-more:hover {
-  background: var(--border-light);
-  border-color: var(--color-accent);
-}
-
-.btn-load-more:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* --- Map Wrapper with Geolocate Icon --- */
 .map-wrapper {
   position: relative;
@@ -1402,7 +1558,18 @@ button.muted-link:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: 0.2s;
+  transition: var(--btn-transition);
+}
+
+.btn-geolocate-icon:hover {
+  background: var(--color-accent-hover);
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.btn-geolocate-icon:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .btn-geolocate-icon:hover {
@@ -1627,18 +1794,24 @@ button.muted-link:disabled {
   color: var(--text-on-accent);
   padding: 14px 32px;
   border: none;
-  border-radius: 40px;
+  border-radius: var(--btn-radius);
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: 0.2s;
+  transition: var(--btn-transition);
   width: 100%;
 }
 
 .btn-send:hover {
   background: var(--color-accent-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 95, 122, 0.25);
+}
+
+.btn-send:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 /* --- About Page --- */
@@ -1875,14 +2048,24 @@ button.muted-link:disabled {
   margin-top: 10px;
   background: var(--color-success);
   color: var(--text-on-accent);
-  padding: 6px 16px;
-  border-radius: 20px;
+  padding: var(--btn-padding-sm);
+  border-radius: var(--btn-radius);
   text-decoration: none;
   font-size: 0.85rem;
+  font-weight: 600;
   font-family: inherit;
+  transition: var(--btn-transition);
 }
+
 .nearest-map-link:hover {
-  background: #218838;
+  background: var(--color-success-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);
+}
+
+.nearest-map-link:focus-visible {
+  outline: 2px solid var(--color-success);
+  outline-offset: 2px;
 }
 
 [data-theme="dark"] .nearest-map-link:hover {
@@ -2139,9 +2322,9 @@ button.muted-link:disabled {
   border: none;
   font-size: 1.4rem;
   cursor: pointer;
-  padding: 8px 8px;
+  padding: 8px;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: var(--btn-transition);
   font-family: inherit;
   line-height: 1;
   color: var(--text-primary);
@@ -2150,6 +2333,12 @@ button.muted-link:disabled {
 
 .theme-toggle-btn:hover {
   background: var(--bg-light);
+  transform: scale(1.05);
+}
+
+.theme-toggle-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
 @media (max-width: 768px) {

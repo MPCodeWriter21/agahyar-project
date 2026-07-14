@@ -50,6 +50,8 @@ from .suggestion import get_nearest_center
 
 logger = logging.getLogger(__name__)
 
+COMMENTS_PER_PAGE = 5
+
 
 def save_user_profile(
     user_id: int, city: str, neighborhood: str = "", phone: str = ""
@@ -558,6 +560,11 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
         .prefetch_related("replies__user")
     )
 
+    comment_page = int(request.GET.get("comment_page", 1))
+    comment_paginator = Paginator(top_level_comments, COMMENTS_PER_PAGE)
+    comment_page_obj = comment_paginator.get_page(comment_page)
+    has_more_comments = comment_page_obj.has_next()
+
     comment_form = None
     if request.user.is_authenticated:
         comment_form = CommentForm()
@@ -577,7 +584,9 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "center_locations": center_locations,
             "city_center": city_center,
             "is_bookmarked": is_bookmarked,
-            "comments": top_level_comments,
+            "comments": comment_page_obj,
+            "has_more_comments": has_more_comments,
+            "comment_page": comment_page,
             "comment_form": comment_form,
         },
     )
@@ -862,6 +871,11 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
         .prefetch_related("replies__user")
     )
 
+    comment_page = int(request.GET.get("comment_page", 1))
+    comment_paginator = Paginator(top_level_comments, COMMENTS_PER_PAGE)
+    comment_page_obj = comment_paginator.get_page(comment_page)
+    has_more_comments = comment_page_obj.has_next()
+
     center_locations = get_center_locations(ServiceCenter.objects.filter(id=center.id))
 
     comment_form = None
@@ -880,7 +894,9 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
             "avg_rating": round(avg_rating, 1) if avg_rating else None,
             "rating_count": rating_count,
             "user_center_rating": user_center_rating,
-            "comments": top_level_comments,
+            "comments": comment_page_obj,
+            "has_more_comments": has_more_comments,
+            "comment_page": comment_page,
             "comment_form": comment_form,
             "rating_form": rating_form,
         },
@@ -1037,6 +1053,49 @@ def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
             "centers": centers_data,
             "has_next": page_obj.has_next(),
             "total_pages": paginator.num_pages,
+        }
+    )
+
+
+def load_comments(
+    request: HttpRequest, target_type: str, target_id: int
+) -> JsonResponse:
+    """API endpoint: load more top-level comments for a service or center.
+
+    GET with query param ``page`` (default 2). Returns rendered HTML fragments.
+    """
+    from django.template.loader import render_to_string
+
+    page = int(request.GET.get("page", 2))
+
+    if target_type == "service":
+        target = get_object_or_404(Service, id=target_id)
+        qs = Comment.objects.filter(service=target, parent__isnull=True)
+    elif target_type == "center":
+        target = get_object_or_404(ServiceCenter, id=target_id)
+        qs = Comment.objects.filter(service_center=target, parent__isnull=True)
+    else:
+        return JsonResponse({"error": "invalid target"}, status=400)
+
+    qs = qs.select_related("user").prefetch_related("replies__user")
+
+    paginator = Paginator(qs, COMMENTS_PER_PAGE)
+    page_obj = paginator.get_page(page)
+
+    html_parts = []
+    for comment in page_obj:
+        html_parts.append(
+            render_to_string(
+                "services/partials/comment.html",
+                {"comment": comment, "depth": 0, "user": request.user},
+                request=request,
+            )
+        )
+
+    return JsonResponse(
+        {
+            "html": "".join(html_parts),
+            "has_next": page_obj.has_next(),
         }
     )
 

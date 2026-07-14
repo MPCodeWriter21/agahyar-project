@@ -1,9 +1,9 @@
-{% load static %}
+{% load static jalali_tags %}
 <div class="comment-item {% if depth > 0 %}comment-reply{% endif %}"
      style="margin-right: {{ depth }}px">
   <div class="comment-header">
     <span class="comment-user">{{ comment.user.first_name|default:comment.user.username }}</span>
-    <span class="comment-date">{{ comment.created_at|date:"Y/m/d H:i" }}</span>
+    <span class="comment-date">{{ comment.created_at|jalali }}</span>
   </div>
   <div class="comment-text">{{ comment.text|linebreaksbr }}</div>
   {% if user.is_authenticated %}
@@ -32,11 +32,22 @@
       </form>
     </div>
   {% endif %}
-  {% if comment.replies.all %}
-    <div class="comment-replies">
-      {% for reply in comment.replies.all %}
-        {% include "services/partials/comment.html" with comment=reply depth=depth|add:"1" %}
-      {% endfor %}
-    </div>
-  {% endif %}
+  {% with reply_count=comment.replies.count %}
+    {% if reply_count > 0 %}
+      <button type="button"
+              class="btn-toggle-replies"
+              onclick="toggleReplies({{ comment.id }}, this)">
+        <i class="fas fa-comments"></i>
+        {{ reply_count|fa }} پاسخ
+        <i class="fas fa-chevron-down toggle-icon"></i>
+      </button>
+      <div id="replies-{{ comment.id }}"
+           class="comment-replies"
+           style="display:none">
+        {% for reply in comment.replies.all %}
+          {% include "services/partials/comment.html" with comment=reply depth=depth|add:"1" %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 </div>

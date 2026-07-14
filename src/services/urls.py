@@ -53,6 +53,11 @@ urlpatterns: List[URLPattern] = [
         views.load_centers,
         name="load_centers",
     ),
+    path(
+        "api/load-comments/<str:target_type>/<int:target_id>/",
+        views.load_comments,
+        name="load_comments",
+    ),
     # ===== Supplementary pages =====
     path("profile/", views.profile_view, name="profile"),
     path("faq/", views.faq_view, name="faq"),

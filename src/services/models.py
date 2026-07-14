@@ -186,7 +186,7 @@ class Comment(models.Model):
     class Meta:
         verbose_name = "نظر"
         verbose_name_plural = "نظرات"
-        ordering = ["created_at"]
+        ordering = ["-created_at"]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(service__isnull=False)

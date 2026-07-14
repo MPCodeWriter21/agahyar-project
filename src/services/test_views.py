@@ -1179,6 +1179,88 @@ class TestSubmitComment:
 
 
 @pytest.mark.django_db
+class TestCommentOrdering:
+    def test_comments_newest_first(self):
+        user = User.objects.create_user("orderuser", password="pass12345")
+        service = Service.objects.create(
+            name="order-svc", organization="org", documents="d", steps="s"
+        )
+        c1 = Comment.objects.create(user=user, service=service, text="first")
+        c2 = Comment.objects.create(user=user, service=service, text="second")
+        c3 = Comment.objects.create(user=user, service=service, text="third")
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        comments = list(response.context["comments"])
+        assert comments[0].id == c3.id
+        assert comments[1].id == c2.id
+        assert comments[2].id == c1.id
+
+
+@pytest.mark.django_db
+class TestCommentPagination:
+    def test_initial_page_limit(self):
+        user = User.objects.create_user("pageuser", password="pass12345")
+        service = Service.objects.create(
+            name="page-svc", organization="org", documents="d", steps="s"
+        )
+        for i in range(7):
+            Comment.objects.create(user=user, service=service, text=f"comment {i}")
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        comments = list(response.context["comments"])
+        assert len(comments) == 5
+        assert response.context["has_more_comments"] is True
+
+    def test_no_load_more_when_few_comments(self):
+        user = User.objects.create_user("fewuser", password="pass12345")
+        service = Service.objects.create(
+            name="few-svc", organization="org", documents="d", steps="s"
+        )
+        Comment.objects.create(user=user, service=service, text="only one")
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        assert response.context["has_more_comments"] is False
+
+    def test_load_more_returns_html(self):
+        user = User.objects.create_user("apiuser", password="pass12345")
+        service = Service.objects.create(
+            name="api-svc", organization="org", documents="d", steps="s"
+        )
+        for i in range(7):
+            Comment.objects.create(user=user, service=service, text=f"comment {i}")
+        client = Client()
+        response = client.get(f"/api/load-comments/service/{service.id}/?page=2")
+        assert response.status_code == 200
+        data = response.json()
+        assert "html" in data
+        assert data["has_next"] is False
+        assert len(data["html"]) > 0
+
+    def test_load_comments_invalid_target(self):
+        client = Client()
+        response = client.get("/api/load-comments/invalid/1/?page=2")
+        assert response.status_code == 400
+
+    def test_load_comments_center(self):
+        user = User.objects.create_user("centerapi", password="pass12345")
+        service = Service.objects.create(
+            name="centerapi-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            name="centerapi-center", service=service, city="Tehran"
+        )
+        for i in range(7):
+            Comment.objects.create(
+                user=user, service_center=center, text=f"center comment {i}"
+            )
+        client = Client()
+        response = client.get(f"/api/load-comments/center/{center.id}/?page=2")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["has_next"] is False
+
+
+@pytest.mark.django_db
 class TestCenterDetail:
     def test_center_detail_public(self):
         service = Service.objects.create(

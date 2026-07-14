@@ -179,6 +179,17 @@ class TestCommentModel:
         Comment.objects.create(user=user, service=service, text="second")
         assert Comment.objects.filter(user=user, service=service).count() == 2
 
+    def test_ordering_newest_first(self):
+        user = User.objects.create_user("orduser", password="pass12345")
+        service = Service.objects.create(
+            name="ordtest", organization="org", documents="d", steps="s"
+        )
+        c1 = Comment.objects.create(user=user, service=service, text="old")
+        c2 = Comment.objects.create(user=user, service=service, text="new")
+        comments = list(Comment.objects.filter(service=service))
+        assert comments[0].id == c2.id
+        assert comments[1].id == c1.id
+
 
 @pytest.mark.django_db
 class TestCenterRatingModel:

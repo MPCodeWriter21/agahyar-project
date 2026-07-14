@@ -1,4 +1,5 @@
 {% extends 'services/base.html' %}
+{% load jalali_tags %}
 {% block title %}لیست کاربران | آگاه‌یار{% endblock %}
 {% block meta_description %}لیست کاربران سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}کاربران, لیست, آگاه‌یار{% endblock %}
@@ -18,10 +19,10 @@
     <tbody>
       {% for user in users %}
         <tr>
-          <td>{{ user.id }}</td>
+          <td>{{ user.id|fa }}</td>
           <td>{{ user.username }}</td>
           <td>{{ user.email|default:"-" }}</td>
-          <td>{{ user.date_joined|date:"Y/m/d" }}</td>
+          <td>{{ user.date_joined|jalali:"DD MN YYYY" }}</td>
           <td>{% if user.profile %}{{ user.profile.city }}{% else %}---{% endif %}</td>
           <td>{% if user.profile %}{{ user.profile.phone }}{% else %}---{% endif %}</td>
         </tr>

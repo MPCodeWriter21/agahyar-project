@@ -56,6 +56,57 @@ function toggleReplyForm(commentId) {
   }
 }
 
+function toggleReplies(commentId, btn) {
+  var replies = document.getElementById("replies-" + commentId);
+  if (!replies) return;
+  var icon = btn.querySelector(".toggle-icon");
+  if (replies.style.display === "none") {
+    replies.style.display = "block";
+    icon.classList.replace("fa-chevron-down", "fa-chevron-up");
+  } else {
+    replies.style.display = "none";
+    icon.classList.replace("fa-chevron-up", "fa-chevron-down");
+  }
+}
+
+function loadMoreComments(btn) {
+  var target = btn.getAttribute("data-target");
+  var targetId = btn.getAttribute("data-target-id");
+  var page = parseInt(btn.getAttribute("data-page"), 10);
+  var listEl = document.getElementById("comments-list");
+
+  btn.disabled = true;
+  btn.textContent =
+    "\u062F\u0631 \u062D\u0627\u0644 \u0628\u0627\u0631\u06AF\u0630\u0627\u0631\u06CC...";
+
+  fetch("/api/load-comments/" + target + "/" + targetId + "/?page=" + page, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  })
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (data) {
+      if (data.html) {
+        listEl.insertAdjacentHTML("beforeend", data.html);
+      }
+
+      if (data.has_next) {
+        btn.disabled = false;
+        btn.textContent =
+          "\u0646\u0645\u0627\u06CC\u0634 \u0646\u0638\u0631\u0627\u062A \u0628\u06CC\u0634\u062A\u0631";
+        btn.setAttribute("data-page", page + 1);
+      } else {
+        btn.remove();
+      }
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.textContent =
+        "\u0646\u0645\u0627\u06CC\u0634 \u0646\u0638\u0631\u0627\u062A \u0628\u06CC\u0634\u062A\u0631";
+    });
+}
+
 function loadMoreCenters(btn) {
   var serviceId = btn.getAttribute("data-service-id");
   var page = parseInt(btn.getAttribute("data-page"), 10);

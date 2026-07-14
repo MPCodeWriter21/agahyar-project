@@ -1,6 +1,6 @@
 # Persian readable dates
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 65
 - TAGS: UI, date, Persian, comments
 

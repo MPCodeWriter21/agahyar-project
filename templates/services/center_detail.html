@@ -1,5 +1,5 @@
 {% extends 'services/base.html' %}
-{% load static %}
+{% load static jalali_tags %}
 {% block title %}{{ center.name }} | آگاه‌یار{% endblock %}
 {% block meta_description %}اطلاعات مرکز {{ center.name }} - {{ service.name }} - سامانه آگاه‌یار{% endblock %}
 {% block og_title %}آگاه‌یار | {{ center.name }}{% endblock %}
@@ -60,7 +60,7 @@
     <h3>امتیاز و نظرات</h3>
     {% if avg_rating %}
       <div class="rating-summary">
-        <span class="avg-rating">{{ avg_rating }}</span>
+        <span class="avg-rating">{{ avg_rating|fa }}</span>
         <span class="stars">
           {% if avg_rating >= 1 %}★{% else %}☆{% endif %}
           {% if avg_rating >= 2 %}★{% else %}☆{% endif %}
@@ -68,7 +68,7 @@
           {% if avg_rating >= 4 %}★{% else %}☆{% endif %}
           {% if avg_rating >= 5 %}★{% else %}☆{% endif %}
         </span>
-        <span class="rating-count">({{ rating_count }} نظر)</span>
+        <span class="rating-count">({{ rating_count|fa }} نظر)</span>
       </div>
     {% else %}
       <p class="empty-text">هنوز امتیازی ثبت نشده است.</p>
@@ -86,31 +86,31 @@
                    name="score"
                    value="5"
                    {% if user_center_rating and user_center_rating.score == 5 %}checked{% endif %}>
-            <label for="cstar5" title="5 - عالی"></label>
+            <label for="cstar5" title="۵ - عالی"></label>
             <input type="radio"
                    id="cstar4"
                    name="score"
                    value="4"
                    {% if user_center_rating and user_center_rating.score == 4 %}checked{% endif %}>
-            <label for="cstar4" title="4 - خوب"></label>
+            <label for="cstar4" title="۴ - خوب"></label>
             <input type="radio"
                    id="cstar3"
                    name="score"
                    value="3"
                    {% if user_center_rating and user_center_rating.score == 3 %}checked{% endif %}>
-            <label for="cstar3" title="3 - متوسط"></label>
+            <label for="cstar3" title="۳ - متوسط"></label>
             <input type="radio"
                    id="cstar2"
                    name="score"
                    value="2"
                    {% if user_center_rating and user_center_rating.score == 2 %}checked{% endif %}>
-            <label for="cstar2" title="2 - بد"></label>
+            <label for="cstar2" title="۲ - بد"></label>
             <input type="radio"
                    id="cstar1"
                    name="score"
                    value="1"
                    {% if user_center_rating and user_center_rating.score == 1 %}checked{% endif %}>
-            <label for="cstar1" title="1 - خیلی بد"></label>
+            <label for="cstar1" title="۱ - خیلی بد"></label>
           </div>
         </div>
       </form>
@@ -128,11 +128,19 @@
       </div>
     {% endif %}
     {% if comments %}
-      <div class="comments-list">
+      <div class="comments-list" id="comments-list">
         {% for comment in comments %}
           {% include "services/partials/comment.html" with comment=comment depth=0 %}
         {% endfor %}
       </div>
+      {% if has_more_comments %}
+        <button type="button"
+                class="btn-load-more"
+                data-target="center"
+                data-target-id="{{ center.id }}"
+                data-page="2"
+                onclick="loadMoreComments(this)">نمایش نظرات بیشتر</button>
+      {% endif %}
     {% else %}
       <p class="empty-text">هنوز نظری ثبت نشده است.</p>
     {% endif %}
