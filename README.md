@@ -25,7 +25,7 @@ place.
 
 - 📍 **Nearest Centers** – Discover the closest service center based on the user's city and neighborhood, with direct Google Maps links for easy navigation.
 
-- 🔐 **User Authentication** – Secure sign up and login system with city and neighborhood preferences stored for a personalized experience.
+- 🔐 **User Authentication** – Secure sign up and login system with city and neighborhood preferences stored for a personalized experience, with SMS-based phone verification (OTP) during registration.
 
 - ⭐ **Rating & Feedback** – Share your experience by rating services from 1–5 stars and leaving public comments to help other citizens.
 
@@ -175,6 +175,7 @@ Agahyar is currently in an active development stage.
 ✅ Core features have been implemented, including:
 
 - User authentication
+- SMS-based phone verification (OTP)
 - Smart service search
 - Service details
 - Service center locator

@@ -23,6 +23,11 @@ cp .env.example .env
 > and is designed to run via Docker. Local (non-Docker) development is not
 > supported.
 
+> **Note:** SMS phone verification (OTP) is enabled by default. In
+> development, set ``DISABLE_SMS=True`` in your ``.env`` to skip sending
+> actual SMS messages -- OTP codes will be printed to the container console
+> instead.
+
 Docker
 ------
 
@@ -87,11 +92,13 @@ agahyar-project/
 │       ├── admin.py              # Admin panel registration
 │       ├── apps.py               # Django AppConfig
 │       ├── error_codes.py        # Persian error code catalog
-│       ├── forms.py              # LoginForm, RegisterForm, etc.
-│       ├── models.py             # Service, UserProfile, FAQ, etc.
+│       ├── forms.py              # LoginForm, RegisterForm, OTPVerifyForm, etc.
+│       ├── models.py             # Service, UserProfile, FAQ, PhoneVerification, etc.
+│       ├── otp.py                # OTP generation, hashing, and verification
+│       ├── sms.py                # SMS.ir API client for sending OTP codes
 │       ├── suggestion.py         # Nearest-center lookup logic
 │       ├── urls.py               # App URL patterns
-│       ├── validators.py         # Iranian phone validator
+│       ├── validators.py         # Iranian phone & password validators
 │       ├── views.py              # All view functions
 │       ├── migrations/           # Database migrations
 │       └── test_*.py             # Pytest test files

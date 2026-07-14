@@ -28,6 +28,9 @@ cp .env.example .env
 > - `SESSION_COOKIE_SECURE=True`
 > - `CSRF_COOKIE_SECURE=True`
 > - `SECURE_HSTS_SECONDS=31536000`
+> - `SMS_IR_API_KEY=<your-sms-api-key>`
+> - `SMS_IR_OTP_TEMPLATE_ID=<template-id>`
+> - `DISABLE_SMS=False`
 
 Local Deployment (for testing)
 -------------------------------
@@ -123,6 +126,11 @@ DB_PASSWORD=<strong-db-password>
 DB_HOST=db
 DB_PORT=5432
 REDIS_URL=redis://redis:6379/1
+SMS_IR_API_KEY=<your-sms-api-key>
+SMS_IR_OTP_TEMPLATE_ID=<template-id>
+DISABLE_SMS=False
+OTP_EXPIRE_MINUTES=5
+OTP_RESEND_COOLDOWN_SECONDS=60
 ```
 
 After the containers are running, create the admin user:
@@ -152,4 +160,6 @@ Security Checklist
 - [ ] HTTPS is enforced (SSL redirect + HSTS)
 - [ ] Database password is strong and not shared
 - [ ] `.env` is **not** committed to the repository
+- [ ] `SMS_IR_API_KEY` is set and valid
+- [ ] `DISABLE_SMS=False` in production
 - [ ] Regular database backups are configured
