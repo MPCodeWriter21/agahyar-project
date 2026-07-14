@@ -232,6 +232,7 @@ Agahyar was created to centralize this information into a single platform where 
 -  Fatemeh Mohammadganji – Project Manager & Frontend Developer
 -  Zahra Kamalian – Backend Developer
 -  Mohsen Ali Ahmadi – Database Developer & Organization Liaison
+- Mehrad Pooryousef Full Stack Developer
 
 ---
 
