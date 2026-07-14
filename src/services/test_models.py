@@ -12,8 +12,9 @@ from django.contrib.gis.geos import Point
 from services.models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -133,35 +134,90 @@ class TestContactMessageModel:
 
 
 @pytest.mark.django_db
-@pytest.mark.django_db
-class TestRatingModel:
-    def test_str(self):
-        user = User.objects.create_user("rater", password="pass12345")
+class TestCommentModel:
+    def test_str_service(self):
+        user = User.objects.create_user("commenter", password="pass12345")
         service = Service.objects.create(
             name="خدمت تست", organization="org", documents="d", steps="s"
         )
-        rating = Rating.objects.create(user=user, service=service, score=4)
-        assert "rater" in str(rating)
-        assert "خدمت تست" in str(rating)
-        assert "4" in str(rating)
+        comment = Comment.objects.create(user=user, service=service, text="نظر تست")
+        assert "commenter" in str(comment)
+        assert "خدمت تست" in str(comment)
 
-    def test_unique_together(self):
-        user = User.objects.create_user("rater2", password="pass12345")
+    def test_str_center(self):
+        user = User.objects.create_user("commenter2", password="pass12345")
+        service = Service.objects.create(
+            name="خدمت تست2", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز تست", address="آدرس", city="تهران"
+        )
+        comment = Comment.objects.create(
+            user=user, service_center=center, text="نظر مرکز"
+        )
+        assert "commenter2" in str(comment)
+        assert "مرکز تست" in str(comment)
+
+    def test_reply_nesting(self):
+        user = User.objects.create_user("replier", password="pass12345")
         service = Service.objects.create(
             name="test", organization="org", documents="d", steps="s"
         )
-        Rating.objects.create(user=user, service=service, score=3)
+        parent = Comment.objects.create(user=user, service=service, text="parent")
+        reply = Comment.objects.create(
+            user=user, service=service, text="reply", parent=parent
+        )
+        assert reply.parent_id == parent.id
+        assert parent.replies.count() == 1
+
+    def test_multiple_comments_allowed(self):
+        user = User.objects.create_user("multi", password="pass12345")
+        service = Service.objects.create(
+            name="test", organization="org", documents="d", steps="s"
+        )
+        Comment.objects.create(user=user, service=service, text="first")
+        Comment.objects.create(user=user, service=service, text="second")
+        assert Comment.objects.filter(user=user, service=service).count() == 2
+
+
+@pytest.mark.django_db
+class TestCenterRatingModel:
+    def test_str(self):
+        user = User.objects.create_user("crater", password="pass12345")
+        service = Service.objects.create(
+            name="خدمت تست", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز تست", address="آدرس", city="تهران"
+        )
+        rating = CenterRating.objects.create(user=user, service_center=center, score=4)
+        assert "crater" in str(rating)
+        assert "مرکز تست" in str(rating)
+        assert "4" in str(rating)
+
+    def test_unique_together(self):
+        user = User.objects.create_user("crater2", password="pass12345")
+        service = Service.objects.create(
+            name="test", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="test center", address="addr", city="Tehran"
+        )
+        CenterRating.objects.create(user=user, service_center=center, score=3)
         from django.db import IntegrityError
 
         with pytest.raises(IntegrityError):
-            Rating.objects.create(user=user, service=service, score=5)
+            CenterRating.objects.create(user=user, service_center=center, score=5)
 
     def test_score_range(self):
-        user = User.objects.create_user("rater3", password="pass12345")
+        user = User.objects.create_user("crater3", password="pass12345")
         service = Service.objects.create(
             name="test2", organization="org", documents="d", steps="s"
         )
-        rating = Rating.objects.create(user=user, service=service, score=5)
+        center = ServiceCenter.objects.create(
+            service=service, name="test center2", address="addr", city="Tehran"
+        )
+        rating = CenterRating.objects.create(user=user, service_center=center, score=5)
         assert 1 <= rating.score <= 5
 
 

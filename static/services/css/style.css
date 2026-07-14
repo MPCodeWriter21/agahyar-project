@@ -831,7 +831,7 @@ button.muted-link:disabled {
 }
 
 /* --- Rating Section --- */
-.rating-section {
+.center-rating-section {
   margin-top: 10px;
 }
 
@@ -853,7 +853,6 @@ button.muted-link:disabled {
   color: var(--color-secondary);
   letter-spacing: 4px;
   unicode-bidi: bidi-override;
-  direction: ltr;
 }
 
 .rating-count {
@@ -861,10 +860,13 @@ button.muted-link:disabled {
   font-size: 0.9rem;
 }
 
+/* --- Comments Section --- */
+.comments-section {
+  margin-top: 10px;
+}
+
 .comments-list {
   margin: 20px 0;
-  max-height: 400px;
-  overflow-y: auto;
 }
 
 .comment-item {
@@ -873,6 +875,17 @@ button.muted-link:disabled {
   padding: 14px 16px;
   margin-bottom: 10px;
   border-right: 3px solid var(--color-secondary);
+}
+
+.comment-item.comment-reply {
+  border-right-color: var(--border-color);
+  background: var(--bg-card);
+  margin-right: 0;
+}
+
+.comment-replies {
+  margin-top: 10px;
+  padding-right: 20px;
 }
 
 .comment-header {
@@ -889,12 +902,6 @@ button.muted-link:disabled {
   font-size: 0.95rem;
 }
 
-.comment-stars {
-  color: var(--color-secondary);
-  font-size: 0.9rem;
-  letter-spacing: 2px;
-}
-
 .comment-date {
   color: var(--text-secondary);
   font-size: 0.8rem;
@@ -907,13 +914,111 @@ button.muted-link:disabled {
   line-height: 1.6;
 }
 
-.rating-form {
+.btn-reply {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: inherit;
+  transition: 0.2s;
+}
+
+.btn-reply:hover {
+  color: var(--color-accent-hover);
+}
+
+.reply-form {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: 12px;
+}
+
+.reply-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 8px;
+}
+
+.reply-form textarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.reply-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-rate-sm {
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  margin-top: 0;
+}
+
+.btn-cancel-reply {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 6px 16px;
+  border-radius: 40px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* --- Comment Form --- */
+.comment-form {
   background: var(--bg-light);
   padding: 20px;
   border-radius: 16px;
   margin-top: 10px;
 }
 
+.comment-form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 10px;
+}
+
+.comment-form textarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.1);
+}
+
+.login-prompt {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-light);
+  border-radius: 12px;
+  margin-top: 10px;
+  color: var(--text-secondary);
+}
+
+.login-prompt a {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-prompt a:hover {
+  text-decoration: underline;
+}
+
+/* --- Center Rating Form --- */
 .rating-score-row {
   margin-bottom: 14px;
   display: flex;
@@ -1001,6 +1106,42 @@ button.muted-link:disabled {
 .btn-rate:hover {
   background: var(--color-accent-hover);
   transform: translateY(-2px);
+}
+
+/* --- Geolocation Button --- */
+.btn-geolocate {
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  border: none;
+  padding: 8px 20px;
+  border-radius: 40px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 10px;
+  transition: 0.2s;
+}
+
+.btn-geolocate:hover {
+  background: var(--color-accent-hover);
+}
+
+.btn-geolocate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.geolocate-result {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--bg-light);
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.geolocate-result a {
+  color: var(--color-accent);
+  font-weight: 600;
 }
 
 .no-results {
@@ -1147,6 +1288,149 @@ button.muted-link:disabled {
 .nearest-card {
   border-right: 4px solid var(--color-success);
   margin-top: 10px;
+}
+
+/* --- Centers List (Service Detail) --- */
+.centers-list {
+  margin-top: 12px;
+}
+
+.center-item {
+  background: var(--bg-light);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border-right: 3px solid var(--color-accent);
+  transition: box-shadow 0.2s;
+}
+
+.center-item:hover {
+  box-shadow: 0 2px 8px var(--shadow-card);
+}
+
+.center-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.center-item-name {
+  font-weight: bold;
+  font-size: 1.05rem;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.center-item-name:hover {
+  text-decoration: underline;
+}
+
+.center-item-rating {
+  font-size: 0.85rem;
+  color: var(--color-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.center-item-rating i {
+  font-size: 0.8rem;
+}
+
+.center-item-address {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.center-item-phone {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.center-item-phone i {
+  margin-left: 4px;
+  font-size: 0.75rem;
+}
+
+.btn-load-more {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: var(--bg-light);
+  border: 2px dashed var(--border-light);
+  border-radius: 12px;
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: 0.2s;
+}
+
+.btn-load-more:hover {
+  background: var(--border-light);
+  border-color: var(--color-accent);
+}
+
+.btn-load-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Map Wrapper with Geolocate Icon --- */
+.map-wrapper {
+  position: relative;
+}
+
+.btn-geolocate-icon {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 1000;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+
+.btn-geolocate-icon:hover {
+  background: var(--color-accent-hover);
+  transform: scale(1.1);
+}
+
+.btn-geolocate-icon:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Link Styles --- */
+.link-service {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link-service:hover {
+  text-decoration: underline;
+}
+
+.comments-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 20px 0;
 }
 
 /* --- FAQ Page --- */
@@ -1910,6 +2194,32 @@ button.muted-link:disabled {
   border-color: var(--border-input);
 }
 
+[data-theme="dark"] .comment-form textarea {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-input);
+}
+
+[data-theme="dark"] .reply-form {
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .reply-form textarea {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-input);
+}
+
+[data-theme="dark"] .login-prompt {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .geolocate-result {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
 [data-theme="dark"] .nearest-box {
   background: var(--bg-card);
   border-right-color: var(--color-success);
@@ -1921,6 +2231,33 @@ button.muted-link:disabled {
 
 [data-theme="dark"] .nearest-card {
   border-right-color: var(--color-success);
+}
+
+[data-theme="dark"] .center-item {
+  background: var(--bg-card);
+  border-right-color: var(--color-accent);
+}
+
+[data-theme="dark"] .center-item-name {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .btn-load-more {
+  background: var(--bg-card);
+  border-color: var(--border-light);
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .btn-load-more:hover {
+  background: var(--border-light);
+}
+
+[data-theme="dark"] .btn-geolocate-icon {
+  border-color: var(--bg-card);
+}
+
+[data-theme="dark"] .comments-divider {
+  background: var(--border-light);
 }
 
 [data-theme="dark"] .center-card.nearest {

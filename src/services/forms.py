@@ -236,25 +236,33 @@ class PersianPasswordChangeForm(PasswordChangeForm):
                     )
 
 
-class RatingForm(forms.Form):
-    """Form for submitting a service rating."""
+class CommentForm(forms.Form):
+    """Form for submitting a comment on a service or service center."""
+
+    text = forms.CharField(
+        label="نظر",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "class": "form-control",
+                "placeholder": "نظر خود را بنویسید...",
+            }
+        ),
+    )
+    parent_id = forms.IntegerField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+
+
+class CenterRatingForm(forms.Form):
+    """Form for submitting a rating for a service center."""
 
     score = forms.ChoiceField(
         label="امتیاز",
         choices=[(str(i), str(i)) for i in range(1, 6)],
         error_messages={"required": "لطفاً یک امتیاز انتخاب کنید."},
         widget=forms.Select(attrs={"class": "form-control"}),
-    )
-    comment = forms.CharField(
-        label="نظر (اختیاری)",
-        required=False,
-        widget=forms.Textarea(
-            attrs={
-                "rows": 3,
-                "class": "form-control",
-                "placeholder": "نظر خود را درباره این خدمت بنویسید...",
-            }
-        ),
     )
 
 

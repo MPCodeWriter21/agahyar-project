@@ -14,7 +14,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import Avg, Q, QuerySet
+from django.db.models import Avg, F, Q, QuerySet
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -23,21 +23,23 @@ from django_ratelimit.decorators import ratelimit
 from .error_codes import get_error_message
 from .forms import (
     CITY_CHOICES,
+    CenterRatingForm,
+    CommentForm,
     ContactForm,
     LoginForm,
     OTPVerifyForm,
     PersianPasswordChangeForm,
     ProfileForm,
-    RatingForm,
     RegisterForm,
 )
 from .maps import get_center_locations, get_city_center
 from .models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
     PhoneVerification,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -485,21 +487,21 @@ def search(request: HttpRequest) -> HttpResponse:
 def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
     """Show details for a single Service.
 
-    Requires authentication. Attempts to determine the nearest service
+    Publicly accessible. Attempts to determine the nearest service
     center based on the user's profile city and neighborhood.
+    Anonymous users default to Tehran.
     """
-    if not request.user.is_authenticated:
-        return redirect("login")
-
     service: Service = get_object_or_404(Service, id=service_id)
 
-    try:
-        profile: UserProfile = request.user.profile
-        user_city: str = profile.city
-        user_neighborhood: str = profile.neighborhood
-    except UserProfile.DoesNotExist:
-        user_city = "تهران"
-        user_neighborhood = ""
+    user_city = "تهران"
+    user_neighborhood = ""
+    if request.user.is_authenticated:
+        try:
+            profile: UserProfile = request.user.profile
+            user_city = profile.city
+            user_neighborhood = profile.neighborhood
+        except UserProfile.DoesNotExist:
+            pass
 
     nearest_center = get_nearest_center(service.name, user_city, user_neighborhood)
 
@@ -508,22 +510,57 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             service=service, city__icontains=user_city
         ).first()
 
-    centers_in_city = ServiceCenter.objects.filter(
-        service=service, city__icontains=user_city
+    centers_qs = ServiceCenter.objects.filter(service=service).annotate(
+        avg_score=Avg("ratings__score")
     )
-    center_locations = get_center_locations(centers_in_city)
+
+    if request.user.is_authenticated:
+        try:
+            profile = request.user.profile
+            user_city_for_centers = profile.city
+        except UserProfile.DoesNotExist:
+            user_city_for_centers = None
+    else:
+        user_city_for_centers = None
+
+    if user_city_for_centers:
+        city_centers = centers_qs.filter(city__icontains=user_city_for_centers)
+        from django.contrib.gis.db.models.functions import Distance as DistFunc
+
+        coord_center = city_centers.filter(coordinate__isnull=False).first()
+        if coord_center:
+            city_centers = city_centers.annotate(
+                city_distance=DistFunc("coordinate", coord_center.coordinate)
+            ).order_by(
+                "city_distance",
+                F("avg_score").desc(nulls_last=True),
+            )
+        else:
+            city_centers = city_centers.order_by(F("avg_score").desc(nulls_last=True))
+    else:
+        city_centers = centers_qs.order_by(F("avg_score").desc(nulls_last=True))
+
+    initial_centers = list(city_centers[:5])
+    has_more_centers = city_centers.count() > 5
+
+    center_locations = get_center_locations(city_centers)
     city_center = get_city_center(user_city)
 
-    is_bookmarked = Bookmark.objects.filter(user=request.user, service=service).exists()
+    is_bookmarked = False
+    if request.user.is_authenticated:
+        is_bookmarked = Bookmark.objects.filter(
+            user=request.user, service=service
+        ).exists()
 
-    ratings = (
-        Rating.objects.filter(service=service)
+    top_level_comments = (
+        Comment.objects.filter(service=service, parent__isnull=True)
         .select_related("user")
-        .order_by("-created_at")
+        .prefetch_related("replies__user")
     )
-    avg_rating = ratings.aggregate(Avg("score"))["score__avg"]
-    user_rating = Rating.objects.filter(user=request.user, service=service).first()
-    comments = [r for r in ratings if r.comment]
+
+    comment_form = None
+    if request.user.is_authenticated:
+        comment_form = CommentForm()
 
     return render(
         request,
@@ -535,14 +572,13 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "nearest_center": nearest_center,
             "user_city": user_city,
             "user_neighborhood": user_neighborhood,
+            "initial_centers": initial_centers,
+            "has_more_centers": has_more_centers,
             "center_locations": center_locations,
             "city_center": city_center,
             "is_bookmarked": is_bookmarked,
-            "avg_rating": round(avg_rating, 1) if avg_rating else None,
-            "rating_count": ratings.count(),
-            "user_rating": user_rating,
-            "comments": comments,
-            "rating_form": RatingForm(),
+            "comments": top_level_comments,
+            "comment_form": comment_form,
         },
     )
 
@@ -762,31 +798,247 @@ def bookmarks_list(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def submit_rating(request: HttpRequest, service_id: int) -> HttpResponse:
-    """Submit or update a rating for a service.
+def submit_comment(
+    request: HttpRequest, service_id: int = 0, center_id: int = 0
+) -> HttpResponse:
+    """Submit a comment on a service or service center.
 
-    POST only: validates :class:`RatingForm`, creates or updates the rating.
+    POST only: validates :class:`CommentForm`, creates the comment.
+    Supports threaded replies via optional ``parent_id`` field.
     """
     if request.method != "POST":
-        return redirect("service_detail", service_id=service_id)
+        if service_id:
+            return redirect("service_detail", service_id=service_id)
+        return redirect("center_detail", center_id=center_id)
 
-    service = get_object_or_404(Service, id=service_id)
-    form = RatingForm(request.POST)
+    form = CommentForm(request.POST)
     if form.is_valid():
-        rating, created = Rating.objects.update_or_create(
+        parent_id = form.cleaned_data.get("parent_id")
+        parent = None
+        if parent_id:
+            parent = Comment.objects.filter(id=parent_id).first()
+
+        comment = Comment(
             user=request.user,
-            service=service,
-            defaults={
-                "score": int(form.cleaned_data["score"]),
-                "comment": form.cleaned_data.get("comment", ""),
-            },
+            text=form.cleaned_data["text"],
+            parent=parent,
+        )
+        if service_id:
+            comment.service = get_object_or_404(Service, id=service_id)
+            comment.save()
+            messages.success(request, get_error_message("comment/added"))
+            return redirect("service_detail", service_id=service_id)
+        else:
+            comment.service_center = get_object_or_404(ServiceCenter, id=center_id)
+            comment.save()
+            messages.success(request, get_error_message("comment/added"))
+            return redirect("center_detail", center_id=center_id)
+
+    if service_id:
+        return redirect("service_detail", service_id=service_id)
+    return redirect("center_detail", center_id=center_id)
+
+
+def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
+    """Show details for a single ServiceCenter.
+
+    Publicly accessible. Shows center info, map, ratings, and comments.
+    """
+    center: ServiceCenter = get_object_or_404(ServiceCenter, id=center_id)
+
+    ratings = center.ratings.all()
+    avg_rating = ratings.aggregate(Avg("score"))["score__avg"]
+    rating_count = ratings.count()
+
+    user_center_rating = None
+    if request.user.is_authenticated:
+        user_center_rating = CenterRating.objects.filter(
+            user=request.user, service_center=center
+        ).first()
+
+    top_level_comments = (
+        Comment.objects.filter(service_center=center, parent__isnull=True)
+        .select_related("user")
+        .prefetch_related("replies__user")
+    )
+
+    center_locations = get_center_locations(ServiceCenter.objects.filter(id=center.id))
+
+    comment_form = None
+    rating_form = None
+    if request.user.is_authenticated:
+        comment_form = CommentForm()
+        rating_form = CenterRatingForm()
+
+    return render(
+        request,
+        "services/center_detail.html",
+        {
+            "center": center,
+            "service": center.service,
+            "center_locations": center_locations,
+            "avg_rating": round(avg_rating, 1) if avg_rating else None,
+            "rating_count": rating_count,
+            "user_center_rating": user_center_rating,
+            "comments": top_level_comments,
+            "comment_form": comment_form,
+            "rating_form": rating_form,
+        },
+    )
+
+
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
+@login_required
+def submit_center_rating(request: HttpRequest, center_id: int) -> HttpResponse:
+    """Submit or update a rating for a service center.
+
+    POST only: validates :class:`CenterRatingForm`, creates or updates the rating.
+    If comment text is provided, also creates a Comment linked to the center.
+    """
+    if request.method != "POST":
+        return redirect("center_detail", center_id=center_id)
+
+    center = get_object_or_404(ServiceCenter, id=center_id)
+    form = CenterRatingForm(request.POST)
+    if form.is_valid():
+        rating, created = CenterRating.objects.update_or_create(
+            user=request.user,
+            service_center=center,
+            defaults={"score": int(form.cleaned_data["score"])},
         )
         if created:
-            messages.success(request, get_error_message("rating/added"))
+            messages.success(request, get_error_message("center-rating/added"))
         else:
-            messages.success(request, get_error_message("rating/updated"))
+            messages.success(request, get_error_message("center-rating/updated"))
 
-    return redirect("service_detail", service_id=service_id)
+    return redirect("center_detail", center_id=center_id)
+
+
+def suggest_closest_center(request: HttpRequest, service_id: int) -> HttpResponse:
+    """API endpoint: find the closest center based on browser geolocation.
+
+    POST with JSON body ``{"lat": float, "lng": float}``.
+    Returns JSON with the closest center details.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    import json
+
+    try:
+        data = json.loads(request.body)
+        lat = float(data.get("lat"))
+        lng = float(data.get("lng"))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse(
+            {"error": get_error_message("geolocation/invalid-coordinates")},
+            status=400,
+        )
+
+    from django.contrib.gis.db.models.functions import Distance
+    from django.contrib.gis.geos import Point
+
+    user_point = Point(lng, lat, srid=4326)
+    centers = (
+        ServiceCenter.objects.filter(
+            service_id=service_id,
+            coordinate__isnull=False,
+        )
+        .annotate(distance=Distance("coordinate", user_point))
+        .order_by("distance")[:1]
+    )
+
+    if not centers:
+        return JsonResponse({"center": None})
+
+    center = centers[0]
+    return JsonResponse(
+        {
+            "center": {
+                "id": center.id,
+                "name": center.name,
+                "address": center.address,
+                "phone": center.phone,
+                "distance_km": round(center.distance.km, 2),
+                "map_url": center.get_map_url(),
+                "lat": center.coordinate.y,
+                "lng": center.coordinate.x,
+            }
+        }
+    )
+
+
+def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
+    """API endpoint: load more centers for a service with pagination.
+
+    GET with query params ``page`` (default 1) and ``per_page`` (default 5).
+    For authenticated users, centers are ordered by proximity if their profile
+    city is known, otherwise by rating. For anonymous users, by rating.
+    """
+    service = get_object_or_404(Service, id=service_id)
+    page = int(request.GET.get("page", 1))
+    per_page = min(int(request.GET.get("per_page", 5)), 20)
+
+    qs = ServiceCenter.objects.filter(service=service)
+
+    annotate_rating = Avg("ratings__score")
+    qs = qs.annotate(avg_score=annotate_rating)
+
+    if request.user.is_authenticated:
+        try:
+            profile = request.user.profile
+            user_city = profile.city
+        except UserProfile.DoesNotExist:
+            user_city = None
+
+        if user_city:
+            from django.contrib.gis.db.models.functions import Distance
+
+            city_qs = qs.filter(city__icontains=user_city, coordinate__isnull=False)
+            if city_qs.exists():
+                qs = qs.filter(city__icontains=user_city)
+                qs = qs.annotate(
+                    city_distance=Distance("coordinate", city_qs.first().coordinate)
+                ).order_by(
+                    "city_distance",
+                    F("avg_score").desc(nulls_last=True),
+                )
+            else:
+                qs = qs.filter(city__icontains=user_city).order_by(
+                    F("avg_score").desc(nulls_last=True)
+                )
+        else:
+            qs = qs.order_by(F("avg_score").desc(nulls_last=True))
+    else:
+        qs = qs.order_by(F("avg_score").desc(nulls_last=True))
+
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page)
+
+    centers_data = []
+    for center in page_obj:
+        score = getattr(center, "avg_score", None)
+        centers_data.append(
+            {
+                "id": center.id,
+                "name": center.name,
+                "address": center.address,
+                "city": center.city,
+                "phone": center.phone,
+                "working_hours": center.working_hours,
+                "postal_code": center.postal_code,
+                "map_url": center.get_map_url(),
+                "avg_rating": round(score, 1) if score else None,
+            }
+        )
+
+    return JsonResponse(
+        {
+            "centers": centers_data,
+            "has_next": page_obj.has_next(),
+            "total_pages": paginator.num_pages,
+        }
+    )
 
 
 def robots_txt(request: HttpRequest) -> HttpResponse:
@@ -804,7 +1056,7 @@ def sitemap_xml(request: HttpRequest) -> HttpResponse:
     from django.conf import settings
     from django.urls import reverse
 
-    from .models import Service
+    from .models import Service, ServiceCenter
 
     site_url = settings.SITE_URL
     pages = [
@@ -825,6 +1077,9 @@ def sitemap_xml(request: HttpRequest) -> HttpResponse:
     for service in Service.objects.all():
         url = site_url + reverse("service_detail", args=[service.id])
         urls += f"<url><loc>{url}</loc><priority>0.6</priority></url>\n"
+    for center in ServiceCenter.objects.all():
+        url = site_url + reverse("center_detail", args=[center.id])
+        urls += f"<url><loc>{url}</loc><priority>0.5</priority></url>\n"
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'

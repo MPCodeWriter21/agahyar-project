@@ -1,0 +1,185 @@
+{% extends 'services/base.html' %}
+{% load static %}
+{% block title %}{{ center.name }} | آگاه‌یار{% endblock %}
+{% block meta_description %}اطلاعات مرکز {{ center.name }} - {{ service.name }} - سامانه آگاه‌یار{% endblock %}
+{% block og_title %}آگاه‌یار | {{ center.name }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
+{% endblock %}
+{% block content %}
+  <div class="detail-header">
+    <div class="detail-header-row">
+      <h1>{{ center.name }}</h1>
+    </div>
+    <div class="org-address-box">
+      <strong>خدمت:</strong>
+      <a href="{% url 'service_detail' service.id %}" class="link-service">{{ service.name }}</a>
+    </div>
+    <div class="org-address-box">
+      <strong>آدرس:</strong> {{ center.address }}
+      <a href="{{ center.get_map_url }}" target="_blank" class="btn-map">نقشه</a>
+    </div>
+    {% if center.city %}
+      <div class="org-address-box">
+        <strong>شهر:</strong> {{ center.city }}
+      </div>
+    {% endif %}
+    <button onclick="window.print()" class="btn-print">چاپ</button>
+  </div>
+  <div class="meta-grid">
+    {% if center.phone %}
+      <div class="meta-item">
+        <strong>شماره تماس</strong>
+        <br>
+        {{ center.phone }}
+      </div>
+    {% endif %}
+    {% if center.postal_code %}
+      <div class="meta-item">
+        <strong>کد پستی</strong>
+        <br>
+        {{ center.postal_code }}
+      </div>
+    {% endif %}
+    {% if center.working_hours %}
+      <div class="meta-item meta-item-wide">
+        <strong>ساعت کاری</strong>
+        <br>
+        {{ center.working_hours|linebreaksbr }}
+      </div>
+    {% endif %}
+  </div>
+  {% if center_locations %}
+    {{ center_locations|json_script:"center-locations-data" }}
+    <div class="info-card map-card">
+      <h3>موقعیت روی نقشه</h3>
+      <div id="service-map" class="leaflet-container"></div>
+    </div>
+  {% endif %}
+  <div class="comments-section info-card">
+    <h3>امتیاز و نظرات</h3>
+    {% if avg_rating %}
+      <div class="rating-summary">
+        <span class="avg-rating">{{ avg_rating }}</span>
+        <span class="stars">
+          {% if avg_rating >= 1 %}★{% else %}☆{% endif %}
+          {% if avg_rating >= 2 %}★{% else %}☆{% endif %}
+          {% if avg_rating >= 3 %}★{% else %}☆{% endif %}
+          {% if avg_rating >= 4 %}★{% else %}☆{% endif %}
+          {% if avg_rating >= 5 %}★{% else %}☆{% endif %}
+        </span>
+        <span class="rating-count">({{ rating_count }} نظر)</span>
+      </div>
+    {% else %}
+      <p class="empty-text">هنوز امتیازی ثبت نشده است.</p>
+    {% endif %}
+    {% if user.is_authenticated %}
+      <form method="post"
+            action="{% url 'submit_center_rating' center.id %}"
+            id="center-rating-form">
+        {% csrf_token %}
+        <div class="rating-score-row">
+          <label>امتیاز شما:</label>
+          <div class="star-rating-input" id="star-rating-widget">
+            <input type="radio"
+                   id="cstar5"
+                   name="score"
+                   value="5"
+                   {% if user_center_rating and user_center_rating.score == 5 %}checked{% endif %}>
+            <label for="cstar5" title="5 - عالی"></label>
+            <input type="radio"
+                   id="cstar4"
+                   name="score"
+                   value="4"
+                   {% if user_center_rating and user_center_rating.score == 4 %}checked{% endif %}>
+            <label for="cstar4" title="4 - خوب"></label>
+            <input type="radio"
+                   id="cstar3"
+                   name="score"
+                   value="3"
+                   {% if user_center_rating and user_center_rating.score == 3 %}checked{% endif %}>
+            <label for="cstar3" title="3 - متوسط"></label>
+            <input type="radio"
+                   id="cstar2"
+                   name="score"
+                   value="2"
+                   {% if user_center_rating and user_center_rating.score == 2 %}checked{% endif %}>
+            <label for="cstar2" title="2 - بد"></label>
+            <input type="radio"
+                   id="cstar1"
+                   name="score"
+                   value="1"
+                   {% if user_center_rating and user_center_rating.score == 1 %}checked{% endif %}>
+            <label for="cstar1" title="1 - خیلی بد"></label>
+          </div>
+        </div>
+      </form>
+      <form method="post"
+            action="{% url 'submit_comment_center' center.id %}"
+            class="comment-form">
+        {% csrf_token %}
+        {{ comment_form.text }}
+        {{ comment_form.parent_id }}
+        <button type="submit" class="btn-rate">ارسال نظر</button>
+      </form>
+    {% else %}
+      <div class="login-prompt">
+        <p>برای ثبت امتیاز و ارسال نظر باید <a href="{% url 'login' %}">وارد شوید</a>.</p>
+      </div>
+    {% endif %}
+    {% if comments %}
+      <div class="comments-list">
+        {% for comment in comments %}
+          {% include "services/partials/comment.html" with comment=comment depth=0 %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-text">هنوز نظری ثبت نشده است.</p>
+    {% endif %}
+  </div>
+{% endblock %}
+{% block extra_js %}
+  <script src="{% static 'libs/leaflet/leaflet.js' %}"></script>
+  <script src="{% static 'services/js/main.js' %}"></script>
+  {% if center_locations %}
+    <script>
+        (function() {
+            var dataEl = document.getElementById("center-locations-data");
+            if (!dataEl) return;
+            var locations = JSON.parse(dataEl.textContent);
+            var map = L.map("service-map");
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 18,
+                attribution: "&copy; OpenStreetMap contributors"
+            }).addTo(map);
+            var bounds = L.latLngBounds();
+            locations.forEach(function(loc) {
+                var marker = L.marker([loc.lat, loc.lng]).addTo(map).bindPopup(
+                    "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? "<br>" + loc.phone : "")
+                );
+                bounds.extend(marker.getLatLng());
+            });
+            if (locations.length === 1) {
+                map.setView(bounds.getCenter(), 15);
+            } else {
+                map.fitBounds(bounds, {
+                    padding: [30, 30]
+                });
+            }
+        })();
+    </script>
+  {% endif %}
+  <script>
+      (function() {
+          var widget = document.getElementById("star-rating-widget");
+          if (!widget) return;
+          var form = document.getElementById("center-rating-form");
+          var inputs = widget.querySelectorAll("input[type=radio]");
+          inputs.forEach(function(input) {
+              input.addEventListener("change", function() {
+                  if (form) form.submit();
+              });
+          });
+      })();
+  </script>
+{% endblock %}

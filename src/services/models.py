@@ -1,8 +1,8 @@
 """Data models for the Agahyar services application.
 
 Defines ``Service``, ``UserProfile``, ``FAQ``, ``ServiceCenter``,
-``ContactMessage``, ``Rating``, and ``Bookmark`` with Persian
-verbose names and helper methods.
+``ContactMessage``, ``Comment``, ``CenterRating``, and ``Bookmark``
+with Persian verbose names and helper methods.
 """
 
 from django.contrib.auth.models import User
@@ -153,26 +153,74 @@ class ContactMessage(models.Model):
         return f"{self.name} - {self.email}"
 
 
-class Rating(models.Model):
-    """A user rating and feedback for a service."""
+class Comment(models.Model):
+    """A user comment on a service or service center, with optional nesting."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ratings")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     service = models.ForeignKey(
-        Service, on_delete=models.CASCADE, related_name="ratings"
+        Service,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="comments",
     )
-    score = models.PositiveSmallIntegerField("امتیاز (۱ تا ۵)")
-    comment = models.TextField("نظر", blank=True)
-    created_at = models.DateTimeField("تاریخ", auto_now_add=True)
+    service_center = models.ForeignKey(
+        "ServiceCenter",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="comments",
+    )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="replies",
+        verbose_name="نظر والد",
+    )
+    text = models.TextField("متن نظر")
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
     updated_at = models.DateTimeField("آخرین ویرایش", auto_now=True)
 
     class Meta:
-        verbose_name = "امتیاز"
-        verbose_name_plural = "امتیازها"
-        unique_together = ("user", "service")
+        verbose_name = "نظر"
+        verbose_name_plural = "نظرات"
+        ordering = ["created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(service__isnull=False)
+                | models.Q(service_center__isnull=False),
+                name="comment_has_target",
+            )
+        ]
+
+    def __str__(self) -> str:
+        target = self.service.name if self.service else self.service_center.name
+        return f"{self.user.username} - {target}"
+
+
+class CenterRating(models.Model):
+    """A user star rating for a service center."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="center_ratings"
+    )
+    service_center = models.ForeignKey(
+        ServiceCenter, on_delete=models.CASCADE, related_name="ratings"
+    )
+    score = models.PositiveSmallIntegerField("امتیاز (۱ تا ۵)")
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
+    updated_at = models.DateTimeField("آخرین ویرایش", auto_now=True)
+
+    class Meta:
+        verbose_name = "امتیاز مرکز"
+        verbose_name_plural = "امتیازهای مراکز"
+        unique_together = ("user", "service_center")
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        return f"{self.user.username} - {self.service.name} - {self.score}"
+        return f"{self.user.username} - {self.service_center.name} - {self.score}"
 
 
 class Bookmark(models.Model):

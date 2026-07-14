@@ -9,18 +9,20 @@ from django.test import Client
 from services.models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
 )
 from services.resources import (
     BookmarkResource,
+    CenterRatingResource,
+    CommentResource,
     ContactMessageResource,
     FAQResource,
     PointWidget,
-    RatingResource,
     ServiceCenterResource,
     ServiceResource,
     UserProfileResource,
@@ -94,13 +96,25 @@ class TestResourceExport:
         assert len(dataset) == 1
         assert dataset[0][1] == "فرستنده"
 
-    def test_rating_resource_export(self):
-        user = User.objects.create_user("rating-export")
+    def test_comment_resource_export(self):
+        user = User.objects.create_user("comment-export")
         svc = Service.objects.create(
-            name="rating-svc", organization="org", documents="d", steps="s"
+            name="comment-svc", organization="org", documents="d", steps="s"
         )
-        Rating.objects.create(user=user, service=svc, score=4, comment="خوب")
-        dataset = RatingResource().export()
+        Comment.objects.create(user=user, service=svc, text="great service")
+        dataset = CommentResource().export()
+        assert len(dataset) == 1
+
+    def test_center_rating_resource_export(self):
+        user = User.objects.create_user("cr-export")
+        svc = Service.objects.create(
+            name="cr-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=svc, name="CR Center", address="addr", city="Tehran"
+        )
+        CenterRating.objects.create(user=user, service_center=center, score=4)
+        dataset = CenterRatingResource().export()
         assert len(dataset) == 1
         assert str(dataset[0][3]) == "4"
 
@@ -177,18 +191,33 @@ class TestResourceImport:
         FAQResource().import_data(dataset, dry_run=False)
         assert FAQ.objects.count() == 1
 
-    def test_rating_resource_import(self):
-        user = User.objects.create_user("rating-import")
+    def test_comment_resource_import(self):
+        user = User.objects.create_user("comment-import")
         svc = Service.objects.create(
-            name="import-rating-svc", organization="org", documents="d", steps="s"
+            name="import-comment-svc", organization="org", documents="d", steps="s"
         )
         dataset = tablib.Dataset(
-            headers=["id", "user", "service", "score"],
+            headers=["id", "user", "service", "text"],
         )
-        dataset.append([1, user.id, svc.id, 3])
-        RatingResource().import_data(dataset, dry_run=False)
-        assert Rating.objects.count() == 1
-        assert Rating.objects.get(id=1).score == 3
+        dataset.append([1, user.id, svc.id, "imported comment"])
+        CommentResource().import_data(dataset, dry_run=False)
+        assert Comment.objects.count() == 1
+
+    def test_center_rating_resource_import(self):
+        user = User.objects.create_user("cr-import")
+        svc = Service.objects.create(
+            name="import-cr-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=svc, name="Import Center", address="addr", city="Tehran"
+        )
+        dataset = tablib.Dataset(
+            headers=["id", "user", "service_center", "score"],
+        )
+        dataset.append([1, user.id, center.id, 3])
+        CenterRatingResource().import_data(dataset, dry_run=False)
+        assert CenterRating.objects.count() == 1
+        assert CenterRating.objects.get(id=1).score == 3
 
     def test_bookmark_resource_import(self):
         user = User.objects.create_user("bm-import")

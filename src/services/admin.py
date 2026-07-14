@@ -12,17 +12,19 @@ from import_export.admin import ImportExportModelAdmin
 from .models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
 )
 from .resources import (
     BookmarkResource,
+    CenterRatingResource,
+    CommentResource,
     ContactMessageResource,
     FAQResource,
-    RatingResource,
     ServiceCenterResource,
     ServiceResource,
     UserProfileResource,
@@ -83,13 +85,23 @@ class ContactMessageAdmin(ImportExportModelAdmin):
     readonly_fields = ("name", "email", "message", "created_at")
 
 
-@admin.register(Rating)
-class RatingAdmin(ImportExportModelAdmin):
-    """Admin configuration for the Rating model."""
+@admin.register(Comment)
+class CommentAdmin(ImportExportModelAdmin):
+    """Admin configuration for the Comment model."""
 
-    resource_classes = [RatingResource]
-    list_display = ("user", "service", "score", "created_at")
-    search_fields = ("user__username", "service__name", "comment")
+    resource_classes = [CommentResource]
+    list_display = ("user", "service", "service_center", "created_at")
+    search_fields = ("user__username", "text")
+    list_filter = ("created_at",)
+
+
+@admin.register(CenterRating)
+class CenterRatingAdmin(ImportExportModelAdmin):
+    """Admin configuration for the CenterRating model."""
+
+    resource_classes = [CenterRatingResource]
+    list_display = ("user", "service_center", "score", "created_at")
+    search_fields = ("user__username", "service_center__name")
     list_filter = ("score", "created_at")
 
 

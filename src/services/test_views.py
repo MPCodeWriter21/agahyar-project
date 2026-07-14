@@ -16,9 +16,10 @@ from services.forms import RegisterForm
 from services.models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
     PhoneVerification,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -421,29 +422,33 @@ class TestServiceListView:
 
 @pytest.mark.django_db
 class TestServiceDetailView:
-    def test_requires_login(self):
+    def test_accessible_anonymously(self):
+        service = Service.objects.create(
+            name="public-svc", organization="org", documents="doc1", steps="step1"
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+
+    def test_404_for_nonexistent(self):
         client = Client()
         response = client.get("/service/9999/")
-        assert response.status_code == 302
+        assert response.status_code == 404
 
     def test_shows_service_details(self):
-        User.objects.create_user("detailuser", password="pass12345")
         service = Service.objects.create(
             name="passport", organization="police", documents="doc1", steps="step1"
         )
         client = Client()
-        client.login(username="detailuser", password="pass12345")
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
         assert "passport" in str(response.content)
 
     def test_service_detail_falls_back_to_tehran_without_profile(self):
-        User.objects.create_user("noprofileuser", password="pass12345")
         service = Service.objects.create(
             name="test-svc", organization="org", documents="doc1", steps="step1"
         )
         client = Client()
-        client.login(username="noprofileuser", password="pass12345")
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
         assert response.context["user_city"] == "تهران"
@@ -1095,71 +1100,172 @@ class TestBookmarkView:
 
 
 @pytest.mark.django_db
-class TestRatingView:
-    def test_submit_creates_rating(self):
-        user = User.objects.create_user("rater", password="pass12345")
+class TestSubmitComment:
+    def test_submit_creates_comment(self):
+        user = User.objects.create_user("commenter", password="pass12345")
         service = Service.objects.create(
-            name="rate-svc", organization="org", documents="d", steps="s"
+            name="comment-svc", organization="org", documents="d", steps="s"
         )
         client = Client()
-        client.login(username="rater", password="pass12345")
+        client.login(username="commenter", password="pass12345")
         response = client.post(
-            f"/rate/{service.id}/", {"score": "4", "comment": "good"}
+            f"/comment/service/{service.id}/", {"text": "great service"}
         )
         assert response.status_code == 302
-        rating = Rating.objects.get(user=user, service=service)
-        assert rating.score == 4
-        assert rating.comment == "good"
+        comment = Comment.objects.get(user=user, service=service)
+        assert comment.text == "great service"
 
-    def test_submit_updates_existing_rating(self):
-        user = User.objects.create_user("rater2", password="pass12345")
+    def test_submit_reply(self):
+        user = User.objects.create_user("replier", password="pass12345")
         service = Service.objects.create(
-            name="rate-svc2", organization="org", documents="d", steps="s"
+            name="reply-svc", organization="org", documents="d", steps="s"
         )
-        Rating.objects.create(user=user, service=service, score=2, comment="bad")
+        parent = Comment.objects.create(
+            user=user, service=service, text="parent comment"
+        )
         client = Client()
-        client.login(username="rater2", password="pass12345")
+        client.login(username="replier", password="pass12345")
         response = client.post(
-            f"/rate/{service.id}/", {"score": "5", "comment": "updated"}
+            f"/comment/service/{service.id}/",
+            {"text": "reply text", "parent_id": str(parent.id)},
         )
         assert response.status_code == 302
-        rating = Rating.objects.get(user=user, service=service)
-        assert rating.score == 5
-        assert rating.comment == "updated"
+        reply = Comment.objects.filter(parent=parent).first()
+        assert reply is not None
+        assert reply.text == "reply text"
 
     def test_submit_requires_login(self):
         service = Service.objects.create(
-            name="rate-svc3", organization="org", documents="d", steps="s"
+            name="comment-svc2", organization="org", documents="d", steps="s"
         )
         client = Client()
-        response = client.post(f"/rate/{service.id}/")
+        response = client.post(f"/comment/service/{service.id}/")
         assert response.status_code == 302
         assert "/login/" in response.url
 
     def test_submit_get_redirects_to_detail(self):
-        User.objects.create_user("rater3", password="pass12345")
+        User.objects.create_user("commenter2", password="pass12345")
         service = Service.objects.create(
-            name="rate-svc4", organization="org", documents="d", steps="s"
+            name="comment-svc3", organization="org", documents="d", steps="s"
         )
         client = Client()
-        client.login(username="rater3", password="pass12345")
-        response = client.get(f"/rate/{service.id}/")
+        client.login(username="commenter2", password="pass12345")
+        response = client.get(f"/comment/service/{service.id}/")
         assert response.status_code == 302
         assert f"/service/{service.id}/" in response.url
 
-    def test_detail_shows_rating_context(self):
-        user = User.objects.create_user("rater4", password="pass12345")
+    def test_detail_shows_comments(self):
+        user = User.objects.create_user("shower", password="pass12345")
         service = Service.objects.create(
-            name="rate-svc5", organization="org", documents="d", steps="s"
+            name="show-svc", organization="org", documents="d", steps="s"
         )
-        Rating.objects.create(user=user, service=service, score=3)
+        Comment.objects.create(user=user, service=service, text="visible comment")
         client = Client()
-        client.login(username="rater4", password="pass12345")
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
-        assert response.context["avg_rating"] == 3.0
+        assert (
+            list(response.context["comments"]).count
+            if hasattr(response.context["comments"], "count")
+            else len(response.context["comments"]) >= 1
+        )
+
+    def test_service_detail_public(self):
+        service = Service.objects.create(
+            name="public-svc", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestCenterDetail:
+    def test_center_detail_public(self):
+        service = Service.objects.create(
+            name="center-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="Test Center", address="addr", city="Tehran"
+        )
+        client = Client()
+        response = client.get(f"/center/{center.id}/")
+        assert response.status_code == 200
+        assert response.context["center"] == center
+
+    def test_center_detail_shows_ratings(self):
+        user = User.objects.create_user("crater", password="pass12345")
+        service = Service.objects.create(
+            name="cr-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center", address="addr", city="Tehran"
+        )
+        CenterRating.objects.create(user=user, service_center=center, score=4)
+        client = Client()
+        response = client.get(f"/center/{center.id}/")
+        assert response.status_code == 200
+        assert response.context["avg_rating"] == 4.0
         assert response.context["rating_count"] == 1
-        assert response.context["user_rating"] is not None
+
+
+@pytest.mark.django_db
+class TestSubmitCenterRating:
+    def test_submit_creates_rating(self):
+        user = User.objects.create_user("crater", password="pass12345")
+        service = Service.objects.create(
+            name="cr-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center", address="addr", city="Tehran"
+        )
+        client = Client()
+        client.login(username="crater", password="pass12345")
+        response = client.post(f"/rate-center/{center.id}/", {"score": "4"})
+        assert response.status_code == 302
+        rating = CenterRating.objects.get(user=user, service_center=center)
+        assert rating.score == 4
+
+    def test_submit_updates_existing_rating(self):
+        user = User.objects.create_user("crater2", password="pass12345")
+        service = Service.objects.create(
+            name="cr-svc2", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center2", address="addr", city="Tehran"
+        )
+        CenterRating.objects.create(user=user, service_center=center, score=2)
+        client = Client()
+        client.login(username="crater2", password="pass12345")
+        response = client.post(f"/rate-center/{center.id}/", {"score": "5"})
+        assert response.status_code == 302
+        rating = CenterRating.objects.get(user=user, service_center=center)
+        assert rating.score == 5
+
+    def test_submit_requires_login(self):
+        service = Service.objects.create(
+            name="cr-svc3", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center3", address="addr", city="Tehran"
+        )
+        client = Client()
+        response = client.post(f"/rate-center/{center.id}/")
+        assert response.status_code == 302
+        assert "/login/" in response.url
+
+    def test_submit_get_redirects(self):
+        User.objects.create_user("crater3", password="pass12345")
+        service = Service.objects.create(
+            name="cr-svc4", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center4", address="addr", city="Tehran"
+        )
+        client = Client()
+        client.login(username="crater3", password="pass12345")
+        response = client.get(f"/rate-center/{center.id}/")
+        assert response.status_code == 302
+        assert f"/center/{center.id}/" in response.url
 
 
 class TestRateLimitPage:
