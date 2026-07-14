@@ -27,7 +27,7 @@ jobs:
           VERSION=$(grep -m1 '^version' pyproject.toml | sed 's/.*"\(.*\)"/\1/')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-          echo "image=ghcr.io/${{ github.repository }}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Check if tag already exists
         id: check-tag
