@@ -32,7 +32,7 @@
       </form>
     </div>
   {% endif %}
-  {% with reply_count=comment.replies.count %}
+  {% with reply_count=comment.replies.all|length %}
     {% if reply_count > 0 %}
       <button type="button"
               class="btn-toggle-replies"

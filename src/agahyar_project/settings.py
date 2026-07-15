@@ -67,6 +67,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -75,6 +76,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "agahyar_project.middleware.SecurityHeadersMiddleware",
 ]
+
+if config("ENABLE_PROFILING", default=False, cast=bool):
+    MIDDLEWARE.append("agahyar_project.middleware.ProfilingMiddleware")
 
 ROOT_URLCONF = "agahyar_project.urls"
 
@@ -193,6 +197,12 @@ if REDIS_URL:
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"
     SESSION_CACHE_ALIAS = "default"
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
 
 # Rate limiting
 RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)

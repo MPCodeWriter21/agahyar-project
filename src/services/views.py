@@ -14,7 +14,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import Avg, F, Q, QuerySet
+from django.db.models import Avg, Count, F, Q, QuerySet
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -420,6 +420,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         {
             "popular_services": popular_services,
             "faqs": faqs,
+            "faq_count": FAQ.objects.count(),
             "bookmarked_ids": bookmarked_ids,
         },
     )
@@ -498,11 +499,13 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
 
     user_city = get_default_city()
     user_neighborhood = ""
+    user_city_for_centers = None
     if request.user.is_authenticated:
         try:
             profile: UserProfile = request.user.profile
             user_city = profile.city
             user_neighborhood = profile.neighborhood
+            user_city_for_centers = profile.city
         except UserProfile.DoesNotExist:
             pass
 
@@ -516,15 +519,6 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
     centers_qs = ServiceCenter.objects.filter(service=service).annotate(
         avg_score=Avg("ratings__score")
     )
-
-    if request.user.is_authenticated:
-        try:
-            profile = request.user.profile
-            user_city_for_centers = profile.city
-        except UserProfile.DoesNotExist:
-            user_city_for_centers = None
-    else:
-        user_city_for_centers = None
 
     if user_city_for_centers:
         city_centers = centers_qs.filter(city__icontains=user_city_for_centers)
@@ -618,7 +612,11 @@ def faq_view(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return redirect("login")
     faqs: QuerySet = FAQ.objects.all().order_by("order")
-    return render(request, "services/faq.html", {"faqs": faqs})
+    return render(
+        request,
+        "services/faq.html",
+        {"faqs": faqs, "faq_count": faqs.count()},
+    )
 
 
 @login_required
@@ -636,27 +634,18 @@ def nearby_centers_view(request: HttpRequest) -> HttpResponse:
         user_city = get_default_city()
         user_neighborhood = ""
 
-    services: QuerySet = Service.objects.all()
+    all_centers = ServiceCenter.objects.filter(
+        city__icontains=user_city
+    ).select_related("service")
+
     centers_by_service: dict = {}
+    for center in all_centers:
+        centers_by_service.setdefault(center.service.name, []).append(center)
 
-    for service in services:
-        centers: QuerySet = ServiceCenter.objects.filter(
-            service=service, city__icontains=user_city
-        )
-
-        if centers.exists():
-            nearest_center = get_nearest_center(
-                service.name, user_city, user_neighborhood
-            )
-
-            centers_list: list = []
-            for center in centers:
-                center.is_nearest = False
-                if nearest_center and center.id == nearest_center.id:
-                    center.is_nearest = True
-                centers_list.append(center)
-
-            centers_by_service[service.name] = centers_list
+    for service_name, centers_list in centers_by_service.items():
+        nearest = get_nearest_center(service_name, user_city, user_neighborhood)
+        for center in centers_list:
+            center.is_nearest = nearest is not None and center.id == nearest.id
 
     return render(
         request,
@@ -855,11 +844,14 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
 
     Publicly accessible. Shows center info, map, ratings, and comments.
     """
-    center: ServiceCenter = get_object_or_404(ServiceCenter, id=center_id)
+    center: ServiceCenter = get_object_or_404(
+        ServiceCenter.objects.select_related("service"), id=center_id
+    )
 
     ratings = center.ratings.all()
-    avg_rating = ratings.aggregate(Avg("score"))["score__avg"]
-    rating_count = ratings.count()
+    rating_agg = ratings.aggregate(avg=Avg("score"), cnt=Count("id"))
+    avg_rating = rating_agg["avg"]
+    rating_count = rating_agg["cnt"]
 
     user_center_rating = None
     if request.user.is_authenticated:
@@ -1013,10 +1005,11 @@ def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
             from django.contrib.gis.db.models.functions import Distance
 
             city_qs = qs.filter(city__icontains=user_city, coordinate__isnull=False)
-            if city_qs.exists():
+            coord_center = city_qs.first()
+            if coord_center:
                 qs = qs.filter(city__icontains=user_city)
                 qs = qs.annotate(
-                    city_distance=Distance("coordinate", city_qs.first().coordinate)
+                    city_distance=Distance("coordinate", coord_center.coordinate)
                 ).order_by(
                     "city_distance",
                     F("avg_score").desc(nulls_last=True),

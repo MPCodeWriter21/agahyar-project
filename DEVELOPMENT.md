@@ -122,6 +122,76 @@ agahyar-project/
 └── AGENTS.md
 ```
 
+Caching
+-------
+
+Django's caching framework is always active:
+
+- **With Redis** (``REDIS_URL`` set): Redis is used as the cache backend.
+  Sessions are also stored in the cache.
+- **Without Redis** (``REDIS_URL`` unset or commented): ``LocMemCache``
+  (in-memory, per-process) is used as a fallback.  This is suitable for
+  local development but does not share state across workers or containers.
+
+Template fragments use ``{% cache %}`` for expensive or rarely-changing
+content (e.g. FAQ lists).  The default TTL is 900 seconds (15 minutes).
+Cache keys include a version suffix so they are invalidated automatically
+when the underlying data changes.
+
+GZip compression is enabled via ``django.middleware.gzip.GZipMiddleware``
+in all environments.
+
+Profiling
+---------
+
+A per-request profiling middleware is available for diagnosing performance
+bottlenecks.  It uses Python's ``cProfile`` and adds query-count headers
+to every response.
+
+### Enabling
+
+Set the ``ENABLE_PROFILING`` environment variable:
+
+```bash
+# In .env
+ENABLE_PROFILING=True
+```
+
+Recreate the container for the change to take effect (``docker compose -f
+docker-compose.dev.yml up -d``
+
+### Usage
+
+1. Make a request to any page.
+2. Check the response headers:
+   - ``X-Profile-Queries``: number of SQL queries executed during the
+     request.
+3. To see the full cProfile report, append ``?profile=1`` to any HTML
+   page URL.  A dark-themed table is appended to the page showing the
+   top 50 functions sorted by cumulative time.
+
+### Reading the report
+
+The report shows per-function statistics:
+
+- **ncalls**: how many times the function was called
+- **tottime**: total time spent in the function (excluding sub-calls)
+- **cumtime**: cumulative time including sub-calls
+- **filename:lineno**: source location
+
+Focus on functions with high ``cumtime`` -- these are the bottlenecks.
+
+### Example
+
+```bash
+# Enable profiling
+echo "ENABLE_PROFILING=True" >> .env
+docker compose -f docker-compose.dev.yml up -d
+
+# View profiled page
+open "http://localhost:8000/service/1/?profile=1"
+```
+
 Coding Conventions
 ------------------
 

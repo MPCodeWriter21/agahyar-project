@@ -14,8 +14,8 @@ from services.validators import iranian_phone_number_validator
 class Service(models.Model):
     """Represents a government service offered to citizens."""
 
-    name = models.CharField("نام خدمت", max_length=200)
-    organization = models.CharField("سازمان مسئول", max_length=200)
+    name = models.CharField("نام خدمت", max_length=200, db_index=True)
+    organization = models.CharField("سازمان مسئول", max_length=200, db_index=True)
     organization_address = models.CharField(
         "آدرس سازمان", max_length=300, blank=True, null=True
     )
@@ -69,11 +69,12 @@ class PhoneVerification(models.Model):
     phone = models.CharField(
         "شماره تماس",
         max_length=11,
+        db_index=True,
         validators=[iranian_phone_number_validator],
     )
     otp_code = models.CharField("کد OTP", max_length=128)
     created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
-    is_used = models.BooleanField("استفاده شده", default=False)
+    is_used = models.BooleanField("استفاده شده", default=False, db_index=True)
 
     class Meta:
         verbose_name = "احراز هویت شماره"
@@ -90,7 +91,7 @@ class FAQ(models.Model):
     question = models.CharField("سوال", max_length=300)
     answer = models.TextField("پاسخ")
     category = models.CharField("دسته‌بندی", max_length=100, blank=True)
-    order = models.IntegerField("ترتیب نمایش", default=0)
+    order = models.IntegerField("ترتیب نمایش", default=0, db_index=True)
 
     class Meta:
         verbose_name = "سوال متداول"
@@ -109,7 +110,7 @@ class ServiceCenter(models.Model):
     )
     name = models.CharField("نام مرکز", max_length=200)
     address = models.TextField("آدرس کامل")
-    city = models.CharField("شهر", max_length=100)
+    city = models.CharField("شهر", max_length=100, db_index=True)
     phone = models.CharField("شماره تماس", max_length=11, blank=True)
     working_hours = models.TextField("ساعت کاری", blank=True)
     postal_code = models.CharField("کد پستی", max_length=20, blank=True)
@@ -180,7 +181,7 @@ class Comment(models.Model):
         verbose_name="نظر والد",
     )
     text = models.TextField("متن نظر")
-    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField("آخرین ویرایش", auto_now=True)
 
     class Meta:
