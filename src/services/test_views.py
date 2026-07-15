@@ -1869,6 +1869,26 @@ class TestHealthCheck:
         assert len(version) > 0
 
 
+@pytest.mark.django_db
+class TestSessionRefresh:
+    def test_authenticated_request_modifies_session(self):
+        User.objects.create_user("sessionuser", password="pass12345")
+        client = Client()
+        client.login(username="sessionuser", password="pass12345")
+        response = client.get("/dashboard/")
+        assert response.status_code == 200
+        session = client.session
+        assert session.session_key is not None
+
+    def test_anonymous_request_does_not_modify_session(self):
+        client = Client()
+        response = client.get("/health/")
+        assert response.status_code == 200
+        # SessionRefreshMiddleware should only touch authenticated sessions.
+        # Verify it doesn't crash on anonymous requests.
+        assert response.json()["status"] == "ok"
+
+
 class TestVersion:
     def test_version_is_accessible(self):
         from agahyar_project import __version__

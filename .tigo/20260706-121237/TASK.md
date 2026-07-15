@@ -1,6 +1,6 @@
 # Refresh session
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: UX, auth, login, feature, session
 

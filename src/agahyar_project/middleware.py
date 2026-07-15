@@ -131,6 +131,27 @@ class ProfilingMiddleware(MiddlewareMixin):
         )
 
 
+class SessionRefreshMiddleware(MiddlewareMixin):
+    """Refresh the session expiry on every authenticated request.
+
+    Django's ``SESSION_EXPIRE_AT_BROWSER_CLOSE`` makes the session cookie
+    a browser-session cookie, while ``SESSION_COOKIE_AGE`` controls how
+    long the session data lives in the backend.  Without this middleware
+    an active user is logged out once ``SESSION_COOKIE_AGE`` seconds have
+    elapsed -- even if they are actively using the application.
+
+    This middleware implements a *sliding window*: every request from an
+    authenticated user resets the session expiry so that the user stays
+    logged in as long as they keep interacting with the site.  Inactive
+    users are logged out after ``SESSION_COOKIE_AGE`` seconds of
+    inactivity.
+    """
+
+    def process_request(self, request):
+        if request.user.is_authenticated:
+            request.session.modified = True
+
+
 class RequestIDMiddleware(MiddlewareMixin):
     """Attach a unique request ID to every request and response.
 

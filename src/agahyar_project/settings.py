@@ -78,6 +78,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "agahyar_project.middleware.SecurityHeadersMiddleware",
+    "agahyar_project.middleware.SessionRefreshMiddleware",
 ]
 
 if config("ENABLE_PROFILING", default=False, cast=bool):

@@ -141,6 +141,22 @@ when the underlying data changes.
 GZip compression is enabled via ``django.middleware.gzip.GZipMiddleware``
 in all environments.
 
+Session Management
+------------------
+
+Sessions use a *sliding window* approach.  The ``SessionRefreshMiddleware``
+resets the session expiry on every authenticated request, so active users
+stay logged in as long as they keep using the site.  Inactive users are
+logged out after ``SESSION_COOKIE_AGE`` seconds (default: 3600).
+
+Key settings (in ``settings.py``):
+
+- ``SESSION_COOKIE_AGE`` -- inactivity timeout in seconds (default: 3600)
+- ``SESSION_EXPIRE_AT_BROWSER_CLOSE`` -- cookie expires when the browser
+  closes (always ``True``)
+- ``SESSION_ENGINE`` -- cache-backed when Redis is available, otherwise
+  the default database backend
+
 Profiling
 ---------
 
