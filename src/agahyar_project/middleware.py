@@ -1,11 +1,15 @@
-"""Custom middleware for security headers and profiling."""
+"""Custom middleware for security headers, profiling, and request tracking."""
 
 import cProfile
+import logging
 import pstats
+import uuid
 
 from django.db import connection
 from django.http import HttpResponse
 from django.utils.deprecation import MiddlewareMixin
+
+logger = logging.getLogger(__name__)
 
 
 class SecurityHeadersMiddleware(MiddlewareMixin):
@@ -125,3 +129,25 @@ class ProfilingMiddleware(MiddlewareMixin):
             f"<tbody>\n{table_rows}</tbody>"
             "</table></div></div>\n"
         )
+
+
+class RequestIDMiddleware(MiddlewareMixin):
+    """Attach a unique request ID to every request and response.
+
+    The ID is generated as a UUID4 and added to ``request.id`` and the
+    ``X-Request-ID`` response header.  It is also bound to the logging
+    context so that all log entries produced during the request include
+    the ID automatically.
+    """
+
+    def process_request(self, request):
+        from agahyar_project.logging import _thread_local
+
+        request.id = request.META.get("HTTP_X_REQUEST_ID", str(uuid.uuid4()))
+        _thread_local.current_request = request
+
+    def process_response(self, request, response: HttpResponse) -> HttpResponse:
+        request_id = getattr(request, "id", None)
+        if request_id:
+            response["X-Request-ID"] = request_id
+        return response

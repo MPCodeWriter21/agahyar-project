@@ -1,6 +1,6 @@
 # Monitoring and error tracking
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 55
 - TAGS: ops, monitoring
 

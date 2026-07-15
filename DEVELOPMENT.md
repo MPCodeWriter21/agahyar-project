@@ -192,6 +192,70 @@ docker compose -f docker-compose.dev.yml up -d
 open "http://localhost:8000/service/1/?profile=1"
 ```
 
+Monitoring and Logging
+----------------------
+
+### Health Check
+
+The ``/health/`` endpoint is a lightweight health check for uptime
+monitors and load balancers.  It verifies database connectivity and
+returns a simple JSON response:
+
+```json
+{"status": "ok", "version": "0.1.0", "database": "ok"}
+```
+
+Returns HTTP 200 when healthy, 503 when degraded.
+
+### Server Status (Admin Only)
+
+The ``/admin/server-status/`` endpoint exposes detailed server resource
+information.  Access is restricted to staff users.  Returns:
+
+- ``cpu_percent`` -- current CPU usage
+- ``memory_rss_mb`` -- resident memory in MB
+- ``memory_percent`` -- memory usage as percentage
+- ``disk_percent`` -- disk usage as percentage
+- ``database`` -- database connectivity status
+
+### Request IDs
+
+Every request receives a unique UUID4 identifier.  The ID is:
+
+- Returned in the ``X-Request-ID`` response header
+- Included in all log entries produced during the request
+- Forwarded from clients if the ``X-Request-ID`` header is already
+  present in the request
+
+### Structured Logging
+
+Logs use a verbose format with request context:
+
+```
+2026-07-15 12:00:00 INFO [django.request] [req:abc-123] views:42 GET /faq/ 200
+```
+
+Log files are stored under ``logs/`` in the project root:
+
+- ``logs/django.log`` -- all logs (INFO and above)
+- ``logs/error.log`` -- errors only
+
+Both files use ``RotatingFileHandler`` with a 10 MB size limit and 5
+backup files.
+
+### Sentry Error Tracking
+
+Sentry integration is available for production error tracking.  Set the
+``SENTRY_DSN`` environment variable to enable:
+
+```bash
+SENTRY_DSN=https://your-key@sentry.io/project-id
+```
+
+When enabled, Sentry captures unhandled exceptions with 10% trace
+sampling.  The environment tag (``development`` / ``production``) is
+derived from the ``DEBUG`` setting.
+
 Coding Conventions
 ------------------
 
