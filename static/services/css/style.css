@@ -186,6 +186,43 @@ body {
   outline-offset: 1px;
 }
 
+/* --- Breadcrumbs --- */
+.breadcrumb {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 12px 24px 0;
+}
+
+.breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: "\276F";
+  margin-left: 4px;
+  margin-right: 4px;
+  color: var(--color-muted);
+  font-size: 0.7rem;
+}
+
+.breadcrumb-item a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.breadcrumb-item a:hover {
+  text-decoration: underline;
+}
+
 /* --- Main Content --- */
 .main-content {
   max-width: 1280px;

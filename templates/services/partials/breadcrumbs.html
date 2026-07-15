@@ -1,0 +1,23 @@
+{% if breadcrumbs %}
+  <nav class="breadcrumb" aria-label="مسیر پیمایش">
+    <ol class="breadcrumb-list"
+        itemscope
+        itemtype="https://schema.org/BreadcrumbList">
+      {% for item in breadcrumbs %}
+        <li class="breadcrumb-item"
+            itemprop="itemListElement"
+            itemscope
+            itemtype="https://schema.org/ListItem">
+          {% if item.url %}
+            <a href="{{ item.url }}" itemprop="item">
+              <span itemprop="name">{{ item.label }}</span>
+            </a>
+          {% else %}
+            <span itemprop="name" aria-current="page">{{ item.label }}</span>
+          {% endif %}
+          <meta itemprop="position" content="{{ forloop.counter }}">
+        </li>
+      {% endfor %}
+    </ol>
+  </nav>
+{% endif %}

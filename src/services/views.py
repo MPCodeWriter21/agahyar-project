@@ -422,6 +422,10 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "faqs": faqs,
             "faq_count": FAQ.objects.count(),
             "bookmarked_ids": bookmarked_ids,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "داشبورد"},
+            ],
         },
     )
 
@@ -484,6 +488,10 @@ def search(request: HttpRequest) -> HttpResponse:
             "page_obj": page_obj,
             "count": paginator.count,
             "bookmarked_ids": bookmarked_ids,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "جستجو"},
+            ],
         },
     )
 
@@ -583,6 +591,11 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "has_more_comments": has_more_comments,
             "comment_page": comment_page,
             "comment_form": comment_form,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "خدمات", "url": "/services/"},
+                {"label": service.name},
+            ],
         },
     )
 
@@ -603,7 +616,14 @@ def services_list(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "services/service_list.html",
-        {"page_obj": page_obj, "bookmarked_ids": bookmarked_ids},
+        {
+            "page_obj": page_obj,
+            "bookmarked_ids": bookmarked_ids,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "خدمات"},
+            ],
+        },
     )
 
 
@@ -613,7 +633,14 @@ def faq_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "services/faq.html",
-        {"faqs": faqs, "faq_count": faqs.count()},
+        {
+            "faqs": faqs,
+            "faq_count": faqs.count(),
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "سوالات متداول"},
+            ],
+        },
     )
 
 
@@ -652,6 +679,10 @@ def nearby_centers_view(request: HttpRequest) -> HttpResponse:
             "centers_by_service": centers_by_service,
             "user_city": user_city,
             "user_neighborhood": user_neighborhood,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "مراکز نزدیک"},
+            ],
         },
     )
 
@@ -661,7 +692,17 @@ def show_users(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return redirect("login")
     users: QuerySet = User.objects.select_related("profile").all().order_by("id")
-    return render(request, "services/user_list.html", {"users": users})
+    return render(
+        request,
+        "services/user_list.html",
+        {
+            "users": users,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "کاربران"},
+            ],
+        },
+    )
 
 
 @login_required
@@ -733,13 +774,26 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             "password_form": password_form,
             "profile": profile,
             "city_choices": get_city_choices(),
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "پروفایل"},
+            ],
         },
     )
 
 
 def about(request: HttpRequest) -> HttpResponse:
     """Render the about page (public)."""
-    return render(request, "services/about.html")
+    return render(
+        request,
+        "services/about.html",
+        {
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "درباره ما"},
+            ],
+        },
+    )
 
 
 @ratelimit(key="ip", rate="5/m", method="POST", block=True)
@@ -761,7 +815,17 @@ def contact(request: HttpRequest) -> HttpResponse:
     else:
         form = ContactForm()
 
-    return render(request, "services/contact.html", {"form": form})
+    return render(
+        request,
+        "services/contact.html",
+        {
+            "form": form,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "تماس با ما"},
+            ],
+        },
+    )
 
 
 @login_required
@@ -792,7 +856,17 @@ def toggle_bookmark(request: HttpRequest, service_id: int) -> HttpResponse:
 def bookmarks_list(request: HttpRequest) -> HttpResponse:
     """List all bookmarked services for the current user."""
     bookmarks = Bookmark.objects.filter(user=request.user).select_related("service")
-    return render(request, "services/bookmarks.html", {"bookmarks": bookmarks})
+    return render(
+        request,
+        "services/bookmarks.html",
+        {
+            "bookmarks": bookmarks,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "نشانک‌ها"},
+            ],
+        },
+    )
 
 
 @login_required
@@ -891,6 +965,15 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
             "comment_page": comment_page,
             "comment_form": comment_form,
             "rating_form": rating_form,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "خدمات", "url": "/services/"},
+                {
+                    "label": center.service.name,
+                    "url": f"/service/{center.service.id}/",
+                },
+                {"label": center.name},
+            ],
         },
     )
 
