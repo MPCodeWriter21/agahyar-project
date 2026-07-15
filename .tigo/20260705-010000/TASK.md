@@ -1,6 +1,6 @@
 # Implement proximity-based nearest center lookup
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 
 STATUS: PENDING

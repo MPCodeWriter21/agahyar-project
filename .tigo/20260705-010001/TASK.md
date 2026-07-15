@@ -1,7 +1,7 @@
 # Implement ranked center suggestions
 
-STATUS: PENDING
-PRIORITY: LOW
+- STATUS: CLOSED
+- PRIORITY: 50
 TAGS: services, suggestion, ranking
 DUE:
 
