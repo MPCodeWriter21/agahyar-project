@@ -609,8 +609,6 @@ def services_list(request: HttpRequest) -> HttpResponse:
 
 def faq_view(request: HttpRequest) -> HttpResponse:
     """Display all FAQs ordered by their ``order`` field."""
-    if not request.user.is_authenticated:
-        return redirect("login")
     faqs: QuerySet = FAQ.objects.all().order_by("order")
     return render(
         request,

@@ -470,17 +470,15 @@ class TestServiceDetailView:
 
 @pytest.mark.django_db
 class TestFAQView:
-    def test_requires_login(self):
+    def test_accessible_without_login(self):
         client = Client()
         response = client.get("/faq/")
-        assert response.status_code == 302
+        assert response.status_code == 200
 
     def test_shows_faqs_ordered(self):
-        User.objects.create_user("faquser", password="pass12345")
         FAQ.objects.create(question="q1", answer="a1", order=2)
         FAQ.objects.create(question="q2", answer="a2", order=1)
         client = Client()
-        client.login(username="faquser", password="pass12345")
         response = client.get("/faq/")
         assert response.status_code == 200
         assert "q1" in str(response.content)
