@@ -22,7 +22,6 @@ from django_ratelimit.decorators import ratelimit
 
 from .error_codes import get_error_message
 from .forms import (
-    CITY_CHOICES,
     CenterRatingForm,
     CommentForm,
     ContactForm,
@@ -31,6 +30,8 @@ from .forms import (
     PersianPasswordChangeForm,
     ProfileForm,
     RegisterForm,
+    get_city_choices,
+    get_default_city,
 )
 from .maps import get_center_locations, get_city_center
 from .models import (
@@ -101,7 +102,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 return render(
                     request,
                     "services/auth/register.html",
-                    {"form": form, "city_choices": CITY_CHOICES},
+                    {"form": form, "city_choices": get_city_choices()},
                 )
 
             messages.success(request, get_error_message("otp/sent"))
@@ -112,7 +113,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "services/auth/register.html",
-        {"form": form, "city_choices": CITY_CHOICES},
+        {"form": form, "city_choices": get_city_choices()},
     )
 
 
@@ -495,7 +496,7 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
     """
     service: Service = get_object_or_404(Service, id=service_id)
 
-    user_city = "تهران"
+    user_city = get_default_city()
     user_neighborhood = ""
     if request.user.is_authenticated:
         try:
@@ -624,14 +625,15 @@ def faq_view(request: HttpRequest) -> HttpResponse:
 def nearby_centers_view(request: HttpRequest) -> HttpResponse:
     """List nearby service centers grouped by service for the user's city.
 
-    Requires authentication. Falls back to "تهران" if no profile exists.
+    Requires authentication. Falls back to the first available city
+    if no profile exists.
     """
     try:
         profile: UserProfile = request.user.profile
         user_city: str = profile.city
         user_neighborhood: str = profile.neighborhood
     except UserProfile.DoesNotExist:
-        user_city = "تهران"
+        user_city = get_default_city()
         user_neighborhood = ""
 
     services: QuerySet = Service.objects.all()
@@ -743,7 +745,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             "form": form,
             "password_form": password_form,
             "profile": profile,
-            "city_choices": CITY_CHOICES,
+            "city_choices": get_city_choices(),
         },
     )
 

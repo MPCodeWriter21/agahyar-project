@@ -444,14 +444,14 @@ class TestServiceDetailView:
         assert response.status_code == 200
         assert "passport" in str(response.content)
 
-    def test_service_detail_falls_back_to_tehran_without_profile(self):
+    def test_service_detail_falls_back_to_default_city_without_profile(self):
         service = Service.objects.create(
             name="test-svc", organization="org", documents="doc1", steps="step1"
         )
         client = Client()
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
-        assert response.context["user_city"] == "تهران"
+        assert response.context["user_city"] == ""
 
     def test_service_detail_with_profile(self):
         user = User.objects.create_user("profileduser", password="pass12345")

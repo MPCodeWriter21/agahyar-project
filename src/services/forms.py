@@ -19,21 +19,29 @@ INVALID_EMAIL_MSG: str = get_error_message("field/invalid-email")
 MAX_LENGTH_MSG: str = get_error_message("field/max-length")
 INVALID_PHONE_MSG: str = get_error_message("field/invalid-phone")
 
-CITY_CHOICES: list = [
-    ("", "شهر خود را انتخاب کنید"),
-    ("تهران", "تهران"),
-    ("مشهد", "مشهد"),
-    ("اصفهان", "اصفهان"),
-    ("شیراز", "شیراز"),
-    ("تبریز", "تبریز"),
-    ("کرج", "کرج"),
-    ("قم", "قم"),
-    ("اهواز", "اهواز"),
-    ("رشت", "رشت"),
-    ("کرمانشاه", "کرمانشاه"),
-    ("زاهدان", "زاهدان"),
-    ("ارومیه", "ارومیه"),
-]
+PLACEHOLDER_CITY = ("", "شهر خود را انتخاب کنید")
+
+
+def get_city_choices() -> list[tuple[str, str]]:
+    """Return city choices dynamically from the database.
+
+    Queries distinct city names from :class:`ServiceCenter` records
+    and prepends a placeholder entry.
+    """
+    from .models import ServiceCenter
+
+    cities = (
+        ServiceCenter.objects.values_list("city", flat=True).distinct().order_by("city")
+    )
+    return [PLACEHOLDER_CITY, *[(c, c) for c in cities]]
+
+
+def get_default_city() -> str:
+    """Return the first city from the database, or empty string."""
+    from .models import ServiceCenter
+
+    first_city = ServiceCenter.objects.values_list("city", flat=True).distinct().first()
+    return first_city or ""
 
 
 class LoginForm(forms.Form):
@@ -93,7 +101,7 @@ class RegisterForm(UserCreationForm):
         label="شهر محل سکونت",
         max_length=100,
         error_messages={"required": REQUIRED_MSG},
-        widget=forms.Select(choices=CITY_CHOICES),
+        widget=forms.Select(),
     )
     neighborhood = forms.CharField(
         label="محله",
@@ -108,6 +116,10 @@ class RegisterForm(UserCreationForm):
         error_messages={"required": REQUIRED_MSG, "invalid": INVALID_PHONE_MSG},
         widget=forms.TextInput(attrs={"placeholder": "مثال: 09121234567"}),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["city"].widget.choices = get_city_choices()
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
@@ -151,6 +163,7 @@ class ProfileForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.user_id = kwargs.pop("user_id", None)
         super().__init__(*args, **kwargs)
+        self.fields["city"].widget.choices = get_city_choices()
 
     first_name = forms.CharField(
         label="نام",
@@ -171,7 +184,7 @@ class ProfileForm(forms.Form):
         label="شهر محل سکونت",
         max_length=100,
         error_messages={"required": REQUIRED_MSG},
-        widget=forms.Select(choices=CITY_CHOICES),
+        widget=forms.Select(),
     )
     neighborhood = forms.CharField(
         label="محله",
