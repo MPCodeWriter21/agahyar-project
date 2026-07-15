@@ -1,6 +1,6 @@
 # Add more utility commands
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 - TAGS: uv, dev, command
 

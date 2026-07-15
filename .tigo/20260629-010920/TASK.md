@@ -1,6 +1,6 @@
 # Breadcrumb navigation
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 15
 - TAGS: ux, navigation
 
