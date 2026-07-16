@@ -90,11 +90,14 @@ agahyar-project/
 │   └── services/                 # Main application
 │       ├── __init__.py
 │       ├── admin.py              # Admin panel registration
+│       ├── api.py                # REST API viewsets
+│       ├── api_urls.py           # API URL routing (/api/v1/)
 │       ├── apps.py               # Django AppConfig
 │       ├── error_codes.py        # Persian error code catalog
 │       ├── forms.py              # LoginForm, RegisterForm, OTPVerifyForm, etc.
 │       ├── models.py             # Service, UserProfile, FAQ, PhoneVerification, etc.
 │       ├── otp.py                # OTP generation, hashing, and verification
+│       ├── serializers.py        # DRF serializers
 │       ├── sms.py                # SMS.ir API client for sending OTP codes
 │       ├── suggestion.py         # Nearest-center lookup logic
 │       ├── urls.py               # App URL patterns
@@ -316,3 +319,70 @@ automatically release images under their own GHCR namespace.
 
 To release a new version, simply bump the version in ``pyproject.toml``,
 push to ``main``, and the workflow handles the rest.
+
+REST API
+--------
+
+A versioned REST API is available under ``/api/v1/`` for external service
+consumption.  It is built with Django REST Framework and documented with
+drf-spectacular (OpenAPI 3.0).
+
+### Endpoints
+
+| Endpoint | Methods | Auth | Description |
+|---|---|---|---|
+| ``/api/v1/auth/register/`` | POST | Public | Register a new user, returns token |
+| ``/api/v1/auth/login/`` | POST | Public | Login with credentials, returns token |
+| ``/api/v1/auth/logout/`` | POST | Auth only | Delete auth token (logout) |
+| ``/api/v1/services/`` | GET | Public | List and retrieve government services |
+| ``/api/v1/centers/`` | GET | Public | List and retrieve service centers |
+| ``/api/v1/faqs/`` | GET | Public | List and retrieve FAQs |
+| ``/api/v1/comments/`` | GET, POST, PUT, PATCH, DELETE | Public read / Auth write (owner only for update/delete) | List, retrieve, create, update, delete comments |
+| ``/api/v1/ratings/`` | POST | Auth only | Create or update own rating (upserts by center) |
+| ``/api/v1/ratings/mine/`` | GET | Auth only | Get own rating for a given center |
+| ``/api/v1/ratings/<id>/`` | DELETE | Auth only (owner) | Delete own rating |
+| ``/api/v1/bookmarks/`` | GET, POST, DELETE | Auth only | Manage user bookmarks |
+| ``/api/v1/schema/`` | GET | Public | OpenAPI 3.0 schema (YAML) |
+| ``/api/v1/docs/`` | GET | Public | Swagger UI interactive docs |
+
+### Filtering and Search
+
+- **Services**: ``?search=...`` (name, organization, keywords),
+  ``?organization=...``
+- **Centers**: ``?search=...`` (name, address, city), ``?city=...``,
+  ``?service=<id>``
+- **FAQs**: ``?search=...`` (question, answer, category)
+- **Comments**: ``?service=<id>``, ``?service_center=<id>``
+
+### Authentication
+
+Two authentication methods are supported:
+
+1. **Session authentication** -- browser-based (CSRF protected)
+2. **Token authentication** -- register or log in via the API
+   (``POST /api/v1/auth/register/`` or ``POST /api/v1/auth/login/``)
+   and send the returned token as
+   ``Authorization: Token <key>``
+
+Public read endpoints (service list, center list, FAQ list, comment list)
+do not require authentication.  Write endpoints (comments, ratings,
+bookmarks) require a valid session or token.  Comment update/delete and
+rating delete are restricted to the object owner.
+
+### Pagination
+
+All list endpoints are paginated (20 items per page by default).  Use the
+``?page=<n>`` query parameter to navigate pages.
+
+### OpenAPI Documentation
+
+The interactive Swagger UI is available at ``/api/v1/docs/`` in the
+browser.  The raw OpenAPI 3.0 schema can be downloaded from
+``/api/v1/schema/``.
+
+Swagger UI assets (CSS, JS, favicon) are vendored and self-hosted from
+``static/libs/swagger-ui/`` -- no CDN requests are made at runtime.
+The download script (``scripts/vendor_static.sh`` / ``.ps1``) fetches
+swagger-ui-dist 5.32.8 from jsDelivr.  See
+[self-hosted-swagger-ui.md](https://github.com/MPCodeWriter21/journal/blob/master/self-hosted-swagger-ui.md)
+for the reference approach.

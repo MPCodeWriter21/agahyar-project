@@ -110,6 +110,7 @@ urlpatterns: List[URLPattern] = [
     path("health/", health_check, name="health_check"),
     path("admin/server-status/", server_status, name="server_status"),
     path(ADMIN_URL, admin.site.urls),
+    path("api/v1/", include("services.api_urls")),
     path("", include("services.urls")),
 ]
 
