@@ -874,29 +874,26 @@ class TestProfileView:
 
 
 def test_static_js_files_exist():
-    import os
+    from django.conf import settings
 
-    root = os.path.join(os.path.dirname(__file__), "..", "..", "static")
-    assert os.path.isfile(os.path.join(root, "libs", "alpine.min.js"))
-    assert os.path.isfile(os.path.join(root, "services", "js", "main.js"))
-    assert os.path.isfile(os.path.join(root, "services", "js", "error-translate.js"))
-    assert os.path.isfile(os.path.join(root, "libs", "ol", "ol.js"))
-    assert os.path.isfile(os.path.join(root, "libs", "ol", "ol.css"))
+    root = settings.BASE_DIR / "static"
+    assert (root / "libs" / "alpine.min.js").is_file()
+    assert (root / "services" / "js" / "main.js").is_file()
+    assert (root / "services" / "js" / "error-translate.js").is_file()
+    assert (root / "libs" / "ol" / "ol.js").is_file()
+    assert (root / "libs" / "ol" / "ol.css").is_file()
 
 
 def test_vazirmatn_font_files_exist():
-    import os
+    from django.conf import settings
 
-    root = os.path.join(os.path.dirname(__file__), "..", "..", "static")
-    assert os.path.isfile(os.path.join(root, "Vazirmatn-Regular.woff2"))
+    assert (settings.BASE_DIR / "static" / "Vazirmatn-Regular.woff2").is_file()
 
 
 def test_vazirmatn_css_in_style_css():
-    import os
+    from django.conf import settings
 
-    path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
-    )
+    path = settings.BASE_DIR / "static" / "services" / "css" / "style.css"
     with open(path, encoding="utf-8") as f:
         content = f.read()
     assert "Vazirmatn" in content
@@ -940,11 +937,9 @@ def test_base_template_loads_static_assets():
 
 
 def test_body_has_rtl_direction():
-    import os
+    from django.conf import settings
 
-    css_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
-    )
+    css_path = settings.BASE_DIR / "static" / "services" / "css" / "style.css"
     with open(css_path, encoding="utf-8") as f:
         content = f.read()
     assert "direction: rtl" in content
@@ -1514,12 +1509,10 @@ class TestSubmitCenterRating:
 
 class TestRateLimitPage:
     def test_429_template_exists(self):
-        import os
+        from django.conf import settings
 
-        template_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "templates", "429.html"
-        )
-        assert os.path.isfile(template_path)
+        template_path = settings.BASE_DIR / "templates" / "429.html"
+        assert template_path.is_file()
 
 
 @pytest.mark.django_db
@@ -1547,17 +1540,9 @@ class TestResponsiveHamburger:
         assert 'aria-label="منو"' in content
 
     def test_mobile_menu_btn_css_hidden_on_desktop(self):
-        import os
+        from django.conf import settings
 
-        css_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "static",
-            "services",
-            "css",
-            "style.css",
-        )
+        css_path = settings.BASE_DIR / "static" / "services" / "css" / "style.css"
         with open(css_path, encoding="utf-8") as f:
             content = f.read()
         assert ".mobile-menu-btn {\n  display: none;" in content
@@ -1565,11 +1550,9 @@ class TestResponsiveHamburger:
         assert ".nav-links" in content
 
     def test_close_menu_function_exists(self):
-        import os
+        from django.conf import settings
 
-        js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "static", "services", "js", "main.js"
-        )
+        js_path = settings.BASE_DIR / "static" / "services" / "js" / "main.js"
         with open(js_path, encoding="utf-8") as f:
             content = f.read()
         assert "function closeMenu" in content
@@ -1577,11 +1560,9 @@ class TestResponsiveHamburger:
         assert 'link.addEventListener("click", closeMenu)' in content
 
     def test_nav_links_use_getElementById(self):
-        import os
+        from django.conf import settings
 
-        js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "static", "services", "js", "main.js"
-        )
+        js_path = settings.BASE_DIR / "static" / "services" / "js" / "main.js"
         with open(js_path, encoding="utf-8") as f:
             content = f.read()
         assert 'document.getElementById("navLinks")' in content
@@ -1646,11 +1627,9 @@ class TestSeoEndpoints:
 
 @pytest.mark.django_db
 def test_print_media_query_exists_in_css():
-    import os
+    from django.conf import settings
 
-    css_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
-    )
+    css_path = settings.BASE_DIR / "static" / "services" / "css" / "style.css"
     with open(css_path, encoding="utf-8") as f:
         content = f.read()
     assert "@media print" in content

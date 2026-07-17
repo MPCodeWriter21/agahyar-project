@@ -29,6 +29,7 @@ dependencies = [
 dev = [
   "bandit>=1.8",
   "djlint>=1.40.3",
+  "pip-audit>=2.7",
   "pre-commit>=4.2",
   "pytest<9,>=8",
   "pytest-cov>=7.1",
@@ -54,9 +55,21 @@ run-server = "agahyar_project.scripts:run_server"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "agahyar_project.settings"
 addopts = ["-p", "services.test_plugin"]
-python_files = ["tests.py", "test_*.py"]
-testpaths = ["src/services"]
+python_files = ["test_*.py"]
+testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/test_*", "*/tests.py", "*/migrations/*", "*/conftest.py"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+
+[tool.bandit]
+targets = ["src"]
+exclude_dirs = ["tests", "migrations"]
 
 [tool.djlint]
 profile = "django"

@@ -1,6 +1,6 @@
 # CI/CD pipeline improvements
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 60
 - TAGS: devops, ci
 
