@@ -49,7 +49,7 @@ from .sms import SMSAPIError, get_sms_client
 
 logger = logging.getLogger(__name__)
 
-PENDING_TOKEN_CACHE_PREFIX = "api-register:"
+PENDING_TOKEN_CACHE_PREFIX = "api-register:"  # nosec B105
 PHONE_CHANGE_CACHE_PREFIX = "api-phone-change:"
 PENDING_TOKEN_MAX_AGE = timedelta(minutes=5)
 

@@ -225,7 +225,7 @@ class PersianPasswordChangeForm(PasswordChangeForm):
         self.fields["new_password1"].error_messages["required"] = REQUIRED_MSG
         self.fields["new_password2"].error_messages["required"] = REQUIRED_MSG
 
-    def validate_password_for_user(self, user, password_field_name="new_password2"):
+    def validate_password_for_user(self, user, password_field_name="new_password2"):  # nosec B107
         password = self.cleaned_data.get(password_field_name)
         if password:
             try:
