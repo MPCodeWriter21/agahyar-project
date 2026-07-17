@@ -344,6 +344,7 @@ drf-spectacular (OpenAPI 3.0).
 | ``/api/v1/bookmarks/`` | GET, POST, DELETE | Auth only | Manage user bookmarks |
 | ``/api/v1/schema/`` | GET | Public | OpenAPI 3.0 schema (YAML) |
 | ``/api/v1/docs/`` | GET | Public | Swagger UI interactive docs |
+| ``/admin/stats/`` | GET | Staff only | Admin dashboard with usage statistics and charts |
 
 ### Filtering and Search
 

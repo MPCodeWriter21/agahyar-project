@@ -16,6 +16,7 @@ from django.shortcuts import render
 from django.urls import URLPattern, include, path
 
 from agahyar_project import __version__
+from services import views as services_views
 
 ADMIN_URL: str = config("ADMIN_URL", default="admin/")
 
@@ -109,6 +110,11 @@ def server_status(request: HttpRequest) -> HttpResponse:
 urlpatterns: List[URLPattern] = [
     path("health/", health_check, name="health_check"),
     path("admin/server-status/", server_status, name="server_status"),
+    path(
+        "admin/stats/",
+        services_views.admin_stats,
+        name="admin_stats",
+    ),
     path(ADMIN_URL, admin.site.urls),
     path("api/v1/", include("services.api_urls")),
     path("", include("services.urls")),

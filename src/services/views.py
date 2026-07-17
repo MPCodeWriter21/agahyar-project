@@ -5,16 +5,19 @@ bookmarks, ratings, profile, FAQ, contact, nearby centers,
 and SEO endpoints, with rate limiting on sensitive views.
 """
 
+import json
 import logging
 from datetime import timedelta
 
 from django.conf import settings as django_settings
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, F, Q, QuerySet
+from django.db.models.functions import TruncWeek
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -1287,3 +1290,108 @@ def sitemap_xml(request: HttpRequest) -> HttpResponse:
         f"{urls}</urlset>"
     )
     return HttpResponse(xml, content_type="application/xml")
+
+
+@staff_member_required
+def admin_stats(request: HttpRequest) -> HttpResponse:
+    """Admin dashboard with usage statistics (staff only).
+
+    Displays model counts, recent activity, popular services,
+    top-rated centers, and weekly trend charts.
+    """
+    now = timezone.now()
+    twelve_weeks_ago = now - timedelta(weeks=12)
+
+    overview = {
+        "total_users": User.objects.count(),
+        "total_services": Service.objects.count(),
+        "total_centers": ServiceCenter.objects.count(),
+        "total_comments": Comment.objects.count(),
+        "total_ratings": CenterRating.objects.count(),
+        "total_bookmarks": Bookmark.objects.count(),
+        "total_contact_messages": ContactMessage.objects.count(),
+        "total_faqs": FAQ.objects.count(),
+    }
+
+    recent_users = User.objects.order_by("-date_joined")[:10]
+    recent_comments = Comment.objects.select_related(
+        "user", "service", "service_center"
+    ).order_by("-created_at")[:10]
+
+    popular_services = Service.objects.annotate(
+        comment_count=Count("comments")
+    ).order_by("-comment_count")[:10]
+
+    top_centers = (
+        ServiceCenter.objects.annotate(
+            avg_rating=Avg("ratings__score"),
+            rating_count=Count("ratings"),
+        )
+        .filter(rating_count__gt=0)
+        .order_by("-avg_rating")[:10]
+    )
+
+    # --- Chart data: weekly aggregations ---
+    week_fmt = "%Y-%m-%d"
+
+    reg_by_week = (
+        User.objects.filter(date_joined__gte=twelve_weeks_ago)
+        .annotate(week=TruncWeek("date_joined"))
+        .values("week")
+        .annotate(count=Count("id"))
+        .order_by("week")
+    )
+
+    comments_by_week = (
+        Comment.objects.filter(created_at__gte=twelve_weeks_ago)
+        .annotate(week=TruncWeek("created_at"))
+        .values("week")
+        .annotate(count=Count("id"))
+        .order_by("week")
+    )
+
+    ratings_by_week = (
+        CenterRating.objects.filter(created_at__gte=twelve_weeks_ago)
+        .annotate(week=TruncWeek("created_at"))
+        .values("week")
+        .annotate(count=Count("id"))
+        .order_by("week")
+    )
+
+    chart_reg = json.dumps(
+        [
+            {"week": r["week"].strftime(week_fmt), "count": r["count"]}
+            for r in reg_by_week
+        ]
+    )
+    chart_comments = json.dumps(
+        [
+            {"week": r["week"].strftime(week_fmt), "count": r["count"]}
+            for r in comments_by_week
+        ]
+    )
+    chart_ratings = json.dumps(
+        [
+            {"week": r["week"].strftime(week_fmt), "count": r["count"]}
+            for r in ratings_by_week
+        ]
+    )
+    chart_services = json.dumps(
+        [{"name": s.name, "count": s.comment_count} for s in popular_services]
+    )
+
+    return render(
+        request,
+        "services/admin_stats.html",
+        {
+            "overview": overview,
+            "recent_users": recent_users,
+            "recent_comments": recent_comments,
+            "popular_services": popular_services,
+            "top_centers": top_centers,
+            "chart_reg": chart_reg,
+            "chart_comments": chart_comments,
+            "chart_ratings": chart_ratings,
+            "chart_services": chart_services,
+        },
+    )

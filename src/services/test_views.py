@@ -5,6 +5,7 @@ SEO endpoints, bookmarks, ratings, responsive design,
 and error-code rendering across all views.
 """
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -2065,3 +2066,52 @@ class TestVersion:
         from agahyar_project import __version__
 
         assert __version__ == version("agahyar")
+
+
+class TestAdminStats:
+    @pytest.mark.django_db
+    def test_anonymous_redirects_to_login(self):
+        client = Client()
+        response = client.get("/admin/stats/")
+        assert response.status_code == 302
+        assert "login" in response.url
+
+    @pytest.mark.django_db
+    def test_non_staff_gets_redirect(self):
+        User.objects.create_user("regular", password="pass12345")
+        client = Client()
+        client.login(username="regular", password="pass12345")
+        response = client.get("/admin/stats/")
+        assert response.status_code in (403, 302)
+
+    @pytest.mark.django_db
+    def test_staff_gets_200(self):
+        User.objects.create_user("admin", password="pass12345", is_staff=True)
+        client = Client()
+        client.login(username="admin", password="pass12345")
+        response = client.get("/admin/stats/")
+        assert response.status_code == 200
+
+    @pytest.mark.django_db
+    def test_context_contains_overview_counts(self):
+        User.objects.create_user("admin", password="pass12345", is_staff=True)
+        Service.objects.create(name="S1", organization="O1", documents="d", steps="s")
+        client = Client()
+        client.login(username="admin", password="pass12345")
+        response = client.get("/admin/stats/")
+        ctx = response.context
+        assert ctx["overview"]["total_users"] >= 1
+        assert ctx["overview"]["total_services"] >= 1
+        assert "chart_reg" in ctx
+        assert "chart_comments" in ctx
+
+    @pytest.mark.django_db
+    def test_chart_data_is_valid_json(self):
+        User.objects.create_user("admin", password="pass12345", is_staff=True)
+        client = Client()
+        client.login(username="admin", password="pass12345")
+        response = client.get("/admin/stats/")
+        assert json.loads(response.context["chart_reg"]) is not None
+        assert json.loads(response.context["chart_comments"]) is not None
+        assert json.loads(response.context["chart_ratings"]) is not None
+        assert json.loads(response.context["chart_services"]) is not None

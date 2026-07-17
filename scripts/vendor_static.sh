@@ -51,6 +51,11 @@ mkdir -p static/libs/toastify
 curl -fsSL "$CDN/toastify-js@1.12.0/src/toastify.js" -o static/libs/toastify/toastify.js
 curl -fsSL "$CDN/toastify-js@1.12.0/src/toastify.css" -o static/libs/toastify/toastify.css
 
+# Chart.js 4.5.1
+echo "Downloading Chart.js ..."
+mkdir -p static/libs/chartjs
+curl -fsSL "$CDN/chart.js@4.5.1/dist/chart.umd.min.js" -o static/libs/chartjs/chart.umd.min.js
+
 # Swagger UI 5.32.8
 echo "Downloading Swagger UI ..."
 SWAGGER_CDN="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.8"

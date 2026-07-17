@@ -48,6 +48,11 @@ $null = New-Item -ItemType Directory -Force -Path static/libs/toastify
 Invoke-WebRequest -Uri "$CDN/toastify-js@1.12.0/src/toastify.js" -OutFile static/libs/toastify/toastify.js
 Invoke-WebRequest -Uri "$CDN/toastify-js@1.12.0/src/toastify.css" -OutFile static/libs/toastify/toastify.css
 
+# Chart.js 4.5.1
+Write-Host "Downloading Chart.js ..."
+$null = New-Item -ItemType Directory -Force -Path static/libs/chartjs
+Invoke-WebRequest -Uri "$CDN/chart.js@4.5.1/dist/chart.umd.min.js" -OutFile static/libs/chartjs/chart.umd.min.js
+
 # Swagger UI 5.32.8
 Write-Host "Downloading Swagger UI ..."
 $SWAGGER_CDN = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.32.8"
