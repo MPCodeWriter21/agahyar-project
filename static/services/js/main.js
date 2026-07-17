@@ -56,6 +56,92 @@ function toggleReplyForm(commentId) {
   }
 }
 
+function toggleEditForm(commentId) {
+  var textEl = document.getElementById("comment-text-" + commentId);
+  var editForm = document.getElementById("comment-edit-form-" + commentId);
+  if (!textEl || !editForm) return;
+  var isHidden = editForm.style.display === "none";
+  textEl.style.display = isHidden ? "none" : "block";
+  editForm.style.display = isHidden ? "block" : "none";
+}
+
+function submitEdit(commentId) {
+  var textarea = document.getElementById("comment-edit-textarea-" + commentId);
+  if (!textarea) return;
+  var text = textarea.value.trim();
+  if (!text) return;
+
+  var csrfToken = getCsrfToken();
+  var editUrl = "/comment/" + commentId + "/edit/";
+
+  fetch(editUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-CSRFToken": csrfToken,
+    },
+    body: "text=" + encodeURIComponent(text),
+  })
+    .then(function (response) {
+      if (response.redirected) {
+        window.location.reload();
+        return;
+      }
+      return response.text();
+    })
+    .then(function () {
+      window.location.reload();
+    });
+}
+
+var _pendingDeleteId = null;
+
+function showDeleteModal(commentId) {
+  _pendingDeleteId = commentId;
+  var modal = document.getElementById("delete-comment-modal");
+  if (modal) modal.showModal();
+}
+
+function cancelDelete() {
+  _pendingDeleteId = null;
+  var modal = document.getElementById("delete-comment-modal");
+  if (modal) modal.close();
+}
+
+function confirmDelete() {
+  if (_pendingDeleteId === null) return;
+  var commentId = _pendingDeleteId;
+  _pendingDeleteId = null;
+
+  var modal = document.getElementById("delete-comment-modal");
+  if (modal) modal.close();
+
+  var csrfToken = getCsrfToken();
+  var deleteUrl = "/comment/" + commentId + "/delete/";
+
+  fetch(deleteUrl, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrfToken,
+    },
+  }).then(function () {
+    window.location.reload();
+  });
+}
+
+function getCsrfToken() {
+  var inputEl = document.querySelector("[name=csrfmiddlewaretoken]");
+  if (inputEl) return inputEl.value;
+  var cookies = document.cookie.split(";");
+  for (var i = 0; i < cookies.length; i++) {
+    var cookie = cookies[i].trim();
+    if (cookie.startsWith("csrftoken=")) {
+      return cookie.substring("csrftoken=".length);
+    }
+  }
+  return "";
+}
+
 function toggleReplies(commentId, btn) {
   var replies = document.getElementById("replies-" + commentId);
   if (!replies) return;

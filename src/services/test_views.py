@@ -11,6 +11,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.test import Client, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from services.forms import RegisterForm
 from services.models import (
@@ -1132,6 +1133,25 @@ class TestSubmitComment:
         assert reply is not None
         assert reply.text == "reply text"
 
+    def test_submit_reply_to_deleted_comment_denied(self):
+        user = User.objects.create_user("replier2", password="pass12345")
+        service = Service.objects.create(
+            name="del-reply-svc", organization="org", documents="d", steps="s"
+        )
+        parent = Comment.objects.create(
+            user=user, service=service, text="deleted parent"
+        )
+        parent.deleted_by = user
+        parent.save(update_fields=["deleted_by"])
+        client = Client()
+        client.login(username="replier2", password="pass12345")
+        response = client.post(
+            f"/comment/service/{service.id}/",
+            {"text": "should fail", "parent_id": str(parent.id)},
+        )
+        assert response.status_code == 302
+        assert not Comment.objects.filter(parent=parent).exists()
+
     def test_submit_requires_login(self):
         service = Service.objects.create(
             name="comment-svc2", organization="org", documents="d", steps="s"
@@ -1174,6 +1194,149 @@ class TestSubmitComment:
         client = Client()
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestEditComment:
+    def _setup(self):
+        self.user = User.objects.create_user("editor", password="pass12345")
+        self.service = Service.objects.create(
+            name="edit-svc", organization="org", documents="d", steps="s"
+        )
+        self.comment = Comment.objects.create(
+            user=self.user, service=self.service, text="original text"
+        )
+        self.client = Client()
+        self.client.login(username="editor", password="pass12345")
+
+    def test_edit_own_comment(self):
+        self._setup()
+        resp = self.client.post(
+            f"/comment/{self.comment.id}/edit/", {"text": "updated text"}
+        )
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.text == "updated text"
+        assert self.comment.edited_at is not None
+
+    def test_edit_requires_login(self):
+        self._setup()
+        client = Client()
+        resp = client.post(f"/comment/{self.comment.id}/edit/", {"text": "hacked"})
+        assert resp.status_code == 302
+        assert "/login/" in resp.url
+
+    def test_edit_other_users_comment_denied(self):
+        self._setup()
+        other = User.objects.create_user("other", password="pass12345")
+        other_comment = Comment.objects.create(
+            user=other, service=self.service, text="other's"
+        )
+        resp = self.client.post(
+            f"/comment/{other_comment.id}/edit/", {"text": "hacked"}
+        )
+        assert resp.status_code == 302
+        other_comment.refresh_from_db()
+        assert other_comment.text == "other's"
+
+    def test_edit_after_24h_denied(self):
+        self._setup()
+        from datetime import timedelta
+
+        self.comment.created_at = timezone.now() - timedelta(hours=25)
+        self.comment.save(update_fields=["created_at"])
+        resp = self.client.post(
+            f"/comment/{self.comment.id}/edit/", {"text": "expired"}
+        )
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.text == "original text"
+
+    def test_edit_deleted_comment_denied(self):
+        self._setup()
+        self.comment.deleted_by = self.user
+        self.comment.save(update_fields=["deleted_by"])
+        resp = self.client.post(
+            f"/comment/{self.comment.id}/edit/", {"text": "deleted"}
+        )
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.text == "original text"
+
+    def test_edit_empty_text_ignored(self):
+        self._setup()
+        resp = self.client.post(f"/comment/{self.comment.id}/edit/", {"text": "   "})
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.text == "original text"
+
+    def test_edit_get_returns_405(self):
+        self._setup()
+        resp = self.client.get(f"/comment/{self.comment.id}/edit/")
+        assert resp.status_code == 405
+
+
+@pytest.mark.django_db
+class TestDeleteComment:
+    def _setup(self):
+        self.user = User.objects.create_user("deleter", password="pass12345")
+        self.service = Service.objects.create(
+            name="del-svc", organization="org", documents="d", steps="s"
+        )
+        self.comment = Comment.objects.create(
+            user=self.user, service=self.service, text="to delete"
+        )
+        self.client = Client()
+        self.client.login(username="deleter", password="pass12345")
+
+    def test_delete_own_comment(self):
+        self._setup()
+        resp = self.client.post(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.is_deleted is True
+        assert self.comment.deleted_by == self.user
+
+    def test_delete_requires_login(self):
+        self._setup()
+        client = Client()
+        resp = client.post(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 302
+        assert "/login/" in resp.url
+
+    def test_delete_other_users_comment_denied(self):
+        self._setup()
+        other = User.objects.create_user("other", password="pass12345")
+        other_comment = Comment.objects.create(
+            user=other, service=self.service, text="others"
+        )
+        resp = self.client.post(f"/comment/{other_comment.id}/delete/")
+        assert resp.status_code == 302
+        other_comment.refresh_from_db()
+        assert other_comment.is_deleted is False
+
+    def test_staff_can_delete_any_comment(self):
+        self._setup()
+        admin = User.objects.create_user("admin", password="pass12345", is_staff=True)
+        client = Client()
+        client.login(username="admin", password="pass12345")
+        resp = client.post(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.is_deleted is True
+        assert self.comment.deleted_by == admin
+
+    def test_delete_already_deleted_noop(self):
+        self._setup()
+        self.comment.deleted_by = self.user
+        self.comment.save(update_fields=["deleted_by"])
+        resp = self.client.post(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 302
+
+    def test_delete_get_returns_405(self):
+        self._setup()
+        resp = self.client.get(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 405
 
 
 @pytest.mark.django_db

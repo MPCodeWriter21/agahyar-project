@@ -337,7 +337,7 @@ drf-spectacular (OpenAPI 3.0).
 | ``/api/v1/services/`` | GET | Public | List and retrieve government services |
 | ``/api/v1/centers/`` | GET | Public | List and retrieve service centers |
 | ``/api/v1/faqs/`` | GET | Public | List and retrieve FAQs |
-| ``/api/v1/comments/`` | GET, POST, PUT, PATCH, DELETE | Public read / Auth write (owner only for update/delete) | List, retrieve, create, update, delete comments |
+| ``/api/v1/comments/`` | GET, POST, PUT, PATCH, DELETE | Public read / Auth write (owner only for update; owner or staff for delete) | List, retrieve, create, update, soft-delete comments |
 | ``/api/v1/ratings/`` | POST | Auth only | Create or update own rating (upserts by center) |
 | ``/api/v1/ratings/mine/`` | GET | Auth only | Get own rating for a given center |
 | ``/api/v1/ratings/<id>/`` | DELETE | Auth only (owner) | Delete own rating |
@@ -366,8 +366,10 @@ Two authentication methods are supported:
 
 Public read endpoints (service list, center list, FAQ list, comment list)
 do not require authentication.  Write endpoints (comments, ratings,
-bookmarks) require a valid session or token.  Comment update/delete and
-rating delete are restricted to the object owner.
+bookmarks) require a valid session or token.  Comment update is
+restricted to the author within 24 hours.  Comment deletion is
+restricted to the author or staff (soft-delete).  Rating delete is
+restricted to the object owner.
 
 ### Pagination
 

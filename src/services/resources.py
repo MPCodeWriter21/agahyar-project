@@ -112,6 +112,8 @@ class CommentResource(resources.ModelResource):
             "text",
             "created_at",
             "updated_at",
+            "edited_at",
+            "deleted_by",
         )
 
 

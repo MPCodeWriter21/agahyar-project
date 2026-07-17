@@ -90,9 +90,16 @@ class CommentAdmin(ImportExportModelAdmin):
     """Admin configuration for the Comment model."""
 
     resource_classes = [CommentResource]
-    list_display = ("user", "service", "service_center", "created_at")
+    list_display = (
+        "user",
+        "service",
+        "service_center",
+        "created_at",
+        "edited_at",
+        "deleted_by",
+    )
     search_fields = ("user__username", "text")
-    list_filter = ("created_at",)
+    list_filter = ("created_at", "edited_at")
 
 
 @admin.register(CenterRating)

@@ -1203,6 +1203,175 @@ button.muted-link:disabled {
   text-decoration: underline;
 }
 
+/* --- Comment Edit / Delete --- */
+
+.comment-item.is-deleted {
+  opacity: 0.6;
+  border-right-style: dashed;
+  border-right-color: var(--text-muted);
+}
+
+.comment-deleted-label {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.comment-deleted-text {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.comment-edited {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.comment-actions {
+  margin-right: auto;
+  display: flex;
+  gap: 2px;
+}
+
+.btn-comment-action {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-family: inherit;
+  transition: var(--btn-transition);
+}
+
+.btn-comment-action.btn-edit:hover {
+  color: var(--color-accent);
+  background: rgba(26, 95, 122, 0.06);
+}
+
+.btn-comment-action.btn-delete:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.btn-comment-action:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.comment-edit-form {
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--bg-card);
+  border-radius: 12px;
+}
+
+.comment-edit-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 8px;
+}
+
+.comment-edit-form textarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.comment-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-cancel-edit {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--btn-transition);
+}
+
+.btn-cancel-edit:hover {
+  background: var(--bg-light);
+  color: var(--text-primary);
+}
+
+/* --- Delete Confirmation Modal --- */
+
+.delete-modal {
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  max-width: 360px;
+  width: 90%;
+  margin: auto;
+  background: var(--bg-card);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.delete-modal::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.delete-modal-content {
+  padding: 24px;
+  text-align: center;
+}
+
+.delete-modal-content p {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-confirm-delete {
+  padding: 8px 24px;
+  background: var(--color-danger);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--btn-transition);
+}
+
+.btn-confirm-delete:hover {
+  background: #b71c1c;
+}
+
+.btn-cancel-delete {
+  padding: 8px 24px;
+  background: var(--bg-light);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--btn-transition);
+}
+
+.btn-cancel-delete:hover {
+  background: var(--border-light);
+}
+
 /* --- Center Rating Form --- */
 .rating-score-row {
   margin-bottom: 14px;
@@ -2058,6 +2227,8 @@ button.muted-link:disabled {
 }
 .empty-text {
   color: var(--text-secondary);
+  justify-self: center;
+  margin-top: 20px;
 }
 .empty-state {
   text-align: center;
@@ -2435,6 +2606,20 @@ button.muted-link:disabled {
   background: var(--bg-card);
   color: var(--text-primary);
   border-color: var(--border-input);
+}
+
+[data-theme="dark"] .comment-edit-form {
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .comment-edit-form textarea {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-input);
+}
+
+[data-theme="dark"] .delete-modal {
+  background: var(--bg-card);
 }
 
 [data-theme="dark"] .login-prompt {

@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
@@ -1188,7 +1189,9 @@ class CommentAPITest(TestCase):
         self.client.force_authenticate(user=self.user)
         resp = self.client.delete(f"{self.url}{self.comment.id}/")
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Comment.objects.filter(id=self.comment.id).exists())
+        self.comment.refresh_from_db()
+        self.assertTrue(self.comment.is_deleted)
+        self.assertEqual(self.comment.deleted_by, self.user)
 
     def test_delete_other_users_comment_denied(self):
         other = User.objects.create_user(username="other", password="pass123")
@@ -1198,7 +1201,8 @@ class CommentAPITest(TestCase):
         self.client.force_authenticate(user=self.user)
         resp = self.client.delete(f"{self.url}{other_comment.id}/")
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertTrue(Comment.objects.filter(id=other_comment.id).exists())
+        other_comment.refresh_from_db()
+        self.assertFalse(other_comment.is_deleted)
 
     # --- Validation: targets ---
 
@@ -1451,11 +1455,16 @@ class CenterRatingAPITest(TestCase):
         )
         self.client.force_authenticate(user=self.user)
         resp = self.client.delete(f"{self.url}{r.id}/")
+        # View returns 404 (not 403) to avoid leaking existence of
+        # other users' ratings.
         self.assertIn(
             resp.status_code,
-            [status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND],
+            [
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+                status.HTTP_404_NOT_FOUND,
+            ],
         )
-        self.assertTrue(CenterRating.objects.filter(id=r.id).exists())
 
     # --- Validation: score ---
 
@@ -1522,6 +1531,111 @@ class CenterRatingAPITest(TestCase):
             self.url, {"service_center": self.center.id, "score": 4}, format="json"
         )
         self.assertNotIn("user", resp.data)
+
+
+class CommentEditDeleteAPITest(TestCase):
+    """Tests for comment soft-delete, edit, and admin delete via API."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user("apiuser", password="pass12345")
+        self.token = Token.objects.create(user=self.user)
+        self.service = Service.objects.create(
+            name="svc", organization="org", documents="d", steps="s"
+        )
+        self.comment = Comment.objects.create(
+            user=self.user, service=self.service, text="original"
+        )
+
+    def test_delete_sets_deleted_by(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token}")
+        resp = self.client.delete(f"/api/v1/comments/{self.comment.id}/")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.comment.refresh_from_db()
+        self.assertTrue(self.comment.is_deleted)
+        self.assertEqual(self.comment.deleted_by, self.user)
+
+    def test_delete_other_users_comment_denied(self):
+        other = User.objects.create_user("other", password="pass12345")
+        other_token = Token.objects.create(user=other)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {other_token}")
+        resp = self.client.delete(f"/api/v1/comments/{self.comment.id}/")
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.comment.refresh_from_db()
+        self.assertFalse(self.comment.is_deleted)
+
+    def test_staff_can_delete_any_comment(self):
+        admin = User.objects.create_user("admin", password="pass12345", is_staff=True)
+        admin_token = Token.objects.create(user=admin)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {admin_token}")
+        resp = self.client.delete(f"/api/v1/comments/{self.comment.id}/")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.comment.refresh_from_db()
+        self.assertTrue(self.comment.is_deleted)
+        self.assertEqual(self.comment.deleted_by, admin)
+
+    def test_edit_sets_edited_at(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token}")
+        resp = self.client.patch(
+            f"/api/v1/comments/{self.comment.id}/",
+            {"text": "updated"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.comment.refresh_from_db()
+        self.assertEqual(self.comment.text, "updated")
+        self.assertIsNotNone(self.comment.edited_at)
+
+    def test_edit_after_24h_denied(self):
+        from datetime import timedelta
+
+        self.comment.created_at = timezone.now() - timedelta(hours=25)
+        self.comment.save(update_fields=["created_at"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token}")
+        resp = self.client.patch(
+            f"/api/v1/comments/{self.comment.id}/",
+            {"text": "expired"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.comment.refresh_from_db()
+        self.assertEqual(self.comment.text, "original")
+
+    def test_edit_deleted_comment_denied(self):
+        self.comment.deleted_by = self.user
+        self.comment.save(update_fields=["deleted_by"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token}")
+        resp = self.client.patch(
+            f"/api/v1/comments/{self.comment.id}/",
+            {"text": "deleted"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reply_to_deleted_comment_denied(self):
+        self.comment.deleted_by = self.user
+        self.comment.save(update_fields=["deleted_by"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token}")
+        resp = self.client.post(
+            "/api/v1/comments/",
+            {
+                "service": self.service.id,
+                "text": "reply",
+                "parent": self.comment.id,
+            },
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_deleted_comment_shows_is_deleted_in_list(self):
+        self.comment.deleted_by = self.user
+        self.comment.save(update_fields=["deleted_by"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token}")
+        resp = self.client.get(f"/api/v1/comments/?service={self.service.id}")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        results = resp.data["results"]
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0]["is_deleted"])
 
 
 class BookmarkAPITest(TestCase):

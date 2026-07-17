@@ -600,8 +600,12 @@ Retrieve a single FAQ.
 ### Comments
 
 Comments are public. Creating, editing, and deleting require
-authentication. Editing and deleting are restricted to the comment
-author.
+authentication. Editing is restricted to the comment author within
+24 hours of posting. Deleting is restricted to the comment author
+or staff members.
+
+Deletion is soft-deleted: deleted comments show "نظر حذف شده است."
+in place of the original text, but replies remain visible.
 
 Top-level comments are returned in the list. Replies are nested inside
 each top-level comment under the `replies` array. Only one level of
@@ -641,6 +645,8 @@ List top-level comments, newest first.
       "text": "خدمت خیلی خوب بود.",
       "created_at": "2025-07-16T14:30:00+03:30",
       "updated_at": "2025-07-16T14:30:00+03:30",
+      "edited_at": null,
+      "is_deleted": false,
       "replies": [
         {
           "id": 11,
@@ -656,6 +662,8 @@ List top-level comments, newest first.
           "text": "موافقم!",
           "created_at": "2025-07-16T15:00:00+03:30",
           "updated_at": "2025-07-16T15:00:00+03:30",
+          "edited_at": null,
+          "is_deleted": false,
           "replies": []
         }
       ]
@@ -713,10 +721,11 @@ Exactly one of `service` or `service_center` must be provided.
 
 #### `PATCH /api/v1/comments/<id>/`
 
-Update a comment. **Requires authentication. Only the author can edit.**
+Update a comment. **Requires authentication. Only the author can edit, and only within 24 hours of posting.**
 
 Only the `text` field can be changed. Fields `service`,
 `service_center`, and `parent` are immutable after creation.
+Successful edits set `edited_at` to the current timestamp.
 
 **Request body:**
 
@@ -732,12 +741,15 @@ Only the `text` field can be changed. Fields `service`,
 
 | Status | Condition |
 |--------|-----------|
-| `400` | Empty text, text too long |
+| `400` | Empty text, text too long, edit window expired, comment is deleted |
 | `401` / `403` | Not authenticated or not the author |
 
 #### `DELETE /api/v1/comments/<id>/`
 
-Delete a comment. **Requires authentication. Only the author can delete.**
+Delete a comment. **Requires authentication. Only the author or staff can delete.**
+
+Deletion is soft-deleted: the comment text is replaced with a generic
+message, but the comment record and its replies remain in the database.
 
 **Response** `204 No Content`
 
@@ -745,7 +757,7 @@ Delete a comment. **Requires authentication. Only the author can delete.**
 
 | Status | Condition |
 |--------|-----------|
-| `401` / `403` | Not authenticated or not the author |
+| `401` / `403` | Not authenticated or not the author/staff |
 | `404` | Comment not found |
 
 ---

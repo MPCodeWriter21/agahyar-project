@@ -5,8 +5,11 @@ Defines ``Service``, ``UserProfile``, ``FAQ``, ``ServiceCenter``,
 with Persian verbose names and helper methods.
 """
 
+from datetime import timedelta
+
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
+from django.utils import timezone
 
 from services.validators import iranian_phone_number_validator
 
@@ -157,6 +160,8 @@ class ContactMessage(models.Model):
 class Comment(models.Model):
     """A user comment on a service or service center, with optional nesting."""
 
+    EDIT_WINDOW_HOURS = 24
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     service = models.ForeignKey(
         Service,
@@ -183,6 +188,15 @@ class Comment(models.Model):
     text = models.TextField("متن نظر")
     created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField("آخرین ویرایش", auto_now=True)
+    edited_at = models.DateTimeField("زمان ویرایش", null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="deleted_comments",
+        verbose_name="حذف شده توسط",
+    )
 
     class Meta:
         verbose_name = "نظر"
@@ -199,6 +213,27 @@ class Comment(models.Model):
     def __str__(self) -> str:
         target = self.service.name if self.service else self.service_center.name
         return f"{self.user.username} - {target}"
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_by_id is not None
+
+    def can_be_edited_by(self, user: User) -> bool:
+        if not user.is_authenticated:
+            return False
+        if self.user_id != user.id:
+            return False
+        if self.is_deleted:
+            return False
+        deadline = self.created_at + timedelta(hours=self.EDIT_WINDOW_HOURS)
+        return timezone.now() < deadline
+
+    def can_be_deleted_by(self, user: User) -> bool:
+        if not user.is_authenticated:
+            return False
+        if self.is_deleted:
+            return False
+        return self.user_id == user.id or user.is_staff
 
 
 class CenterRating(models.Model):

@@ -2,6 +2,7 @@
 
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import (
@@ -102,6 +103,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     user = UserSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
+    is_deleted = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Comment
@@ -114,13 +116,23 @@ class CommentSerializer(serializers.ModelSerializer):
             "text",
             "created_at",
             "updated_at",
+            "edited_at",
+            "is_deleted",
             "replies",
         ]
-        read_only_fields = ["created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at", "edited_at", "is_deleted"]
 
     def update(self, instance, validated_data):
         for field in ("service", "service_center", "parent"):
             validated_data.pop(field, None)
+        if instance.is_deleted:
+            raise serializers.ValidationError("امکان ویرایش نظر حذف شده وجود ندارد.")
+        if not instance.can_be_edited_by(self.context["request"].user):
+            raise serializers.ValidationError(
+                "ویرایش نظر فقط تا ۲۴ ساعت پس از ارسال مجاز است."
+            )
+        if "text" in validated_data and validated_data["text"] != instance.text:
+            instance.edited_at = timezone.now()
         return super().update(instance, validated_data)
 
     def validate_text(self, value: str) -> str:
@@ -151,6 +163,10 @@ class CommentSerializer(serializers.ModelSerializer):
             )
 
         if parent is not None:
+            if parent.is_deleted:
+                raise serializers.ValidationError(
+                    {"parent": "امکان پاسخ به نظر حذف شده وجود ندارد."}
+                )
             if parent.service != service or parent.service_center != service_center:
                 raise serializers.ValidationError(
                     {"parent": "والد متعلق به همان خدمت/مرکز نیست."}

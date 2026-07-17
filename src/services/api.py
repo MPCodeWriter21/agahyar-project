@@ -99,12 +99,13 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     * **List / Retrieve**: public (any user).
     * **Create**: authenticated users only.
-    * **Update / Delete**: only the comment author.
+    * **Update**: only the comment author, within 24h, not deleted.
+    * **Delete**: only the comment author or staff (soft-delete).
 
     Validation:
     - Exactly one of ``service`` or ``service_center`` must be set.
     - If ``parent`` is given, it must belong to the same target and
-      be a top-level comment (no deeper nesting).
+      be a top-level comment, and not be deleted.
     - ``text`` must be non-empty and at most 2000 characters.
     """
 
@@ -118,13 +119,15 @@ class CommentViewSet(viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         if self.action == "create":
             return [permissions.IsAuthenticated()]
+        if self.action == "destroy":
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), IsOwnerOrReadOnly()]
 
     def get_queryset(self):
         qs = (
             Comment.objects.filter(parent__isnull=True)
-            .select_related("user")
-            .prefetch_related("replies__user")
+            .select_related("user", "deleted_by")
+            .prefetch_related("replies__user", "replies__deleted_by")
         )
         service_id = self.request.query_params.get("service")
         center_id = self.request.query_params.get("service_center")
@@ -148,6 +151,19 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if comment.is_deleted:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        if comment.user_id != request.user.id and not request.user.is_staff:
+            return Response(
+                {"detail": "شما مجوز حذف این نظر را ندارید."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        comment.deleted_by = request.user
+        comment.save(update_fields=["deleted_by", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CenterRatingViewSet(viewsets.ViewSet):

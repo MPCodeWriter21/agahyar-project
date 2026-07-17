@@ -559,8 +559,8 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
 
     top_level_comments = (
         Comment.objects.filter(service=service, parent__isnull=True)
-        .select_related("user")
-        .prefetch_related("replies__user")
+        .select_related("user", "deleted_by")
+        .prefetch_related("replies__user", "replies__deleted_by")
     )
 
     comment_page = int(request.GET.get("comment_page", 1))
@@ -889,6 +889,13 @@ def submit_comment(
         parent = None
         if parent_id:
             parent = Comment.objects.filter(id=parent_id).first()
+            if parent and parent.is_deleted:
+                messages.error(
+                    request, get_error_message("comment/cannot-reply-deleted")
+                )
+                if service_id:
+                    return redirect("service_detail", service_id=service_id)
+                return redirect("center_detail", center_id=center_id)
 
         comment = Comment(
             user=request.user,
@@ -909,6 +916,65 @@ def submit_comment(
     if service_id:
         return redirect("service_detail", service_id=service_id)
     return redirect("center_detail", center_id=center_id)
+
+
+@login_required
+def edit_comment(request: HttpRequest, comment_id: int) -> HttpResponse:
+    """Edit a comment. POST only. Owner-only, within 24h of posting."""
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    if comment.is_deleted:
+        messages.error(request, get_error_message("comment/cannot-edit-deleted"))
+        return _comment_redirect(comment)
+
+    if comment.user_id != request.user.id:
+        messages.error(request, get_error_message("comment/owner-only"))
+        return _comment_redirect(comment)
+
+    if not comment.can_be_edited_by(request.user):
+        messages.error(request, get_error_message("comment/edit-expired"))
+        return _comment_redirect(comment)
+
+    text = request.POST.get("text", "").strip()
+    if not text:
+        return _comment_redirect(comment)
+
+    comment.text = text
+    comment.edited_at = timezone.now()
+    comment.save(update_fields=["text", "edited_at", "updated_at"])
+    messages.success(request, get_error_message("comment/updated"))
+    return _comment_redirect(comment)
+
+
+@login_required
+def delete_comment(request: HttpRequest, comment_id: int) -> HttpResponse:
+    """Soft-delete a comment. POST only. Owner or staff."""
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    if comment.is_deleted:
+        return _comment_redirect(comment)
+
+    if comment.user_id != request.user.id and not request.user.is_staff:
+        messages.error(request, get_error_message("comment/owner-only"))
+        return _comment_redirect(comment)
+
+    comment.deleted_by = request.user
+    comment.save(update_fields=["deleted_by", "updated_at"])
+    messages.success(request, get_error_message("comment/deleted"))
+    return _comment_redirect(comment)
+
+
+def _comment_redirect(comment: Comment) -> HttpResponse:
+    """Redirect back to the page containing *comment*."""
+    if comment.service_id:
+        return redirect("service_detail", service_id=comment.service_id)
+    return redirect("center_detail", center_id=comment.service_center_id)
 
 
 def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
@@ -933,8 +999,8 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
 
     top_level_comments = (
         Comment.objects.filter(service_center=center, parent__isnull=True)
-        .select_related("user")
-        .prefetch_related("replies__user")
+        .select_related("user", "deleted_by")
+        .prefetch_related("replies__user", "replies__deleted_by")
     )
 
     comment_page = int(request.GET.get("comment_page", 1))

@@ -145,6 +145,16 @@
       <p class="empty-text">هنوز نظری ثبت نشده است.</p>
     {% endif %}
   </div>
+  <dialog id="delete-comment-modal" class="delete-modal">
+    <div class="delete-modal-content">
+      <p>آیا از حذف این نظر اطمینان دارید؟</p>
+      <div class="delete-modal-actions">
+        <button type="button" class="btn-confirm-delete" onclick="confirmDelete()">حذف</button>
+        <button type="button" class="btn-cancel-delete" onclick="cancelDelete()">لغو</button>
+      </div>
+    </div>
+  </dialog>
+  {% csrf_token %}
 {% endblock %}
 {% block extra_js %}
   <script src="{% static 'libs/leaflet/leaflet.js' %}"></script>

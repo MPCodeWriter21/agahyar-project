@@ -2,12 +2,14 @@
 
 Covers ``__str__`` representations, helper methods
 (``get_documents_list``, ``get_steps_list``, ``get_map_url``),
-unique-together constraints, and score-range validation.
+unique-together constraints, score-range validation, and
+comment edit/delete flags.
 """
 
 import pytest
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
+from django.utils import timezone
 
 from services.models import (
     FAQ,
@@ -253,3 +255,84 @@ class TestBookmarkModel:
 
         with pytest.raises(IntegrityError):
             Bookmark.objects.create(user=user, service=service)
+
+
+@pytest.mark.django_db
+class TestCommentEditDelete:
+    def _make_comment(self, username="author"):
+        user = User.objects.create_user(username, password="pass12345")
+        service = Service.objects.create(
+            name="test-svc", organization="org", documents="d", steps="s"
+        )
+        return Comment.objects.create(user=user, service=service, text="original")
+
+    def test_is_deleted_false_by_default(self):
+        c = self._make_comment()
+        assert c.is_deleted is False
+        assert c.deleted_by is None
+
+    def test_is_deleted_true_when_deleted_by_set(self):
+        c = self._make_comment()
+        admin = User.objects.create_user("admin", password="pass12345", is_staff=True)
+        c.deleted_by = admin
+        c.save(update_fields=["deleted_by"])
+        assert c.is_deleted is True
+
+    def test_edited_at_none_by_default(self):
+        c = self._make_comment()
+        assert c.edited_at is None
+
+    def test_edited_at_set_on_edit(self):
+        c = self._make_comment()
+        c.edited_at = timezone.now()
+        c.save(update_fields=["edited_at"])
+        assert c.edited_at is not None
+
+    def test_can_be_edited_by_owner_within_24h(self):
+        c = self._make_comment("owner")
+        assert c.can_be_edited_by(c.user) is True
+
+    def test_cannot_be_edited_by_other(self):
+        c = self._make_comment("owner")
+        other = User.objects.create_user("other", password="pass12345")
+        assert c.can_be_edited_by(other) is False
+
+    def test_cannot_be_edited_by_anonymous(self):
+        from django.contrib.auth.models import AnonymousUser
+
+        c = self._make_comment()
+        assert c.can_be_edited_by(AnonymousUser()) is False
+
+    def test_cannot_be_edited_after_24h(self):
+        c = self._make_comment()
+        from datetime import timedelta
+
+        c.created_at = timezone.now() - timedelta(hours=25)
+        c.save(update_fields=["created_at"])
+        assert c.can_be_edited_by(c.user) is False
+
+    def test_cannot_be_edited_when_deleted(self):
+        c = self._make_comment()
+        c.deleted_by = c.user
+        c.save(update_fields=["deleted_by"])
+        assert c.can_be_edited_by(c.user) is False
+
+    def test_can_be_deleted_by_owner(self):
+        c = self._make_comment("owner")
+        assert c.can_be_deleted_by(c.user) is True
+
+    def test_can_be_deleted_by_staff(self):
+        c = self._make_comment("owner")
+        admin = User.objects.create_user("admin", password="pass12345", is_staff=True)
+        assert c.can_be_deleted_by(admin) is True
+
+    def test_cannot_be_deleted_by_other(self):
+        c = self._make_comment("owner")
+        other = User.objects.create_user("other", password="pass12345")
+        assert c.can_be_deleted_by(other) is False
+
+    def test_cannot_be_deleted_when_already_deleted(self):
+        c = self._make_comment("owner")
+        c.deleted_by = c.user
+        c.save(update_fields=["deleted_by"])
+        assert c.can_be_deleted_by(c.user) is False

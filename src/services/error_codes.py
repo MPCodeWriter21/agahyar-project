@@ -50,6 +50,11 @@ ERROR_CODES: dict[str, str] = {
     "comment/updated": "نظر شما با موفقیت به‌روزرسانی شد.",
     "comment/deleted": "نظر شما با موفقیت حذف شد.",
     "comment/login-required": "برای ارسال نظر باید وارد شوید.",
+    "comment/not-found": "نظر مورد نظر یافت نشد.",
+    "comment/owner-only": "شما فقط می‌توانید نظر خود را ویرایش کنید.",
+    "comment/edit-expired": "ویرایش نظر فقط تا ۲۴ ساعت پس از ارسال مجاز است.",
+    "comment/cannot-reply-deleted": "امکان پاسخ به نظر حذف شده وجود ندارد.",
+    "comment/cannot-edit-deleted": "امکان ویرایش نظر حذف شده وجود ندارد.",
     # ---- Center rating ----
     "center-rating/added": "امتیاز شما با موفقیت ثبت شد.",
     "center-rating/updated": "امتیاز شما با موفقیت به‌روزرسانی شد.",
