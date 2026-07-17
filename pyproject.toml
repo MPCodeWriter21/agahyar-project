@@ -8,7 +8,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-  "Django>=6.0.6",
+  "Django>=6.0.7",
   "django-import-export>=4.4.1",
   "django-ratelimit>=4.1",
   "django-redis>=5.4",
@@ -31,7 +31,7 @@ dev = [
   "djlint>=1.40.3",
   "pip-audit>=2.7",
   "pre-commit>=4.2",
-  "pytest<9,>=8",
+  "pytest>=9.0.3",
   "pytest-cov>=7.1",
   "pytest-django>=4.9",
 ]
