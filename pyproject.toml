@@ -1,6 +1,6 @@
 [project]
 name = "agahyar"
-version = "0.1.0"
+version = "1.0.0"
 description = "Smart Citizen Information System for Government Services"
 requires-python = ">=3.12"
 classifiers = [
