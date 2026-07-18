@@ -228,6 +228,9 @@ OTP_RESEND_COOLDOWN_SECONDS = config(
     "OTP_RESEND_COOLDOWN_SECONDS", default=60, cast=int
 )
 
+# Neshan Maps search API (used by admin map widget)
+NESHAN_API_KEY = config("NESHAN_API_KEY", default="")
+
 # Email backend for development (prints to console)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 

@@ -1,6 +1,6 @@
 # Admin panel UX improvements
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 75
 - TAGS: admin panel, enhancement
 

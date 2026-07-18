@@ -28,6 +28,11 @@ class TestLocalOpenLayersWidget:
         assert "libs/ol/ol.js" in media._js
         assert "gis/js/OLMapWidget.js" in media._js
 
+    def test_media_includes_admin_map_widget_js(self):
+        w = LocalOpenLayersWidget()
+        media = w.media
+        assert "services/js/admin-map-widget.js" in media._js
+
     def test_media_includes_no_duplicates(self):
         w = LocalOpenLayersWidget()
         media = w.media
@@ -39,6 +44,35 @@ class TestLocalOpenLayersWidget:
         w = LocalOpenLayersWidget()
         html = w.render("coordinate", None, {"id": "id_coordinate"})
         assert "cdn.jsdelivr.net" not in html
+
+    def test_render_contains_search_box(self):
+        w = LocalOpenLayersWidget()
+        html = w.render("coordinate", None, {"id": "id_coordinate"})
+        assert "neshan-search-input" in html
+        assert "neshan-search-results" in html
+
+    def test_render_contains_coord_inputs(self):
+        w = LocalOpenLayersWidget()
+        html = w.render("coordinate", None, {"id": "id_coordinate"})
+        assert "neshan-lat-input" in html
+        assert "neshan-lng-input" in html
+        assert "Latitude" in html
+        assert "Longitude" in html
+
+    def test_render_has_search_input_id(self):
+        w = LocalOpenLayersWidget()
+        html = w.render("coordinate", None, {"id": "id_coordinate"})
+        assert 'id="id_coordinate_search"' in html
+
+    def test_render_has_coord_input_ids(self):
+        w = LocalOpenLayersWidget()
+        html = w.render("coordinate", None, {"id": "id_coordinate"})
+        assert 'id="id_coordinate_lat_input"' in html
+        assert 'id="id_coordinate_lng_input"' in html
+
+    def test_render_uses_custom_template(self):
+        w = LocalOpenLayersWidget()
+        assert w.template_name == "gis/openlayers.html"
 
 
 @pytest.mark.django_db
@@ -84,3 +118,24 @@ class TestServiceCenterAdminMapWidget:
         response = client.get("/admin/services/servicecenter/add/")
         content = response.content.decode()
         assert "cdn.jsdelivr.net" not in content
+
+    def test_admin_add_page_has_search_box(self):
+        from django.contrib.auth.models import User
+
+        User.objects.create_superuser("admin4", "admin4@test.com", "admin12345")
+        client = Client()
+        assert client.login(username="admin4", password="admin12345")
+        response = client.get("/admin/services/servicecenter/add/")
+        content = response.content.decode()
+        assert "neshan-search-input" in content
+
+    def test_admin_add_page_has_coord_inputs(self):
+        from django.contrib.auth.models import User
+
+        User.objects.create_superuser("admin5", "admin5@test.com", "admin12345")
+        client = Client()
+        assert client.login(username="admin5", password="admin12345")
+        response = client.get("/admin/services/servicecenter/add/")
+        content = response.content.decode()
+        assert "neshan-lat-input" in content
+        assert "neshan-lng-input" in content

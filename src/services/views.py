@@ -7,6 +7,9 @@ and SEO endpoints, with rate limiting on sensitive views.
 
 import json
 import logging
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import timedelta
 
 from django.conf import settings as django_settings
@@ -1395,3 +1398,52 @@ def admin_stats(request: HttpRequest) -> HttpResponse:
             "chart_services": chart_services,
         },
     )
+
+
+NESHAN_SEARCH_URL = "https://api.neshan.org/v1/search"
+
+
+@staff_member_required
+def neshan_search(request: HttpRequest) -> JsonResponse:
+    """Proxy the Neshan search API to keep the API key server-side.
+
+    Accepts ``term``, ``lat``, and ``lng`` query parameters and forwards
+    them to ``api.neshan.org/v1/search``.  Returns the Neshan response
+    as-is (JSON), or an error JSON on failure.
+    """
+    term = request.GET.get("term", "").strip()
+    lat = request.GET.get("lat", "").strip()
+    lng = request.GET.get("lng", "").strip()
+
+    if not term or not lat or not lng:
+        return JsonResponse(
+            {"error": "term, lat, and lng are required."},
+            status=400,
+        )
+
+    api_key = getattr(django_settings, "NESHAN_API_KEY", "")
+    if not api_key:
+        return JsonResponse(
+            {"error": "NESHAN_API_KEY is not configured on the server."},
+            status=503,
+        )
+
+    params = urllib.parse.urlencode({"term": term, "lat": lat, "lng": lng})
+    url = f"{NESHAN_SEARCH_URL}?{params}"
+
+    req = urllib.request.Request(url, headers={"Api-Key": api_key})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310
+            data = json.loads(resp.read().decode("utf-8"))
+            return JsonResponse(data, safe=False)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        return JsonResponse(
+            {"error": f"Neshan API error ({exc.code})", "detail": body},
+            status=exc.code,
+        )
+    except (urllib.error.URLError, TimeoutError):
+        return JsonResponse(
+            {"error": "Could not reach the Neshan search API."},
+            status=502,
+        )
