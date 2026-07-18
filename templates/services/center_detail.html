@@ -26,6 +26,12 @@
     {% endif %}
     <button onclick="window.print()" class="btn-print">چاپ</button>
   </div>
+  {% if center.description %}
+    <div class="description-card">
+      <strong>توضیحات</strong>
+      <div class="description-card-body">{{ center.description|linebreaksbr }}</div>
+    </div>
+  {% endif %}
   <div class="meta-grid">
     {% if center.phones.all %}
       <div class="meta-item">

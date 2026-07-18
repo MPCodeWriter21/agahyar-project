@@ -118,6 +118,7 @@ class ServiceCenter(models.Model):
     name = models.CharField("نام مرکز", max_length=200)
     address = models.TextField("آدرس کامل")
     city = models.CharField("شهر", max_length=100, db_index=True)
+    description = models.TextField("توضیحات", blank=True, default="")
     working_hours = models.TextField("ساعت کاری", blank=True)
     postal_code = models.CharField("کد پستی", max_length=20, blank=True)
     coordinate = models.PointField(

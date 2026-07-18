@@ -75,6 +75,7 @@ class ServiceCenterSerializer(serializers.ModelSerializer):
             "service",
             "service_name",
             "name",
+            "description",
             "address",
             "city",
             "phones",

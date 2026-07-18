@@ -26,6 +26,9 @@
             {% endif %}
           </div>
           <div class="center-address">{{ center.address }}</div>
+          {% if center.description %}
+            <div class="center-description">{{ center.description|linebreaksbr }}</div>
+          {% endif %}
           {% if center.postal_code %}
             <div class="center-postal">کد پستی: {{ center.postal_code }}</div>
           {% endif %}

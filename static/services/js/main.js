@@ -247,6 +247,13 @@ function loadMoreCenters(btn) {
           addr.textContent = center.address;
           item.appendChild(addr);
 
+          if (center.description) {
+            var desc = document.createElement("div");
+            desc.className = "center-item-description";
+            desc.textContent = center.description;
+            item.appendChild(desc);
+          }
+
           if (center.phones && center.phones.length > 0) {
             var phone = document.createElement("div");
             phone.className = "center-item-phone";

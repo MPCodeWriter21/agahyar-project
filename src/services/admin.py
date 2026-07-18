@@ -76,7 +76,14 @@ class ServiceCenterAdmin(ImportExportModelAdmin):
     """Admin configuration for the ServiceCenter model."""
 
     resource_classes = [ServiceCenterResource]
-    list_display = ("name", "service", "city", "postal_code", "working_hours")
+    list_display = (
+        "name",
+        "service",
+        "city",
+        "postal_code",
+        "working_hours",
+        "description",
+    )
     search_fields = ("name", "address", "city", "postal_code")
     list_filter = ("service", "city")
     inlines = [ServiceCenterPhoneInline]

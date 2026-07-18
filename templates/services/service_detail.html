@@ -80,6 +80,9 @@
               {% endif %}
             </div>
             <div class="center-item-address">{{ center.address }}</div>
+            {% if center.description %}
+              <div class="center-item-description">{{ center.description|linebreaksbr }}</div>
+            {% endif %}
             {% with primary=center.phones.all.first %}
               {% if primary %}
                 <div class="center-item-phone"><i class="fas fa-phone"></i> <a href="tel:{{ primary.phone }}" class="center-phone-link">{{ primary.phone|fa }}</a></div>
