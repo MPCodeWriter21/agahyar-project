@@ -19,21 +19,29 @@ INVALID_EMAIL_MSG: str = get_error_message("field/invalid-email")
 MAX_LENGTH_MSG: str = get_error_message("field/max-length")
 INVALID_PHONE_MSG: str = get_error_message("field/invalid-phone")
 
-CITY_CHOICES: list = [
-    ("", "شهر خود را انتخاب کنید"),
-    ("تهران", "تهران"),
-    ("مشهد", "مشهد"),
-    ("اصفهان", "اصفهان"),
-    ("شیراز", "شیراز"),
-    ("تبریز", "تبریز"),
-    ("کرج", "کرج"),
-    ("قم", "قم"),
-    ("اهواز", "اهواز"),
-    ("رشت", "رشت"),
-    ("کرمانشاه", "کرمانشاه"),
-    ("زاهدان", "زاهدان"),
-    ("ارومیه", "ارومیه"),
-]
+PLACEHOLDER_CITY = ("", "شهر خود را انتخاب کنید")
+
+
+def get_city_choices() -> list[tuple[str, str]]:
+    """Return city choices dynamically from the database.
+
+    Queries distinct city names from :class:`ServiceCenter` records
+    and prepends a placeholder entry.
+    """
+    from .models import ServiceCenter
+
+    cities = (
+        ServiceCenter.objects.values_list("city", flat=True).distinct().order_by("city")
+    )
+    return [PLACEHOLDER_CITY, *[(c, c) for c in cities]]
+
+
+def get_default_city() -> str:
+    """Return the first city from the database, or empty string."""
+    from .models import ServiceCenter
+
+    first_city = ServiceCenter.objects.values_list("city", flat=True).distinct().first()
+    return first_city or ""
 
 
 class LoginForm(forms.Form):
@@ -93,7 +101,7 @@ class RegisterForm(UserCreationForm):
         label="شهر محل سکونت",
         max_length=100,
         error_messages={"required": REQUIRED_MSG},
-        widget=forms.Select(choices=CITY_CHOICES),
+        widget=forms.Select(),
     )
     neighborhood = forms.CharField(
         label="محله",
@@ -108,6 +116,10 @@ class RegisterForm(UserCreationForm):
         error_messages={"required": REQUIRED_MSG, "invalid": INVALID_PHONE_MSG},
         widget=forms.TextInput(attrs={"placeholder": "مثال: 09121234567"}),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["city"].widget.choices = get_city_choices()
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
@@ -151,6 +163,7 @@ class ProfileForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.user_id = kwargs.pop("user_id", None)
         super().__init__(*args, **kwargs)
+        self.fields["city"].widget.choices = get_city_choices()
 
     first_name = forms.CharField(
         label="نام",
@@ -171,7 +184,7 @@ class ProfileForm(forms.Form):
         label="شهر محل سکونت",
         max_length=100,
         error_messages={"required": REQUIRED_MSG},
-        widget=forms.Select(choices=CITY_CHOICES),
+        widget=forms.Select(),
     )
     neighborhood = forms.CharField(
         label="محله",
@@ -212,7 +225,7 @@ class PersianPasswordChangeForm(PasswordChangeForm):
         self.fields["new_password1"].error_messages["required"] = REQUIRED_MSG
         self.fields["new_password2"].error_messages["required"] = REQUIRED_MSG
 
-    def validate_password_for_user(self, user, password_field_name="new_password2"):
+    def validate_password_for_user(self, user, password_field_name="new_password2"):  # nosec B107
         password = self.cleaned_data.get(password_field_name)
         if password:
             try:
@@ -236,25 +249,33 @@ class PersianPasswordChangeForm(PasswordChangeForm):
                     )
 
 
-class RatingForm(forms.Form):
-    """Form for submitting a service rating."""
+class CommentForm(forms.Form):
+    """Form for submitting a comment on a service or service center."""
+
+    text = forms.CharField(
+        label="نظر",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "class": "form-control",
+                "placeholder": "نظر خود را بنویسید...",
+            }
+        ),
+    )
+    parent_id = forms.IntegerField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+
+
+class CenterRatingForm(forms.Form):
+    """Form for submitting a rating for a service center."""
 
     score = forms.ChoiceField(
         label="امتیاز",
         choices=[(str(i), str(i)) for i in range(1, 6)],
         error_messages={"required": "لطفاً یک امتیاز انتخاب کنید."},
         widget=forms.Select(attrs={"class": "form-control"}),
-    )
-    comment = forms.CharField(
-        label="نظر (اختیاری)",
-        required=False,
-        widget=forms.Textarea(
-            attrs={
-                "rows": 3,
-                "class": "form-control",
-                "placeholder": "نظر خود را درباره این خدمت بنویسید...",
-            }
-        ),
     )
 
 

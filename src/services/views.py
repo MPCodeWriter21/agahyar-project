@@ -5,16 +5,19 @@ bookmarks, ratings, profile, FAQ, contact, nearby centers,
 and SEO endpoints, with rate limiting on sensitive views.
 """
 
+import json
 import logging
 from datetime import timedelta
 
 from django.conf import settings as django_settings
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import Avg, Q, QuerySet
+from django.db.models import Avg, Count, F, Q, QuerySet
+from django.db.models.functions import TruncWeek
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -22,22 +25,25 @@ from django_ratelimit.decorators import ratelimit
 
 from .error_codes import get_error_message
 from .forms import (
-    CITY_CHOICES,
+    CenterRatingForm,
+    CommentForm,
     ContactForm,
     LoginForm,
     OTPVerifyForm,
     PersianPasswordChangeForm,
     ProfileForm,
-    RatingForm,
     RegisterForm,
+    get_city_choices,
+    get_default_city,
 )
 from .maps import get_center_locations, get_city_center
 from .models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
     PhoneVerification,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -47,6 +53,8 @@ from .sms import SMSAPIError, get_sms_client
 from .suggestion import get_nearest_center
 
 logger = logging.getLogger(__name__)
+
+COMMENTS_PER_PAGE = 5
 
 
 def save_user_profile(
@@ -97,7 +105,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 return render(
                     request,
                     "services/auth/register.html",
-                    {"form": form, "city_choices": CITY_CHOICES},
+                    {"form": form, "city_choices": get_city_choices()},
                 )
 
             messages.success(request, get_error_message("otp/sent"))
@@ -108,7 +116,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "services/auth/register.html",
-        {"form": form, "city_choices": CITY_CHOICES},
+        {"form": form, "city_choices": get_city_choices()},
     )
 
 
@@ -415,7 +423,12 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         {
             "popular_services": popular_services,
             "faqs": faqs,
+            "faq_count": FAQ.objects.count(),
             "bookmarked_ids": bookmarked_ids,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "داشبورد"},
+            ],
         },
     )
 
@@ -478,6 +491,10 @@ def search(request: HttpRequest) -> HttpResponse:
             "page_obj": page_obj,
             "count": paginator.count,
             "bookmarked_ids": bookmarked_ids,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "جستجو"},
+            ],
         },
     )
 
@@ -485,21 +502,23 @@ def search(request: HttpRequest) -> HttpResponse:
 def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
     """Show details for a single Service.
 
-    Requires authentication. Attempts to determine the nearest service
+    Publicly accessible. Attempts to determine the nearest service
     center based on the user's profile city and neighborhood.
+    Anonymous users default to Tehran.
     """
-    if not request.user.is_authenticated:
-        return redirect("login")
-
     service: Service = get_object_or_404(Service, id=service_id)
 
-    try:
-        profile: UserProfile = request.user.profile
-        user_city: str = profile.city
-        user_neighborhood: str = profile.neighborhood
-    except UserProfile.DoesNotExist:
-        user_city = "تهران"
-        user_neighborhood = ""
+    user_city = get_default_city()
+    user_neighborhood = ""
+    user_city_for_centers = None
+    if request.user.is_authenticated:
+        try:
+            profile: UserProfile = request.user.profile
+            user_city = profile.city
+            user_neighborhood = profile.neighborhood
+            user_city_for_centers = profile.city
+        except UserProfile.DoesNotExist:
+            pass
 
     nearest_center = get_nearest_center(service.name, user_city, user_neighborhood)
 
@@ -508,22 +527,53 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             service=service, city__icontains=user_city
         ).first()
 
-    centers_in_city = ServiceCenter.objects.filter(
-        service=service, city__icontains=user_city
+    centers_qs = ServiceCenter.objects.filter(service=service).annotate(
+        avg_score=Avg("ratings__score")
     )
-    center_locations = get_center_locations(centers_in_city)
+
+    if user_city_for_centers:
+        city_centers = centers_qs.filter(city__icontains=user_city_for_centers)
+        from django.contrib.gis.db.models.functions import Distance as DistFunc
+
+        coord_center = city_centers.filter(coordinate__isnull=False).first()
+        if coord_center:
+            city_centers = city_centers.annotate(
+                city_distance=DistFunc("coordinate", coord_center.coordinate)
+            ).order_by(
+                "city_distance",
+                F("avg_score").desc(nulls_last=True),
+            )
+        else:
+            city_centers = city_centers.order_by(F("avg_score").desc(nulls_last=True))
+    else:
+        city_centers = centers_qs.order_by(F("avg_score").desc(nulls_last=True))
+
+    initial_centers = list(city_centers[:5])
+    has_more_centers = city_centers.count() > 5
+
+    center_locations = get_center_locations(city_centers)
     city_center = get_city_center(user_city)
 
-    is_bookmarked = Bookmark.objects.filter(user=request.user, service=service).exists()
+    is_bookmarked = False
+    if request.user.is_authenticated:
+        is_bookmarked = Bookmark.objects.filter(
+            user=request.user, service=service
+        ).exists()
 
-    ratings = (
-        Rating.objects.filter(service=service)
-        .select_related("user")
-        .order_by("-created_at")
+    top_level_comments = (
+        Comment.objects.filter(service=service, parent__isnull=True)
+        .select_related("user", "deleted_by")
+        .prefetch_related("replies__user", "replies__deleted_by")
     )
-    avg_rating = ratings.aggregate(Avg("score"))["score__avg"]
-    user_rating = Rating.objects.filter(user=request.user, service=service).first()
-    comments = [r for r in ratings if r.comment]
+
+    comment_page = int(request.GET.get("comment_page", 1))
+    comment_paginator = Paginator(top_level_comments, COMMENTS_PER_PAGE)
+    comment_page_obj = comment_paginator.get_page(comment_page)
+    has_more_comments = comment_page_obj.has_next()
+
+    comment_form = None
+    if request.user.is_authenticated:
+        comment_form = CommentForm()
 
     return render(
         request,
@@ -535,14 +585,20 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "nearest_center": nearest_center,
             "user_city": user_city,
             "user_neighborhood": user_neighborhood,
+            "initial_centers": initial_centers,
+            "has_more_centers": has_more_centers,
             "center_locations": center_locations,
             "city_center": city_center,
             "is_bookmarked": is_bookmarked,
-            "avg_rating": round(avg_rating, 1) if avg_rating else None,
-            "rating_count": ratings.count(),
-            "user_rating": user_rating,
-            "comments": comments,
-            "rating_form": RatingForm(),
+            "comments": comment_page_obj,
+            "has_more_comments": has_more_comments,
+            "comment_page": comment_page,
+            "comment_form": comment_form,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "خدمات", "url": "/services/"},
+                {"label": service.name},
+            ],
         },
     )
 
@@ -563,53 +619,61 @@ def services_list(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "services/service_list.html",
-        {"page_obj": page_obj, "bookmarked_ids": bookmarked_ids},
+        {
+            "page_obj": page_obj,
+            "bookmarked_ids": bookmarked_ids,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "خدمات"},
+            ],
+        },
     )
 
 
 def faq_view(request: HttpRequest) -> HttpResponse:
     """Display all FAQs ordered by their ``order`` field."""
-    if not request.user.is_authenticated:
-        return redirect("login")
     faqs: QuerySet = FAQ.objects.all().order_by("order")
-    return render(request, "services/faq.html", {"faqs": faqs})
+    return render(
+        request,
+        "services/faq.html",
+        {
+            "faqs": faqs,
+            "faq_count": faqs.count(),
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "سوالات متداول"},
+            ],
+        },
+    )
 
 
 @login_required
 def nearby_centers_view(request: HttpRequest) -> HttpResponse:
     """List nearby service centers grouped by service for the user's city.
 
-    Requires authentication. Falls back to "تهران" if no profile exists.
+    Requires authentication. Falls back to the first available city
+    if no profile exists.
     """
     try:
         profile: UserProfile = request.user.profile
         user_city: str = profile.city
         user_neighborhood: str = profile.neighborhood
     except UserProfile.DoesNotExist:
-        user_city = "تهران"
+        user_city = get_default_city()
         user_neighborhood = ""
 
-    services: QuerySet = Service.objects.all()
+    all_centers = ServiceCenter.objects.filter(
+        city__icontains=user_city
+    ).select_related("service")
+
     centers_by_service: dict = {}
+    for center in all_centers:
+        centers_by_service.setdefault(center.service.name, []).append(center)
 
-    for service in services:
-        centers: QuerySet = ServiceCenter.objects.filter(
-            service=service, city__icontains=user_city
-        )
-
-        if centers.exists():
-            nearest_center = get_nearest_center(
-                service.name, user_city, user_neighborhood
-            )
-
-            centers_list: list = []
-            for center in centers:
-                center.is_nearest = False
-                if nearest_center and center.id == nearest_center.id:
-                    center.is_nearest = True
-                centers_list.append(center)
-
-            centers_by_service[service.name] = centers_list
+    for service_name, centers_list in centers_by_service.items():
+        nearest = get_nearest_center(service_name, user_city, user_neighborhood)
+        for center in centers_list:
+            center.is_nearest = nearest is not None and center.id == nearest.id
 
     return render(
         request,
@@ -618,6 +682,10 @@ def nearby_centers_view(request: HttpRequest) -> HttpResponse:
             "centers_by_service": centers_by_service,
             "user_city": user_city,
             "user_neighborhood": user_neighborhood,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "مراکز نزدیک"},
+            ],
         },
     )
 
@@ -627,7 +695,17 @@ def show_users(request: HttpRequest) -> HttpResponse:
     if not request.user.is_authenticated:
         return redirect("login")
     users: QuerySet = User.objects.select_related("profile").all().order_by("id")
-    return render(request, "services/user_list.html", {"users": users})
+    return render(
+        request,
+        "services/user_list.html",
+        {
+            "users": users,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "کاربران"},
+            ],
+        },
+    )
 
 
 @login_required
@@ -698,14 +776,27 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             "form": form,
             "password_form": password_form,
             "profile": profile,
-            "city_choices": CITY_CHOICES,
+            "city_choices": get_city_choices(),
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "پروفایل"},
+            ],
         },
     )
 
 
 def about(request: HttpRequest) -> HttpResponse:
     """Render the about page (public)."""
-    return render(request, "services/about.html")
+    return render(
+        request,
+        "services/about.html",
+        {
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "درباره ما"},
+            ],
+        },
+    )
 
 
 @ratelimit(key="ip", rate="5/m", method="POST", block=True)
@@ -727,7 +818,17 @@ def contact(request: HttpRequest) -> HttpResponse:
     else:
         form = ContactForm()
 
-    return render(request, "services/contact.html", {"form": form})
+    return render(
+        request,
+        "services/contact.html",
+        {
+            "form": form,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "تماس با ما"},
+            ],
+        },
+    )
 
 
 @login_required
@@ -758,35 +859,390 @@ def toggle_bookmark(request: HttpRequest, service_id: int) -> HttpResponse:
 def bookmarks_list(request: HttpRequest) -> HttpResponse:
     """List all bookmarked services for the current user."""
     bookmarks = Bookmark.objects.filter(user=request.user).select_related("service")
-    return render(request, "services/bookmarks.html", {"bookmarks": bookmarks})
+    return render(
+        request,
+        "services/bookmarks.html",
+        {
+            "bookmarks": bookmarks,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "نشانک‌ها"},
+            ],
+        },
+    )
 
 
 @login_required
-def submit_rating(request: HttpRequest, service_id: int) -> HttpResponse:
-    """Submit or update a rating for a service.
+def submit_comment(
+    request: HttpRequest, service_id: int = 0, center_id: int = 0
+) -> HttpResponse:
+    """Submit a comment on a service or service center.
 
-    POST only: validates :class:`RatingForm`, creates or updates the rating.
+    POST only: validates :class:`CommentForm`, creates the comment.
+    Supports threaded replies via optional ``parent_id`` field.
     """
     if request.method != "POST":
-        return redirect("service_detail", service_id=service_id)
+        if service_id:
+            return redirect("service_detail", service_id=service_id)
+        return redirect("center_detail", center_id=center_id)
 
-    service = get_object_or_404(Service, id=service_id)
-    form = RatingForm(request.POST)
+    form = CommentForm(request.POST)
     if form.is_valid():
-        rating, created = Rating.objects.update_or_create(
+        parent_id = form.cleaned_data.get("parent_id")
+        parent = None
+        if parent_id:
+            parent = Comment.objects.filter(id=parent_id).first()
+            if parent and parent.is_deleted:
+                messages.error(
+                    request, get_error_message("comment/cannot-reply-deleted")
+                )
+                if service_id:
+                    return redirect("service_detail", service_id=service_id)
+                return redirect("center_detail", center_id=center_id)
+
+        comment = Comment(
             user=request.user,
-            service=service,
-            defaults={
-                "score": int(form.cleaned_data["score"]),
-                "comment": form.cleaned_data.get("comment", ""),
-            },
+            text=form.cleaned_data["text"],
+            parent=parent,
+        )
+        if service_id:
+            comment.service = get_object_or_404(Service, id=service_id)
+            comment.save()
+            messages.success(request, get_error_message("comment/added"))
+            return redirect("service_detail", service_id=service_id)
+        else:
+            comment.service_center = get_object_or_404(ServiceCenter, id=center_id)
+            comment.save()
+            messages.success(request, get_error_message("comment/added"))
+            return redirect("center_detail", center_id=center_id)
+
+    if service_id:
+        return redirect("service_detail", service_id=service_id)
+    return redirect("center_detail", center_id=center_id)
+
+
+@login_required
+def edit_comment(request: HttpRequest, comment_id: int) -> HttpResponse:
+    """Edit a comment. POST only. Owner-only, within 24h of posting."""
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    if comment.is_deleted:
+        messages.error(request, get_error_message("comment/cannot-edit-deleted"))
+        return _comment_redirect(comment)
+
+    if comment.user_id != request.user.id:
+        messages.error(request, get_error_message("comment/owner-only"))
+        return _comment_redirect(comment)
+
+    if not comment.can_be_edited_by(request.user):
+        messages.error(request, get_error_message("comment/edit-expired"))
+        return _comment_redirect(comment)
+
+    text = request.POST.get("text", "").strip()
+    if not text:
+        return _comment_redirect(comment)
+
+    comment.text = text
+    comment.edited_at = timezone.now()
+    comment.save(update_fields=["text", "edited_at", "updated_at"])
+    messages.success(request, get_error_message("comment/updated"))
+    return _comment_redirect(comment)
+
+
+@login_required
+def delete_comment(request: HttpRequest, comment_id: int) -> HttpResponse:
+    """Soft-delete a comment. POST only. Owner or staff."""
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    if comment.is_deleted:
+        return _comment_redirect(comment)
+
+    if comment.user_id != request.user.id and not request.user.is_staff:
+        messages.error(request, get_error_message("comment/owner-only"))
+        return _comment_redirect(comment)
+
+    comment.deleted_by = request.user
+    comment.save(update_fields=["deleted_by", "updated_at"])
+    messages.success(request, get_error_message("comment/deleted"))
+    return _comment_redirect(comment)
+
+
+def _comment_redirect(comment: Comment) -> HttpResponse:
+    """Redirect back to the page containing *comment*."""
+    if comment.service_id:
+        return redirect("service_detail", service_id=comment.service_id)
+    return redirect("center_detail", center_id=comment.service_center_id)
+
+
+def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
+    """Show details for a single ServiceCenter.
+
+    Publicly accessible. Shows center info, map, ratings, and comments.
+    """
+    center: ServiceCenter = get_object_or_404(
+        ServiceCenter.objects.select_related("service"), id=center_id
+    )
+
+    ratings = center.ratings.all()
+    rating_agg = ratings.aggregate(avg=Avg("score"), cnt=Count("id"))
+    avg_rating = rating_agg["avg"]
+    rating_count = rating_agg["cnt"]
+
+    user_center_rating = None
+    if request.user.is_authenticated:
+        user_center_rating = CenterRating.objects.filter(
+            user=request.user, service_center=center
+        ).first()
+
+    top_level_comments = (
+        Comment.objects.filter(service_center=center, parent__isnull=True)
+        .select_related("user", "deleted_by")
+        .prefetch_related("replies__user", "replies__deleted_by")
+    )
+
+    comment_page = int(request.GET.get("comment_page", 1))
+    comment_paginator = Paginator(top_level_comments, COMMENTS_PER_PAGE)
+    comment_page_obj = comment_paginator.get_page(comment_page)
+    has_more_comments = comment_page_obj.has_next()
+
+    center_locations = get_center_locations(ServiceCenter.objects.filter(id=center.id))
+
+    comment_form = None
+    rating_form = None
+    if request.user.is_authenticated:
+        comment_form = CommentForm()
+        rating_form = CenterRatingForm()
+
+    return render(
+        request,
+        "services/center_detail.html",
+        {
+            "center": center,
+            "service": center.service,
+            "center_locations": center_locations,
+            "avg_rating": round(avg_rating, 1) if avg_rating else None,
+            "rating_count": rating_count,
+            "user_center_rating": user_center_rating,
+            "comments": comment_page_obj,
+            "has_more_comments": has_more_comments,
+            "comment_page": comment_page,
+            "comment_form": comment_form,
+            "rating_form": rating_form,
+            "breadcrumbs": [
+                {"label": "خانه", "url": "/"},
+                {"label": "خدمات", "url": "/services/"},
+                {
+                    "label": center.service.name,
+                    "url": f"/service/{center.service.id}/",
+                },
+                {"label": center.name},
+            ],
+        },
+    )
+
+
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
+@login_required
+def submit_center_rating(request: HttpRequest, center_id: int) -> HttpResponse:
+    """Submit or update a rating for a service center.
+
+    POST only: validates :class:`CenterRatingForm`, creates or updates the rating.
+    If comment text is provided, also creates a Comment linked to the center.
+    """
+    if request.method != "POST":
+        return redirect("center_detail", center_id=center_id)
+
+    center = get_object_or_404(ServiceCenter, id=center_id)
+    form = CenterRatingForm(request.POST)
+    if form.is_valid():
+        rating, created = CenterRating.objects.update_or_create(
+            user=request.user,
+            service_center=center,
+            defaults={"score": int(form.cleaned_data["score"])},
         )
         if created:
-            messages.success(request, get_error_message("rating/added"))
+            messages.success(request, get_error_message("center-rating/added"))
         else:
-            messages.success(request, get_error_message("rating/updated"))
+            messages.success(request, get_error_message("center-rating/updated"))
 
-    return redirect("service_detail", service_id=service_id)
+    return redirect("center_detail", center_id=center_id)
+
+
+def suggest_closest_center(request: HttpRequest, service_id: int) -> HttpResponse:
+    """API endpoint: find the closest center based on browser geolocation.
+
+    POST with JSON body ``{"lat": float, "lng": float}``.
+    Returns JSON with the closest center details.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    import json
+
+    try:
+        data = json.loads(request.body)
+        lat = float(data.get("lat"))
+        lng = float(data.get("lng"))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse(
+            {"error": get_error_message("geolocation/invalid-coordinates")},
+            status=400,
+        )
+
+    from django.contrib.gis.db.models.functions import Distance
+    from django.contrib.gis.geos import Point
+
+    user_point = Point(lng, lat, srid=4326)
+    centers = (
+        ServiceCenter.objects.filter(
+            service_id=service_id,
+            coordinate__isnull=False,
+        )
+        .annotate(distance=Distance("coordinate", user_point))
+        .order_by("distance")[:1]
+    )
+
+    if not centers:
+        return JsonResponse({"center": None})
+
+    center = centers[0]
+    return JsonResponse(
+        {
+            "center": {
+                "id": center.id,
+                "name": center.name,
+                "address": center.address,
+                "phone": center.phone,
+                "distance_km": round(center.distance.km, 2),
+                "map_url": center.get_map_url(),
+                "lat": center.coordinate.y,
+                "lng": center.coordinate.x,
+            }
+        }
+    )
+
+
+def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
+    """API endpoint: load more centers for a service with pagination.
+
+    GET with query params ``page`` (default 1) and ``per_page`` (default 5).
+    For authenticated users, centers are ordered by proximity if their profile
+    city is known, otherwise by rating. For anonymous users, by rating.
+    """
+    service = get_object_or_404(Service, id=service_id)
+    page = int(request.GET.get("page", 1))
+    per_page = min(int(request.GET.get("per_page", 5)), 20)
+
+    qs = ServiceCenter.objects.filter(service=service)
+
+    annotate_rating = Avg("ratings__score")
+    qs = qs.annotate(avg_score=annotate_rating)
+
+    if request.user.is_authenticated:
+        try:
+            profile = request.user.profile
+            user_city = profile.city
+        except UserProfile.DoesNotExist:
+            user_city = None
+
+        if user_city:
+            from django.contrib.gis.db.models.functions import Distance
+
+            city_qs = qs.filter(city__icontains=user_city, coordinate__isnull=False)
+            coord_center = city_qs.first()
+            if coord_center:
+                qs = qs.filter(city__icontains=user_city)
+                qs = qs.annotate(
+                    city_distance=Distance("coordinate", coord_center.coordinate)
+                ).order_by(
+                    "city_distance",
+                    F("avg_score").desc(nulls_last=True),
+                )
+            else:
+                qs = qs.filter(city__icontains=user_city).order_by(
+                    F("avg_score").desc(nulls_last=True)
+                )
+        else:
+            qs = qs.order_by(F("avg_score").desc(nulls_last=True))
+    else:
+        qs = qs.order_by(F("avg_score").desc(nulls_last=True))
+
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page)
+
+    centers_data = []
+    for center in page_obj:
+        score = getattr(center, "avg_score", None)
+        centers_data.append(
+            {
+                "id": center.id,
+                "name": center.name,
+                "address": center.address,
+                "city": center.city,
+                "phone": center.phone,
+                "working_hours": center.working_hours,
+                "postal_code": center.postal_code,
+                "map_url": center.get_map_url(),
+                "avg_rating": round(score, 1) if score else None,
+            }
+        )
+
+    return JsonResponse(
+        {
+            "centers": centers_data,
+            "has_next": page_obj.has_next(),
+            "total_pages": paginator.num_pages,
+        }
+    )
+
+
+def load_comments(
+    request: HttpRequest, target_type: str, target_id: int
+) -> JsonResponse:
+    """API endpoint: load more top-level comments for a service or center.
+
+    GET with query param ``page`` (default 2). Returns rendered HTML fragments.
+    """
+    from django.template.loader import render_to_string
+
+    page = int(request.GET.get("page", 2))
+
+    if target_type == "service":
+        target = get_object_or_404(Service, id=target_id)
+        qs = Comment.objects.filter(service=target, parent__isnull=True)
+    elif target_type == "center":
+        target = get_object_or_404(ServiceCenter, id=target_id)
+        qs = Comment.objects.filter(service_center=target, parent__isnull=True)
+    else:
+        return JsonResponse({"error": "invalid target"}, status=400)
+
+    qs = qs.select_related("user").prefetch_related("replies__user")
+
+    paginator = Paginator(qs, COMMENTS_PER_PAGE)
+    page_obj = paginator.get_page(page)
+
+    html_parts = []
+    for comment in page_obj:
+        html_parts.append(
+            render_to_string(
+                "services/partials/comment.html",
+                {"comment": comment, "depth": 0, "user": request.user},
+                request=request,
+            )
+        )
+
+    return JsonResponse(
+        {
+            "html": "".join(html_parts),
+            "has_next": page_obj.has_next(),
+        }
+    )
 
 
 def robots_txt(request: HttpRequest) -> HttpResponse:
@@ -804,7 +1260,7 @@ def sitemap_xml(request: HttpRequest) -> HttpResponse:
     from django.conf import settings
     from django.urls import reverse
 
-    from .models import Service
+    from .models import Service, ServiceCenter
 
     site_url = settings.SITE_URL
     pages = [
@@ -825,9 +1281,117 @@ def sitemap_xml(request: HttpRequest) -> HttpResponse:
     for service in Service.objects.all():
         url = site_url + reverse("service_detail", args=[service.id])
         urls += f"<url><loc>{url}</loc><priority>0.6</priority></url>\n"
+    for center in ServiceCenter.objects.all():
+        url = site_url + reverse("center_detail", args=[center.id])
+        urls += f"<url><loc>{url}</loc><priority>0.5</priority></url>\n"
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f"{urls}</urlset>"
     )
     return HttpResponse(xml, content_type="application/xml")
+
+
+@staff_member_required
+def admin_stats(request: HttpRequest) -> HttpResponse:
+    """Admin dashboard with usage statistics (staff only).
+
+    Displays model counts, recent activity, popular services,
+    top-rated centers, and weekly trend charts.
+    """
+    now = timezone.now()
+    twelve_weeks_ago = now - timedelta(weeks=12)
+
+    overview = {
+        "total_users": User.objects.count(),
+        "total_services": Service.objects.count(),
+        "total_centers": ServiceCenter.objects.count(),
+        "total_comments": Comment.objects.count(),
+        "total_ratings": CenterRating.objects.count(),
+        "total_bookmarks": Bookmark.objects.count(),
+        "total_contact_messages": ContactMessage.objects.count(),
+        "total_faqs": FAQ.objects.count(),
+    }
+
+    recent_users = User.objects.order_by("-date_joined")[:10]
+    recent_comments = Comment.objects.select_related(
+        "user", "service", "service_center"
+    ).order_by("-created_at")[:10]
+
+    popular_services = Service.objects.annotate(
+        comment_count=Count("comments")
+    ).order_by("-comment_count")[:10]
+
+    top_centers = (
+        ServiceCenter.objects.annotate(
+            avg_rating=Avg("ratings__score"),
+            rating_count=Count("ratings"),
+        )
+        .filter(rating_count__gt=0)
+        .order_by("-avg_rating")[:10]
+    )
+
+    # --- Chart data: weekly aggregations ---
+    week_fmt = "%Y-%m-%d"
+
+    reg_by_week = (
+        User.objects.filter(date_joined__gte=twelve_weeks_ago)
+        .annotate(week=TruncWeek("date_joined"))
+        .values("week")
+        .annotate(count=Count("id"))
+        .order_by("week")
+    )
+
+    comments_by_week = (
+        Comment.objects.filter(created_at__gte=twelve_weeks_ago)
+        .annotate(week=TruncWeek("created_at"))
+        .values("week")
+        .annotate(count=Count("id"))
+        .order_by("week")
+    )
+
+    ratings_by_week = (
+        CenterRating.objects.filter(created_at__gte=twelve_weeks_ago)
+        .annotate(week=TruncWeek("created_at"))
+        .values("week")
+        .annotate(count=Count("id"))
+        .order_by("week")
+    )
+
+    chart_reg = json.dumps(
+        [
+            {"week": r["week"].strftime(week_fmt), "count": r["count"]}
+            for r in reg_by_week
+        ]
+    )
+    chart_comments = json.dumps(
+        [
+            {"week": r["week"].strftime(week_fmt), "count": r["count"]}
+            for r in comments_by_week
+        ]
+    )
+    chart_ratings = json.dumps(
+        [
+            {"week": r["week"].strftime(week_fmt), "count": r["count"]}
+            for r in ratings_by_week
+        ]
+    )
+    chart_services = json.dumps(
+        [{"name": s.name, "count": s.comment_count} for s in popular_services]
+    )
+
+    return render(
+        request,
+        "services/admin_stats.html",
+        {
+            "overview": overview,
+            "recent_users": recent_users,
+            "recent_comments": recent_comments,
+            "popular_services": popular_services,
+            "top_centers": top_centers,
+            "chart_reg": chart_reg,
+            "chart_comments": chart_comments,
+            "chart_ratings": chart_ratings,
+            "chart_services": chart_services,
+        },
+    )

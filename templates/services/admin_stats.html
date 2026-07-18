@@ -1,0 +1,328 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block title %}آمار مدیریت | آگاه‌یار{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">خانه</a> &rsaquo; آمار مدیریت
+  </div>
+{% endblock %}
+{% block content %}
+  <div id="content-main">
+    {% block messages %}{{ block.super }}{% endblock %}
+    <h1 style="margin-bottom: 24px;">آمار مدیریت</h1>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-value">{{ overview.total_users }}</div>
+        <div class="stat-label">کاربران</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-concierge-bell"></i>
+        </div>
+        <div class="stat-value">{{ overview.total_services }}</div>
+        <div class="stat-label">خدمات</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-building"></i>
+        </div>
+        <div class="stat-value">{{ overview.total_centers }}</div>
+        <div class="stat-label">مراکز</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-comments"></i>
+        </div>
+        <div class="stat-value">{{ overview.total_comments }}</div>
+        <div class="stat-label">نظرات</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-star"></i>
+        </div>
+        <div class="stat-value">{{ overview.total_ratings }}</div>
+        <div class="stat-label">امتیازها</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-bookmark"></i>
+        </div>
+        <div class="stat-value">{{ overview.total_bookmarks }}</div>
+        <div class="stat-label">نشانک‌ها</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-envelope"></i>
+        </div>
+        <div class="stat-value">{{ overview.total_contact_messages }}</div>
+        <div class="stat-label">پیام‌ها</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-question-circle"></i>
+        </div>
+        <div class="stat-value">{{ overview.total_faqs }}</div>
+        <div class="stat-label">سؤالات متداول</div>
+      </div>
+    </div>
+    <div class="stats-charts">
+      <div class="chart-container">
+        <h2>ثبت‌نام هفتگی</h2>
+        <canvas id="chart-registrations"></canvas>
+      </div>
+      <div class="chart-container">
+        <h2>نظرات هفتگی</h2>
+        <canvas id="chart-comments"></canvas>
+      </div>
+      <div class="chart-container">
+        <h2>امتیازهای هفتگی</h2>
+        <canvas id="chart-ratings"></canvas>
+      </div>
+      <div class="chart-container">
+        <h2>محبوب‌ترین خدمات</h2>
+        <canvas id="chart-services"></canvas>
+      </div>
+    </div>
+    <div class="stats-tables">
+      <div class="stats-table-section">
+        <h2>آخرین ثبت‌نام‌ها</h2>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>نام کاربری</th>
+              <th>نام</th>
+              <th>تاریخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in recent_users %}
+              <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.first_name|default:"-" }} {{ u.last_name|default:"" }}</td>
+                <td>{{ u.date_joined|date:"Y-m-d H:i" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3">داده‌ای موجود نیست.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="stats-table-section">
+        <h2>آخرین نظرات</h2>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>نویسنده</th>
+              <th>متن</th>
+              <th>هدف</th>
+              <th>تاریخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in recent_comments %}
+              <tr>
+                <td>{{ c.user.username }}</td>
+                <td>{{ c.text|truncatewords:8 }}</td>
+                <td>{% if c.service %}{{ c.service.name }}{% elif c.service_center %}{{ c.service_center.name }}{% else %}-{% endif %}</td>
+                <td>{{ c.created_at|date:"Y-m-d H:i" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4">داده‌ای موجود نیست.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="stats-table-section">
+        <h2>محبوب‌ترین خدمات</h2>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>نام خدمت</th>
+              <th>تعداد نظرات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in popular_services %}
+              <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.comment_count }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="2">داده‌ای موجود نیست.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="stats-table-section">
+        <h2>برترین مراکز</h2>
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th>نام مرکز</th>
+              <th>میانگین امتیاز</th>
+              <th>تعداد امتیازها</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in top_centers %}
+              <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.avg_rating|floatformat:1 }}</td>
+                <td>{{ c.rating_count }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3">داده‌ای موجود نیست.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="{% static 'libs/chartjs/chart.umd.min.js' %}"></script>
+  <script>
+      (function() {
+          var teal = "#1a5f7a";
+          var tealLight = "rgba(26, 95, 122, 0.2)";
+
+          function isDark() {
+              var theme = document.documentElement.dataset.theme;
+              if (theme === "dark") return true;
+              if (theme === "light") return false;
+              return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          }
+
+          function tickColor() {
+              return isDark() ? "#d0d0d0" : "#666";
+          }
+
+          function gridColor() {
+              return isDark() ? "#353535" : "#e0e0e0";
+          }
+
+          function makeLineChart(canvasId, data, color, bgColor) {
+              var ctx = document.getElementById(canvasId);
+              if (!ctx) return;
+              new Chart(ctx, {
+                  type: "line",
+                  data: {
+                      labels: data.map(function(d) {
+                          return d.week;
+                      }),
+                      datasets: [{
+                          label: "تعداد",
+                          data: data.map(function(d) {
+                              return d.count;
+                          }),
+                          borderColor: color || teal,
+                          backgroundColor: bgColor || tealLight,
+                          fill: true,
+                          tension: 0.3
+                      }]
+                  },
+                  options: {
+                      responsive: true,
+                      plugins: {
+                          legend: {
+                              display: false
+                          }
+                      },
+                      scales: {
+                          x: {
+                              ticks: {
+                                  maxRotation: 45,
+                                  font: {
+                                      size: 10
+                                  },
+                                  color: tickColor()
+                              },
+                              grid: {
+                                  color: gridColor()
+                              }
+                          },
+                          y: {
+                              beginAtZero: true,
+                              ticks: {
+                                  stepSize: 1,
+                                  color: tickColor()
+                              },
+                              grid: {
+                                  color: gridColor()
+                              }
+                          }
+                      }
+                  }
+              });
+          }
+
+          function makeBarChart(canvasId, data, color) {
+              var ctx = document.getElementById(canvasId);
+              if (!ctx) return;
+              new Chart(ctx, {
+                  type: "bar",
+                  data: {
+                      labels: data.map(function(d) {
+                          return d.name;
+                      }),
+                      datasets: [{
+                          label: "تعداد نظرات",
+                          data: data.map(function(d) {
+                              return d.count;
+                          }),
+                          backgroundColor: color || teal
+                      }]
+                  },
+                  options: {
+                      responsive: true,
+                      indexAxis: "y",
+                      plugins: {
+                          legend: {
+                              display: false
+                          }
+                      },
+                      scales: {
+                          x: {
+                              beginAtZero: true,
+                              ticks: {
+                                  stepSize: 1,
+                                  color: tickColor()
+                              },
+                              grid: {
+                                  color: gridColor()
+                              }
+                          },
+                          y: {
+                              ticks: {
+                                  color: tickColor()
+                              },
+                              grid: {
+                                  color: gridColor()
+                              }
+                          }
+                      }
+                  }
+              });
+          }
+
+          var regData = {{ chart_reg|safe }};
+          var commentsData = {{ chart_comments|safe }};
+          var ratingsData = {{ chart_ratings|safe }};
+          var servicesData = {{ chart_services|safe }};
+
+          makeLineChart("chart-registrations", regData, teal, tealLight);
+          makeLineChart("chart-comments", commentsData, teal, tealLight);
+          makeLineChart("chart-ratings", ratingsData, teal, tealLight);
+          makeBarChart("chart-services", servicesData, teal);
+      })();
+  </script>
+{% endblock %}

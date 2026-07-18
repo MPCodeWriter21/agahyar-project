@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
+import sentry_sdk
 from decouple import config
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
@@ -61,12 +63,17 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.gis",
     "import_export",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "drf_spectacular",
     "services",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
+    "agahyar_project.middleware.RequestIDMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -74,7 +81,11 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "agahyar_project.middleware.SecurityHeadersMiddleware",
+    "agahyar_project.middleware.SessionRefreshMiddleware",
 ]
+
+if config("ENABLE_PROFILING", default=False, cast=bool):
+    MIDDLEWARE.append("agahyar_project.middleware.ProfilingMiddleware")
 
 ROOT_URLCONF = "agahyar_project.urls"
 
@@ -193,6 +204,12 @@ if REDIS_URL:
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cache"
     SESSION_CACHE_ALIAS = "default"
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
 
 # Rate limiting
 RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)
@@ -220,7 +237,10 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {message}",
+            "format": (
+                "{asctime} {levelname} [{name}] [req:{request_id}] "
+                "{module}:{lineno} {message}"
+            ),
             "style": "{",
         },
         "simple": {
@@ -228,21 +248,93 @@ LOGGING = {
             "style": "{",
         },
     },
+    "filters": {
+        "request_id": {
+            "()": "agahyar_project.logging.RequestIDFilter",
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
+            "filters": ["request_id"],
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs" / "django.log",
+            "maxBytes": 10 * 1024 * 1024,  # 10 MB
+            "backupCount": 5,
+            "formatter": "verbose",
+            "filters": ["request_id"],
+        },
+        "error_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "logs" / "error.log",
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+            "filters": ["request_id"],
+            "level": "ERROR",
         },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": ["console", "file", "error_file"],
         "level": "INFO",
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],
+            "handlers": ["console", "file", "error_file"],
             "level": "INFO",
+            "filters": ["request_id"],
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "filters": ["request_id"],
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "error_file"],
+            "level": "INFO",
+            "filters": ["request_id"],
             "propagate": False,
         },
     },
+}
+
+# Ensure log directory exists
+(BASE_DIR / "logs").mkdir(exist_ok=True)
+
+# Sentry error tracking
+SENTRY_DSN = config("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=0.1,
+        send_default_pii=DEBUG,
+        environment="production" if not DEBUG else "development",
+    )
+
+# Django REST Framework
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+}
+
+# drf-spectacular (OpenAPI / Swagger)
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Agahyar API",
+    "DESCRIPTION": "REST API for the Agahyar smart citizen information system.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }

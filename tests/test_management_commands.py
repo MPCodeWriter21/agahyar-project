@@ -15,8 +15,9 @@ from django.core.management import call_command
 from services.models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -52,8 +53,9 @@ def sample_data():
         category="Test",
         order=1,
     )
-    rating = Rating.objects.create(
-        user=user, service=service, score=5, comment="Great!"
+    comment = Comment.objects.create(user=user, service=service, text="Great!")
+    center_rating = CenterRating.objects.create(
+        user=user, service_center=center, score=5
     )
     bookmark = Bookmark.objects.create(user=user, service=service)
     message = ContactMessage.objects.create(
@@ -65,7 +67,8 @@ def sample_data():
         "service": service,
         "center": center,
         "faq": faq,
-        "rating": rating,
+        "comment": comment,
+        "center_rating": center_rating,
         "bookmark": bookmark,
         "message": message,
     }
@@ -77,7 +80,7 @@ class TestExportData:
         call_command("export_data", "--format", "json")
         captured = capsys.readouterr()
         data = json.loads(captured.out)
-        assert len(data) == 7
+        assert len(data) == 8
         models = {r["_model"] for r in data}
         assert "services.Service" in models
         assert "services.FAQ" in models
@@ -88,7 +91,7 @@ class TestExportData:
         assert os.path.exists(out_file)
         with open(out_file, encoding="utf-8") as f:
             data = json.load(f)
-        assert len(data) == 7
+        assert len(data) == 8
 
     def test_export_csv_to_file(self, sample_data, tmp_path):
         out_file = str(tmp_path / "export.csv")
@@ -106,6 +109,8 @@ class TestImportData:
         export_file = str(tmp_path / "export.json")
         call_command("export_data", "--format", "json", "--output", export_file)
 
+        Comment.objects.all().delete()
+        CenterRating.objects.all().delete()
         Service.objects.all().delete()
         FAQ.objects.all().delete()
         assert Service.objects.count() == 0
@@ -118,6 +123,8 @@ class TestImportData:
         export_file = str(tmp_path / "export.json")
         call_command("export_data", "--format", "json", "--output", export_file)
 
+        Comment.objects.all().delete()
+        CenterRating.objects.all().delete()
         Service.objects.all().delete()
         assert Service.objects.count() == 0
 

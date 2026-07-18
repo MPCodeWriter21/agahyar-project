@@ -1,7 +1,7 @@
 """URL configuration for the ``services`` application.
 
 Maps all application routes: core pages, authentication
-endpoints, bookmarks, ratings, and password reset flows.
+endpoints, bookmarks, comments, ratings, and password reset flows.
 """
 
 from typing import List
@@ -20,11 +20,54 @@ urlpatterns: List[URLPattern] = [
     path("dashboard/", views.dashboard, name="dashboard"),
     path("search/", views.search, name="search"),
     path("service/<int:service_id>/", views.service_detail, name="service_detail"),
+    path("center/<int:center_id>/", views.center_detail, name="center_detail"),
     path("services/", views.services_list, name="services_list"),
-    # ===== Bookmarks & Ratings =====
+    # ===== Bookmarks =====
     path("bookmarks/", views.bookmarks_list, name="bookmarks_list"),
     path("bookmark/<int:service_id>/", views.toggle_bookmark, name="toggle_bookmark"),
-    path("rate/<int:service_id>/", views.submit_rating, name="submit_rating"),
+    # ===== Comments =====
+    path(
+        "comment/service/<int:service_id>/",
+        views.submit_comment,
+        name="submit_comment_service",
+    ),
+    path(
+        "comment/center/<int:center_id>/",
+        views.submit_comment,
+        name="submit_comment_center",
+    ),
+    path(
+        "comment/<int:comment_id>/edit/",
+        views.edit_comment,
+        name="edit_comment",
+    ),
+    path(
+        "comment/<int:comment_id>/delete/",
+        views.delete_comment,
+        name="delete_comment",
+    ),
+    # ===== Center ratings =====
+    path(
+        "rate-center/<int:center_id>/",
+        views.submit_center_rating,
+        name="submit_center_rating",
+    ),
+    # ===== Geolocation API =====
+    path(
+        "api/suggest-center/<int:service_id>/",
+        views.suggest_closest_center,
+        name="suggest_closest_center",
+    ),
+    path(
+        "api/load-centers/<int:service_id>/",
+        views.load_centers,
+        name="load_centers",
+    ),
+    path(
+        "api/load-comments/<str:target_type>/<int:target_id>/",
+        views.load_comments,
+        name="load_comments",
+    ),
     # ===== Supplementary pages =====
     path("profile/", views.profile_view, name="profile"),
     path("faq/", views.faq_view, name="faq"),

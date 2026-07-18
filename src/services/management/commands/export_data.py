@@ -19,9 +19,10 @@ from django.core.management.base import BaseCommand
 from services.models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
     PhoneVerification,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -33,7 +34,8 @@ EXPORTABLE_MODELS = [
     FAQ,
     UserProfile,
     ContactMessage,
-    Rating,
+    Comment,
+    CenterRating,
     Bookmark,
     PhoneVerification,
 ]

@@ -14,9 +14,10 @@ from django.core.management.base import BaseCommand
 from services.models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
     PhoneVerification,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -30,7 +31,8 @@ MODEL_MAP = {
         FAQ,
         UserProfile,
         ContactMessage,
-        Rating,
+        Comment,
+        CenterRating,
         Bookmark,
         PhoneVerification,
     ]

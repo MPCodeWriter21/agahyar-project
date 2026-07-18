@@ -1,6 +1,6 @@
 [project]
 name = "agahyar"
-version = "0.1.0"
+version = "1.0.0"
 description = "Smart Citizen Information System for Government Services"
 requires-python = ">=3.12"
 classifiers = [
@@ -8,14 +8,19 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-  "Django>=6.0.6",
+  "Django>=6.0.7",
   "django-import-export>=4.4.1",
   "django-ratelimit>=4.1",
   "django-redis>=5.4",
+  "djangorestframework>=3.16",
+  "drf-spectacular>=0.28",
   "httpx>=0.28.1",
+  "jdatetime>=6",
   "log21>=3.3.2",
+  "psutil>=7",
   "psycopg2-binary>=2.9.10",
   "python-decouple>=3.8",
+  "sentry-sdk>=2.30",
   "sqlparse>=0.5.5",
   "tzdata>=2026.2",
   "whitenoise>=6.9",
@@ -24,8 +29,9 @@ dependencies = [
 dev = [
   "bandit>=1.8",
   "djlint>=1.40.3",
+  "pip-audit>=2.7",
   "pre-commit>=4.2",
-  "pytest<9,>=8",
+  "pytest>=9.0.3",
   "pytest-cov>=7.1",
   "pytest-django>=4.9",
 ]
@@ -49,9 +55,21 @@ run-server = "agahyar_project.scripts:run_server"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "agahyar_project.settings"
 addopts = ["-p", "services.test_plugin"]
-python_files = ["tests.py", "test_*.py"]
-testpaths = ["src/services"]
+python_files = ["test_*.py"]
+testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/test_*", "*/tests.py", "*/migrations/*", "*/conftest.py"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+
+[tool.bandit]
+targets = ["src"]
+exclude_dirs = ["tests", "migrations"]
 
 [tool.djlint]
 profile = "django"

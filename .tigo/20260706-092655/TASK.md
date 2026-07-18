@@ -1,6 +1,6 @@
 # Comments and ranking overhaul
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 65
 - TAGS: rating, feature, comments, enhancement
 

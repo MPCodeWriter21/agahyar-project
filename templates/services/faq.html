@@ -7,6 +7,8 @@
     <h1>پرسش‌های متداول</h1>
     <p>پاسخ به سوالات رایج درباره خدمات دولتی</p>
   </div>
+  {% load cache %}
+  {% cache 900 faq_list faq_count %}
   {% for faq in faqs %}
     <div class="faq-item">
       <div class="faq-question">{{ faq.question }}</div>
@@ -18,4 +20,5 @@
   {% empty %}
     <p class="empty-faq">هنوز سوالی اضافه نشده است.</p>
   {% endfor %}
+{% endcache %}
 {% endblock %}

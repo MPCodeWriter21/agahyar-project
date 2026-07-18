@@ -11,6 +11,7 @@ services:
     volumes:
       - ./src/agahyar_project:/app/src/agahyar_project
       - ./src/services:/app/src/services
+      - ./tests:/app/tests
       - ./templates:/app/templates
       - ./static/services:/app/static/services
       - ./manage.py:/app/manage.py

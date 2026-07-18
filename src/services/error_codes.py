@@ -45,9 +45,22 @@ ERROR_CODES: dict[str, str] = {
     # ---- Bookmark ----
     "bookmark/added": "خدمت مورد نظر به نشانک‌ها اضافه شد.",
     "bookmark/removed": "خدمت مورد نظر از نشانک‌ها حذف شد.",
-    # ---- Rating ----
-    "rating/added": "امتیاز شما با موفقیت ثبت شد.",
-    "rating/updated": "امتیاز شما با موفقیت به‌روزرسانی شد.",
+    # ---- Comment ----
+    "comment/added": "نظر شما با موفقیت ثبت شد.",
+    "comment/updated": "نظر شما با موفقیت به‌روزرسانی شد.",
+    "comment/deleted": "نظر شما با موفقیت حذف شد.",
+    "comment/login-required": "برای ارسال نظر باید وارد شوید.",
+    "comment/not-found": "نظر مورد نظر یافت نشد.",
+    "comment/owner-only": "شما فقط می‌توانید نظر خود را ویرایش کنید.",
+    "comment/edit-expired": "ویرایش نظر فقط تا ۲۴ ساعت پس از ارسال مجاز است.",
+    "comment/cannot-reply-deleted": "امکان پاسخ به نظر حذف شده وجود ندارد.",
+    "comment/cannot-edit-deleted": "امکان ویرایش نظر حذف شده وجود ندارد.",
+    # ---- Center rating ----
+    "center-rating/added": "امتیاز شما با موفقیت ثبت شد.",
+    "center-rating/updated": "امتیاز شما با موفقیت به‌روزرسانی شد.",
+    # ---- Geolocation ----
+    "geolocation/unavailable": "امکان دریافت موقعیت جغرافیایی وجود ندارد.",
+    "geolocation/invalid-coordinates": "مختصات وارد شده معتبر نیست.",
     # ---- Rate limiting ----
     "ratelimit/exceeded": "درخواست‌های زیادی ارسال کرده‌اید. لطفاً چند دقیقه دیگر تلاش کنید.",
     # ---- Uniqueness ----

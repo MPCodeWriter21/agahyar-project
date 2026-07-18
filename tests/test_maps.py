@@ -8,27 +8,47 @@ import pytest
 from django.contrib.gis.geos import Point
 from django.test import Client
 
-from services.maps import CITY_COORDINATES, get_center_locations, get_city_center
+from services.maps import get_center_locations, get_city_center
 from services.models import Service, ServiceCenter, User
 
 
+@pytest.mark.django_db
 class TestGetCityCenter:
-    def test_returns_tehran_coords(self):
-        center = get_city_center("تهران")
-        assert center == {"lat": 35.6892, "lng": 51.3890}
+    def _create_center(self, city, lat, lng):
+        svc = Service.objects.create(
+            name="map-svc", organization="org", documents="d", steps="s"
+        )
+        return ServiceCenter.objects.create(
+            service=svc,
+            name=f"مرکز {city}",
+            city=city,
+            coordinate=Point(lng, lat, srid=4326),
+        )
 
-    def test_returns_shiraz_coords(self):
-        center = get_city_center("شیراز")
-        assert center == {"lat": 29.5926, "lng": 52.5836}
+    def test_returns_coords_for_city(self):
+        self._create_center("تهران", 35.6892, 51.3890)
+        center = get_city_center("تهران")
+        assert abs(center["lat"] - 35.6892) < 0.01
+        assert abs(center["lng"] - 51.3890) < 0.01
+
+    def test_averages_multiple_centers(self):
+        self._create_center("کرج", 35.83, 50.99)
+        self._create_center("کرج", 35.84, 51.00)
+        center = get_city_center("کرج")
+        assert abs(center["lat"] - 35.835) < 0.01
+        assert abs(center["lng"] - 50.995) < 0.01
 
     def test_falls_back_to_tehran_for_unknown_city(self):
         center = get_city_center("نامشخص")
         assert center == {"lat": 35.6892, "lng": 51.3890}
 
-    def test_all_cities_have_valid_coordinates(self):
-        for city, (lat, lng) in CITY_COORDINATES.items():
-            assert -90 <= lat <= 90, f"{city} lat out of range"
-            assert -180 <= lng <= 180, f"{city} lng out of range"
+    def test_falls_back_when_no_coordinates(self):
+        svc = Service.objects.create(
+            name="no-coord", organization="o", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(service=svc, name="بدون مختصات", city="زاهدان")
+        center = get_city_center("زاهدان")
+        assert center == {"lat": 35.6892, "lng": 51.3890}
 
 
 @pytest.mark.django_db
@@ -134,6 +154,12 @@ class TestServiceDetailMapContext:
         User.objects.create_user("mapuser3", password="pass12345")
         svc = Service.objects.create(
             name="map-svc3", organization="org", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(
+            service=svc,
+            name="مرکز تهران",
+            city="تهران",
+            coordinate=Point(51.3890, 35.6892, srid=4326),
         )
         client = Client()
         client.login(username="mapuser3", password="pass12345")

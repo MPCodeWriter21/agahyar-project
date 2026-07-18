@@ -30,3 +30,6 @@ staticfiles/
 # Vendored static assets
 static/libs/
 static/Vazirmatn-Regular.woff2
+
+# Logs
+logs/

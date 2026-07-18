@@ -7,8 +7,9 @@ from import_export.widgets import Widget
 from .models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -98,16 +99,33 @@ class ContactMessageResource(resources.ModelResource):
         fields = ("id", "name", "email", "message", "created_at")
 
 
-class RatingResource(resources.ModelResource):
+class CommentResource(resources.ModelResource):
     class Meta:
-        model = Rating
+        model = Comment
         import_id_fields = ("id",)
         fields = (
             "id",
             "user",
             "service",
+            "service_center",
+            "parent",
+            "text",
+            "created_at",
+            "updated_at",
+            "edited_at",
+            "deleted_by",
+        )
+
+
+class CenterRatingResource(resources.ModelResource):
+    class Meta:
+        model = CenterRating
+        import_id_fields = ("id",)
+        fields = (
+            "id",
+            "user",
+            "service_center",
             "score",
-            "comment",
             "created_at",
             "updated_at",
         )

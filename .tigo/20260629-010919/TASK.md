@@ -1,6 +1,6 @@
 # User feedback and rating system
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 55
 - TAGS: feature, ux
 

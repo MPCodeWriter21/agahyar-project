@@ -1,4 +1,5 @@
 {% extends 'services/base.html' %}
+{% load jalali_tags %}
 {% block title %}پروفایل | آگاه‌یار{% endblock %}
 {% block meta_description %}مشاهده و ویرایش پروفایل کاربری در سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}پروفایل, ویرایش اطلاعات, آگاه‌یار{% endblock %}
@@ -20,7 +21,7 @@
           <div class="info-row"><span class="info-label">شهر</span><span class="info-value text-muted">ثبت نشده</span></div>
           <div class="info-row"><span class="info-label">محله</span><span class="info-value text-muted">ثبت نشده</span></div>
         {% endif %}
-        <div class="info-row"><span class="info-label">تاریخ عضویت</span><span class="info-value">{{ user.date_joined|date:"Y/m/d" }}</span></div>
+        <div class="info-row"><span class="info-label">تاریخ عضویت</span><span class="info-value">{{ user.date_joined|jalali:"DD MN YYYY" }}</span></div>
       </div>
     </div>
     <div class="profile-section collapsible-section">

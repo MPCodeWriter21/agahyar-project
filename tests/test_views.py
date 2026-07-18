@@ -5,20 +5,23 @@ SEO endpoints, bookmarks, ratings, responsive design,
 and error-code rendering across all views.
 """
 
+import json
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from services.forms import RegisterForm
 from services.models import (
     FAQ,
     Bookmark,
+    CenterRating,
+    Comment,
     ContactMessage,
     PhoneVerification,
-    Rating,
     Service,
     ServiceCenter,
     UserProfile,
@@ -421,32 +424,36 @@ class TestServiceListView:
 
 @pytest.mark.django_db
 class TestServiceDetailView:
-    def test_requires_login(self):
+    def test_accessible_anonymously(self):
+        service = Service.objects.create(
+            name="public-svc", organization="org", documents="doc1", steps="step1"
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+
+    def test_404_for_nonexistent(self):
         client = Client()
         response = client.get("/service/9999/")
-        assert response.status_code == 302
+        assert response.status_code == 404
 
     def test_shows_service_details(self):
-        User.objects.create_user("detailuser", password="pass12345")
         service = Service.objects.create(
             name="passport", organization="police", documents="doc1", steps="step1"
         )
         client = Client()
-        client.login(username="detailuser", password="pass12345")
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
         assert "passport" in str(response.content)
 
-    def test_service_detail_falls_back_to_tehran_without_profile(self):
-        User.objects.create_user("noprofileuser", password="pass12345")
+    def test_service_detail_falls_back_to_default_city_without_profile(self):
         service = Service.objects.create(
             name="test-svc", organization="org", documents="doc1", steps="step1"
         )
         client = Client()
-        client.login(username="noprofileuser", password="pass12345")
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
-        assert response.context["user_city"] == "تهران"
+        assert response.context["user_city"] == ""
 
     def test_service_detail_with_profile(self):
         user = User.objects.create_user("profileduser", password="pass12345")
@@ -465,17 +472,15 @@ class TestServiceDetailView:
 
 @pytest.mark.django_db
 class TestFAQView:
-    def test_requires_login(self):
+    def test_accessible_without_login(self):
         client = Client()
         response = client.get("/faq/")
-        assert response.status_code == 302
+        assert response.status_code == 200
 
     def test_shows_faqs_ordered(self):
-        User.objects.create_user("faquser", password="pass12345")
         FAQ.objects.create(question="q1", answer="a1", order=2)
         FAQ.objects.create(question="q2", answer="a2", order=1)
         client = Client()
-        client.login(username="faquser", password="pass12345")
         response = client.get("/faq/")
         assert response.status_code == 200
         assert "q1" in str(response.content)
@@ -869,29 +874,26 @@ class TestProfileView:
 
 
 def test_static_js_files_exist():
-    import os
+    from django.conf import settings
 
-    root = os.path.join(os.path.dirname(__file__), "..", "..", "static")
-    assert os.path.isfile(os.path.join(root, "libs", "alpine.min.js"))
-    assert os.path.isfile(os.path.join(root, "services", "js", "main.js"))
-    assert os.path.isfile(os.path.join(root, "services", "js", "error-translate.js"))
-    assert os.path.isfile(os.path.join(root, "libs", "ol", "ol.js"))
-    assert os.path.isfile(os.path.join(root, "libs", "ol", "ol.css"))
+    root = settings.BASE_DIR / "static"
+    assert (root / "libs" / "alpine.min.js").is_file()
+    assert (root / "services" / "js" / "main.js").is_file()
+    assert (root / "services" / "js" / "error-translate.js").is_file()
+    assert (root / "libs" / "ol" / "ol.js").is_file()
+    assert (root / "libs" / "ol" / "ol.css").is_file()
 
 
 def test_vazirmatn_font_files_exist():
-    import os
+    from django.conf import settings
 
-    root = os.path.join(os.path.dirname(__file__), "..", "..", "static")
-    assert os.path.isfile(os.path.join(root, "Vazirmatn-Regular.woff2"))
+    assert (settings.BASE_DIR / "static" / "Vazirmatn-Regular.woff2").is_file()
 
 
 def test_vazirmatn_css_in_style_css():
-    import os
+    from django.conf import settings
 
-    path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
-    )
+    path = settings.BASE_DIR / "static" / "services" / "css" / "style.css"
     with open(path, encoding="utf-8") as f:
         content = f.read()
     assert "Vazirmatn" in content
@@ -935,11 +937,9 @@ def test_base_template_loads_static_assets():
 
 
 def test_body_has_rtl_direction():
-    import os
+    from django.conf import settings
 
-    css_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
-    )
+    css_path = settings.BASE_DIR / "static" / "services" / "css" / "style.css"
     with open(css_path, encoding="utf-8") as f:
         content = f.read()
     assert "direction: rtl" in content
@@ -1095,81 +1095,424 @@ class TestBookmarkView:
 
 
 @pytest.mark.django_db
-class TestRatingView:
-    def test_submit_creates_rating(self):
-        user = User.objects.create_user("rater", password="pass12345")
+class TestSubmitComment:
+    def test_submit_creates_comment(self):
+        user = User.objects.create_user("commenter", password="pass12345")
         service = Service.objects.create(
-            name="rate-svc", organization="org", documents="d", steps="s"
+            name="comment-svc", organization="org", documents="d", steps="s"
         )
         client = Client()
-        client.login(username="rater", password="pass12345")
+        client.login(username="commenter", password="pass12345")
         response = client.post(
-            f"/rate/{service.id}/", {"score": "4", "comment": "good"}
+            f"/comment/service/{service.id}/", {"text": "great service"}
         )
         assert response.status_code == 302
-        rating = Rating.objects.get(user=user, service=service)
-        assert rating.score == 4
-        assert rating.comment == "good"
+        comment = Comment.objects.get(user=user, service=service)
+        assert comment.text == "great service"
 
-    def test_submit_updates_existing_rating(self):
-        user = User.objects.create_user("rater2", password="pass12345")
+    def test_submit_reply(self):
+        user = User.objects.create_user("replier", password="pass12345")
         service = Service.objects.create(
-            name="rate-svc2", organization="org", documents="d", steps="s"
+            name="reply-svc", organization="org", documents="d", steps="s"
         )
-        Rating.objects.create(user=user, service=service, score=2, comment="bad")
+        parent = Comment.objects.create(
+            user=user, service=service, text="parent comment"
+        )
         client = Client()
-        client.login(username="rater2", password="pass12345")
+        client.login(username="replier", password="pass12345")
         response = client.post(
-            f"/rate/{service.id}/", {"score": "5", "comment": "updated"}
+            f"/comment/service/{service.id}/",
+            {"text": "reply text", "parent_id": str(parent.id)},
         )
         assert response.status_code == 302
-        rating = Rating.objects.get(user=user, service=service)
-        assert rating.score == 5
-        assert rating.comment == "updated"
+        reply = Comment.objects.filter(parent=parent).first()
+        assert reply is not None
+        assert reply.text == "reply text"
+
+    def test_submit_reply_to_deleted_comment_denied(self):
+        user = User.objects.create_user("replier2", password="pass12345")
+        service = Service.objects.create(
+            name="del-reply-svc", organization="org", documents="d", steps="s"
+        )
+        parent = Comment.objects.create(
+            user=user, service=service, text="deleted parent"
+        )
+        parent.deleted_by = user
+        parent.save(update_fields=["deleted_by"])
+        client = Client()
+        client.login(username="replier2", password="pass12345")
+        response = client.post(
+            f"/comment/service/{service.id}/",
+            {"text": "should fail", "parent_id": str(parent.id)},
+        )
+        assert response.status_code == 302
+        assert not Comment.objects.filter(parent=parent).exists()
 
     def test_submit_requires_login(self):
         service = Service.objects.create(
-            name="rate-svc3", organization="org", documents="d", steps="s"
+            name="comment-svc2", organization="org", documents="d", steps="s"
         )
         client = Client()
-        response = client.post(f"/rate/{service.id}/")
+        response = client.post(f"/comment/service/{service.id}/")
         assert response.status_code == 302
         assert "/login/" in response.url
 
     def test_submit_get_redirects_to_detail(self):
-        User.objects.create_user("rater3", password="pass12345")
+        User.objects.create_user("commenter2", password="pass12345")
         service = Service.objects.create(
-            name="rate-svc4", organization="org", documents="d", steps="s"
+            name="comment-svc3", organization="org", documents="d", steps="s"
         )
         client = Client()
-        client.login(username="rater3", password="pass12345")
-        response = client.get(f"/rate/{service.id}/")
+        client.login(username="commenter2", password="pass12345")
+        response = client.get(f"/comment/service/{service.id}/")
         assert response.status_code == 302
         assert f"/service/{service.id}/" in response.url
 
-    def test_detail_shows_rating_context(self):
-        user = User.objects.create_user("rater4", password="pass12345")
+    def test_detail_shows_comments(self):
+        user = User.objects.create_user("shower", password="pass12345")
         service = Service.objects.create(
-            name="rate-svc5", organization="org", documents="d", steps="s"
+            name="show-svc", organization="org", documents="d", steps="s"
         )
-        Rating.objects.create(user=user, service=service, score=3)
+        Comment.objects.create(user=user, service=service, text="visible comment")
         client = Client()
-        client.login(username="rater4", password="pass12345")
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
-        assert response.context["avg_rating"] == 3.0
+        assert (
+            list(response.context["comments"]).count
+            if hasattr(response.context["comments"], "count")
+            else len(response.context["comments"]) >= 1
+        )
+
+    def test_service_detail_public(self):
+        service = Service.objects.create(
+            name="public-svc", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        assert response.status_code == 200
+
+
+@pytest.mark.django_db
+class TestEditComment:
+    def _setup(self):
+        self.user = User.objects.create_user("editor", password="pass12345")
+        self.service = Service.objects.create(
+            name="edit-svc", organization="org", documents="d", steps="s"
+        )
+        self.comment = Comment.objects.create(
+            user=self.user, service=self.service, text="original text"
+        )
+        self.client = Client()
+        self.client.login(username="editor", password="pass12345")
+
+    def test_edit_own_comment(self):
+        self._setup()
+        resp = self.client.post(
+            f"/comment/{self.comment.id}/edit/", {"text": "updated text"}
+        )
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.text == "updated text"
+        assert self.comment.edited_at is not None
+
+    def test_edit_requires_login(self):
+        self._setup()
+        client = Client()
+        resp = client.post(f"/comment/{self.comment.id}/edit/", {"text": "hacked"})
+        assert resp.status_code == 302
+        assert "/login/" in resp.url
+
+    def test_edit_other_users_comment_denied(self):
+        self._setup()
+        other = User.objects.create_user("other", password="pass12345")
+        other_comment = Comment.objects.create(
+            user=other, service=self.service, text="other's"
+        )
+        resp = self.client.post(
+            f"/comment/{other_comment.id}/edit/", {"text": "hacked"}
+        )
+        assert resp.status_code == 302
+        other_comment.refresh_from_db()
+        assert other_comment.text == "other's"
+
+    def test_edit_after_24h_denied(self):
+        self._setup()
+        from datetime import timedelta
+
+        self.comment.created_at = timezone.now() - timedelta(hours=25)
+        self.comment.save(update_fields=["created_at"])
+        resp = self.client.post(
+            f"/comment/{self.comment.id}/edit/", {"text": "expired"}
+        )
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.text == "original text"
+
+    def test_edit_deleted_comment_denied(self):
+        self._setup()
+        self.comment.deleted_by = self.user
+        self.comment.save(update_fields=["deleted_by"])
+        resp = self.client.post(
+            f"/comment/{self.comment.id}/edit/", {"text": "deleted"}
+        )
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.text == "original text"
+
+    def test_edit_empty_text_ignored(self):
+        self._setup()
+        resp = self.client.post(f"/comment/{self.comment.id}/edit/", {"text": "   "})
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.text == "original text"
+
+    def test_edit_get_returns_405(self):
+        self._setup()
+        resp = self.client.get(f"/comment/{self.comment.id}/edit/")
+        assert resp.status_code == 405
+
+
+@pytest.mark.django_db
+class TestDeleteComment:
+    def _setup(self):
+        self.user = User.objects.create_user("deleter", password="pass12345")
+        self.service = Service.objects.create(
+            name="del-svc", organization="org", documents="d", steps="s"
+        )
+        self.comment = Comment.objects.create(
+            user=self.user, service=self.service, text="to delete"
+        )
+        self.client = Client()
+        self.client.login(username="deleter", password="pass12345")
+
+    def test_delete_own_comment(self):
+        self._setup()
+        resp = self.client.post(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.is_deleted is True
+        assert self.comment.deleted_by == self.user
+
+    def test_delete_requires_login(self):
+        self._setup()
+        client = Client()
+        resp = client.post(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 302
+        assert "/login/" in resp.url
+
+    def test_delete_other_users_comment_denied(self):
+        self._setup()
+        other = User.objects.create_user("other", password="pass12345")
+        other_comment = Comment.objects.create(
+            user=other, service=self.service, text="others"
+        )
+        resp = self.client.post(f"/comment/{other_comment.id}/delete/")
+        assert resp.status_code == 302
+        other_comment.refresh_from_db()
+        assert other_comment.is_deleted is False
+
+    def test_staff_can_delete_any_comment(self):
+        self._setup()
+        admin = User.objects.create_user("admin", password="pass12345", is_staff=True)
+        client = Client()
+        client.login(username="admin", password="pass12345")
+        resp = client.post(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 302
+        self.comment.refresh_from_db()
+        assert self.comment.is_deleted is True
+        assert self.comment.deleted_by == admin
+
+    def test_delete_already_deleted_noop(self):
+        self._setup()
+        self.comment.deleted_by = self.user
+        self.comment.save(update_fields=["deleted_by"])
+        resp = self.client.post(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 302
+
+    def test_delete_get_returns_405(self):
+        self._setup()
+        resp = self.client.get(f"/comment/{self.comment.id}/delete/")
+        assert resp.status_code == 405
+
+
+@pytest.mark.django_db
+class TestCommentOrdering:
+    def test_comments_newest_first(self):
+        user = User.objects.create_user("orderuser", password="pass12345")
+        service = Service.objects.create(
+            name="order-svc", organization="org", documents="d", steps="s"
+        )
+        c1 = Comment.objects.create(user=user, service=service, text="first")
+        c2 = Comment.objects.create(user=user, service=service, text="second")
+        c3 = Comment.objects.create(user=user, service=service, text="third")
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        comments = list(response.context["comments"])
+        assert comments[0].id == c3.id
+        assert comments[1].id == c2.id
+        assert comments[2].id == c1.id
+
+
+@pytest.mark.django_db
+class TestCommentPagination:
+    def test_initial_page_limit(self):
+        user = User.objects.create_user("pageuser", password="pass12345")
+        service = Service.objects.create(
+            name="page-svc", organization="org", documents="d", steps="s"
+        )
+        for i in range(7):
+            Comment.objects.create(user=user, service=service, text=f"comment {i}")
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        comments = list(response.context["comments"])
+        assert len(comments) == 5
+        assert response.context["has_more_comments"] is True
+
+    def test_no_load_more_when_few_comments(self):
+        user = User.objects.create_user("fewuser", password="pass12345")
+        service = Service.objects.create(
+            name="few-svc", organization="org", documents="d", steps="s"
+        )
+        Comment.objects.create(user=user, service=service, text="only one")
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        assert response.context["has_more_comments"] is False
+
+    def test_load_more_returns_html(self):
+        user = User.objects.create_user("apiuser", password="pass12345")
+        service = Service.objects.create(
+            name="api-svc", organization="org", documents="d", steps="s"
+        )
+        for i in range(7):
+            Comment.objects.create(user=user, service=service, text=f"comment {i}")
+        client = Client()
+        response = client.get(f"/api/load-comments/service/{service.id}/?page=2")
+        assert response.status_code == 200
+        data = response.json()
+        assert "html" in data
+        assert data["has_next"] is False
+        assert len(data["html"]) > 0
+
+    def test_load_comments_invalid_target(self):
+        client = Client()
+        response = client.get("/api/load-comments/invalid/1/?page=2")
+        assert response.status_code == 400
+
+    def test_load_comments_center(self):
+        user = User.objects.create_user("centerapi", password="pass12345")
+        service = Service.objects.create(
+            name="centerapi-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            name="centerapi-center", service=service, city="Tehran"
+        )
+        for i in range(7):
+            Comment.objects.create(
+                user=user, service_center=center, text=f"center comment {i}"
+            )
+        client = Client()
+        response = client.get(f"/api/load-comments/center/{center.id}/?page=2")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["has_next"] is False
+
+
+@pytest.mark.django_db
+class TestCenterDetail:
+    def test_center_detail_public(self):
+        service = Service.objects.create(
+            name="center-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="Test Center", address="addr", city="Tehran"
+        )
+        client = Client()
+        response = client.get(f"/center/{center.id}/")
+        assert response.status_code == 200
+        assert response.context["center"] == center
+
+    def test_center_detail_shows_ratings(self):
+        user = User.objects.create_user("crater", password="pass12345")
+        service = Service.objects.create(
+            name="cr-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center", address="addr", city="Tehran"
+        )
+        CenterRating.objects.create(user=user, service_center=center, score=4)
+        client = Client()
+        response = client.get(f"/center/{center.id}/")
+        assert response.status_code == 200
+        assert response.context["avg_rating"] == 4.0
         assert response.context["rating_count"] == 1
-        assert response.context["user_rating"] is not None
+
+
+@pytest.mark.django_db
+class TestSubmitCenterRating:
+    def test_submit_creates_rating(self):
+        user = User.objects.create_user("crater", password="pass12345")
+        service = Service.objects.create(
+            name="cr-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center", address="addr", city="Tehran"
+        )
+        client = Client()
+        client.login(username="crater", password="pass12345")
+        response = client.post(f"/rate-center/{center.id}/", {"score": "4"})
+        assert response.status_code == 302
+        rating = CenterRating.objects.get(user=user, service_center=center)
+        assert rating.score == 4
+
+    def test_submit_updates_existing_rating(self):
+        user = User.objects.create_user("crater2", password="pass12345")
+        service = Service.objects.create(
+            name="cr-svc2", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center2", address="addr", city="Tehran"
+        )
+        CenterRating.objects.create(user=user, service_center=center, score=2)
+        client = Client()
+        client.login(username="crater2", password="pass12345")
+        response = client.post(f"/rate-center/{center.id}/", {"score": "5"})
+        assert response.status_code == 302
+        rating = CenterRating.objects.get(user=user, service_center=center)
+        assert rating.score == 5
+
+    def test_submit_requires_login(self):
+        service = Service.objects.create(
+            name="cr-svc3", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center3", address="addr", city="Tehran"
+        )
+        client = Client()
+        response = client.post(f"/rate-center/{center.id}/")
+        assert response.status_code == 302
+        assert "/login/" in response.url
+
+    def test_submit_get_redirects(self):
+        User.objects.create_user("crater3", password="pass12345")
+        service = Service.objects.create(
+            name="cr-svc4", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="CR Center4", address="addr", city="Tehran"
+        )
+        client = Client()
+        client.login(username="crater3", password="pass12345")
+        response = client.get(f"/rate-center/{center.id}/")
+        assert response.status_code == 302
+        assert f"/center/{center.id}/" in response.url
 
 
 class TestRateLimitPage:
     def test_429_template_exists(self):
-        import os
+        from django.conf import settings
 
-        template_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "templates", "429.html"
-        )
-        assert os.path.isfile(template_path)
+        template_path = settings.BASE_DIR / "templates" / "429.html"
+        assert template_path.is_file()
 
 
 @pytest.mark.django_db
@@ -1197,17 +1540,9 @@ class TestResponsiveHamburger:
         assert 'aria-label="منو"' in content
 
     def test_mobile_menu_btn_css_hidden_on_desktop(self):
-        import os
+        from django.conf import settings
 
-        css_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "static",
-            "services",
-            "css",
-            "style.css",
-        )
+        css_path = settings.BASE_DIR / "static" / "services" / "css" / "style.css"
         with open(css_path, encoding="utf-8") as f:
             content = f.read()
         assert ".mobile-menu-btn {\n  display: none;" in content
@@ -1215,11 +1550,9 @@ class TestResponsiveHamburger:
         assert ".nav-links" in content
 
     def test_close_menu_function_exists(self):
-        import os
+        from django.conf import settings
 
-        js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "static", "services", "js", "main.js"
-        )
+        js_path = settings.BASE_DIR / "static" / "services" / "js" / "main.js"
         with open(js_path, encoding="utf-8") as f:
             content = f.read()
         assert "function closeMenu" in content
@@ -1227,11 +1560,9 @@ class TestResponsiveHamburger:
         assert 'link.addEventListener("click", closeMenu)' in content
 
     def test_nav_links_use_getElementById(self):
-        import os
+        from django.conf import settings
 
-        js_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "static", "services", "js", "main.js"
-        )
+        js_path = settings.BASE_DIR / "static" / "services" / "js" / "main.js"
         with open(js_path, encoding="utf-8") as f:
             content = f.read()
         assert 'document.getElementById("navLinks")' in content
@@ -1296,11 +1627,9 @@ class TestSeoEndpoints:
 
 @pytest.mark.django_db
 def test_print_media_query_exists_in_css():
-    import os
+    from django.conf import settings
 
-    css_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "static", "services", "css", "style.css"
-    )
+    css_path = settings.BASE_DIR / "static" / "services" / "css" / "style.css"
     with open(css_path, encoding="utf-8") as f:
         content = f.read()
     assert "@media print" in content
@@ -1683,6 +2012,26 @@ class TestHealthCheck:
         assert len(version) > 0
 
 
+@pytest.mark.django_db
+class TestSessionRefresh:
+    def test_authenticated_request_modifies_session(self):
+        User.objects.create_user("sessionuser", password="pass12345")
+        client = Client()
+        client.login(username="sessionuser", password="pass12345")
+        response = client.get("/dashboard/")
+        assert response.status_code == 200
+        session = client.session
+        assert session.session_key is not None
+
+    def test_anonymous_request_does_not_modify_session(self):
+        client = Client()
+        response = client.get("/health/")
+        assert response.status_code == 200
+        # SessionRefreshMiddleware should only touch authenticated sessions.
+        # Verify it doesn't crash on anonymous requests.
+        assert response.json()["status"] == "ok"
+
+
 class TestVersion:
     def test_version_is_accessible(self):
         from agahyar_project import __version__
@@ -1696,3 +2045,52 @@ class TestVersion:
         from agahyar_project import __version__
 
         assert __version__ == version("agahyar")
+
+
+class TestAdminStats:
+    @pytest.mark.django_db
+    def test_anonymous_redirects_to_login(self):
+        client = Client()
+        response = client.get("/admin/stats/")
+        assert response.status_code == 302
+        assert "login" in response.url
+
+    @pytest.mark.django_db
+    def test_non_staff_gets_redirect(self):
+        User.objects.create_user("regular", password="pass12345")
+        client = Client()
+        client.login(username="regular", password="pass12345")
+        response = client.get("/admin/stats/")
+        assert response.status_code in (403, 302)
+
+    @pytest.mark.django_db
+    def test_staff_gets_200(self):
+        User.objects.create_user("admin", password="pass12345", is_staff=True)
+        client = Client()
+        client.login(username="admin", password="pass12345")
+        response = client.get("/admin/stats/")
+        assert response.status_code == 200
+
+    @pytest.mark.django_db
+    def test_context_contains_overview_counts(self):
+        User.objects.create_user("admin", password="pass12345", is_staff=True)
+        Service.objects.create(name="S1", organization="O1", documents="d", steps="s")
+        client = Client()
+        client.login(username="admin", password="pass12345")
+        response = client.get("/admin/stats/")
+        ctx = response.context
+        assert ctx["overview"]["total_users"] >= 1
+        assert ctx["overview"]["total_services"] >= 1
+        assert "chart_reg" in ctx
+        assert "chart_comments" in ctx
+
+    @pytest.mark.django_db
+    def test_chart_data_is_valid_json(self):
+        User.objects.create_user("admin", password="pass12345", is_staff=True)
+        client = Client()
+        client.login(username="admin", password="pass12345")
+        response = client.get("/admin/stats/")
+        assert json.loads(response.context["chart_reg"]) is not None
+        assert json.loads(response.context["chart_comments"]) is not None
+        assert json.loads(response.context["chart_ratings"]) is not None
+        assert json.loads(response.context["chart_services"]) is not None

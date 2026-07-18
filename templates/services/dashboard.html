@@ -1,5 +1,5 @@
 {% extends 'services/base.html' %}
-{% load static %}
+{% load static cache %}
 {% block title %}داشبورد | آگاه‌یار{% endblock %}
 {% block meta_description %}داشبورد کاربری سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}داشبورد, پروفایل, آگاه‌یار{% endblock %}
@@ -59,6 +59,7 @@
     {% endfor %}
   </div>
   <h2 class="section-title">پرسش‌های متداول</h2>
+  {% cache 900 dashboard_faq faq_count %}
   <div class="faq-section">
     {% for faq in faqs %}
       <div class="faq-item">
@@ -69,4 +70,5 @@
       <p class="empty-faq">هنوز پرسشی ثبت نشده است.</p>
     {% endfor %}
   </div>
+{% endcache %}
 {% endblock %}

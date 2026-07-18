@@ -9,34 +9,72 @@ import pytest
 from django.contrib.auth.models import User
 from django.test import Client
 
-from services.forms import CITY_CHOICES, LoginForm, ProfileForm, RegisterForm
-from services.models import UserProfile
+from services.forms import LoginForm, ProfileForm, RegisterForm, get_city_choices
+from services.models import Service, ServiceCenter, UserProfile
 
 
 class TestCityChoices:
+    @pytest.mark.django_db
     def test_city_choices_has_placeholder_first(self):
-        assert CITY_CHOICES[0] == ("", "شهر خود را انتخاب کنید")
+        choices = get_city_choices()
+        assert choices[0] == ("", "شهر خود را انتخاب کنید")
 
-    def test_city_choices_contains_tehran(self):
-        assert ("تهران", "تهران") in CITY_CHOICES
+    @pytest.mark.django_db
+    def test_city_choices_contains_db_cities(self):
+        svc = Service.objects.create(
+            name="test", organization="o", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(
+            name="مرکز الف",
+            service=svc,
+            city="تهران",
+        )
+        choices = get_city_choices()
+        city_values = [c for c, _ in choices[1:]]
+        assert "تهران" in city_values
 
-    def test_city_choices_count(self):
-        assert len(CITY_CHOICES) == 13
+    @pytest.mark.django_db
+    def test_city_choices_are_dynamic(self):
+        svc = Service.objects.create(
+            name="test2", organization="o", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(
+            name="مرکز ب",
+            service=svc,
+            city="اصفهان",
+        )
+        choices = get_city_choices()
+        city_values = [c for c, _ in choices[1:]]
+        assert "اصفهان" in city_values
 
-    def test_register_form_uses_city_choices(self):
+    @pytest.mark.django_db
+    def test_register_form_uses_dynamic_choices(self):
+        svc = Service.objects.create(
+            name="test3", organization="o", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(
+            name="مرکز ج",
+            service=svc,
+            city="شیراز",
+        )
         form = RegisterForm()
         city_field = form.fields["city"]
         widget = city_field.widget
-        assert widget.choices == CITY_CHOICES
+        city_values = [c for c, _ in widget.choices[1:]]
+        assert "شیراز" in city_values
 
 
 @pytest.mark.django_db
 class TestRegisterForm:
     def test_form_renders_city_field(self):
+        svc = Service.objects.create(
+            name="test4", organization="o", documents="d", steps="s"
+        )
+        ServiceCenter.objects.create(name="مرکز تست", service=svc, city="تهران")
         form = RegisterForm()
         html = str(form.as_p())
         assert "تهران" in html
-        assert "مشهد" in html
+        assert "شهر محل سکونت" in html
 
     def test_form_has_phone_field(self):
         form = RegisterForm()

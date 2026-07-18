@@ -1,6 +1,6 @@
 # Admin dashboard with usage statistics
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 60
 - TAGS: feature
 

@@ -4,32 +4,29 @@ Provides city center coordinate lookup and prepares serializable
 data for Leaflet map rendering on the frontend.
 """
 
-CITY_COORDINATES: dict[str, tuple[float, float]] = {
-    "تهران": (35.6892, 51.3890),
-    "مشهد": (36.2605, 59.6168),
-    "اصفهان": (32.6546, 51.6680),
-    "شیراز": (29.5926, 52.5836),
-    "تبریز": (38.0802, 46.2919),
-    "کرج": (35.8327, 50.9915),
-    "قم": (34.6399, 50.8759),
-    "اهواز": (31.3183, 48.6706),
-    "رشت": (37.2809, 49.5832),
-    "کرمانشاه": (34.3082, 47.0573),
-    "زاهدان": (29.4963, 60.8629),
-    "ارومیه": (37.5553, 45.0799),
-}
-
 
 def get_city_center(city: str) -> dict[str, float]:
     """Return the central map coordinates for *city*.
 
-    Falls back to Tehran if the city is not in the lookup table.
+    Computes the average latitude and longitude of all ServiceCenters
+    in the given city that have coordinates.  Falls back to Tehran
+    coordinates if no matching centers are found.
 
     :param city: Persian city name (e.g. ``"تهران"``).
     :returns: A dict with ``"lat"`` and ``"lng"`` keys.
     """
-    lat, lng = CITY_COORDINATES.get(city, (35.6892, 51.3890))
-    return {"lat": lat, "lng": lng}
+    from .models import ServiceCenter
+
+    centers = list(
+        ServiceCenter.objects.filter(
+            city__icontains=city, coordinate__isnull=False
+        ).values_list("coordinate", flat=True)
+    )
+    if centers:
+        avg_lat = sum(c.y for c in centers) / len(centers)
+        avg_lng = sum(c.x for c in centers) / len(centers)
+        return {"lat": avg_lat, "lng": avg_lng}
+    return {"lat": 35.6892, "lng": 51.3890}
 
 
 def get_center_locations(centers) -> list[dict]:

@@ -46,6 +46,7 @@ services:
   #     - "traefik.http.routers.adminer.rule=Host(`adminer.${DOMAIN}`)"
   #     - "traefik.http.routers.adminer.entrypoints=websecure"
   #     - "traefik.http.routers.adminer.tls=true"
+  #     - "traefik.http.routers.adminer.tls.certResolver=letsencrypt"
   #     - "traefik.http.services.adminer.loadbalancer.server.port=8080"
 
   web:
@@ -69,6 +70,7 @@ services:
       - "traefik.http.routers.agahyar.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.agahyar.entrypoints=websecure"
       - "traefik.http.routers.agahyar.tls=true"
+      - "traefik.http.routers.agahyar.tls.certResolver=letsencrypt"
       - "traefik.http.services.agahyar.loadbalancer.server.port=8000"
 
 networks:

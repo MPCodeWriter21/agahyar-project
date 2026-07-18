@@ -1,12 +1,15 @@
 """Data models for the Agahyar services application.
 
 Defines ``Service``, ``UserProfile``, ``FAQ``, ``ServiceCenter``,
-``ContactMessage``, ``Rating``, and ``Bookmark`` with Persian
-verbose names and helper methods.
+``ContactMessage``, ``Comment``, ``CenterRating``, and ``Bookmark``
+with Persian verbose names and helper methods.
 """
+
+from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
+from django.utils import timezone
 
 from services.validators import iranian_phone_number_validator
 
@@ -14,8 +17,8 @@ from services.validators import iranian_phone_number_validator
 class Service(models.Model):
     """Represents a government service offered to citizens."""
 
-    name = models.CharField("نام خدمت", max_length=200)
-    organization = models.CharField("سازمان مسئول", max_length=200)
+    name = models.CharField("نام خدمت", max_length=200, db_index=True)
+    organization = models.CharField("سازمان مسئول", max_length=200, db_index=True)
     organization_address = models.CharField(
         "آدرس سازمان", max_length=300, blank=True, null=True
     )
@@ -69,11 +72,12 @@ class PhoneVerification(models.Model):
     phone = models.CharField(
         "شماره تماس",
         max_length=11,
+        db_index=True,
         validators=[iranian_phone_number_validator],
     )
     otp_code = models.CharField("کد OTP", max_length=128)
     created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
-    is_used = models.BooleanField("استفاده شده", default=False)
+    is_used = models.BooleanField("استفاده شده", default=False, db_index=True)
 
     class Meta:
         verbose_name = "احراز هویت شماره"
@@ -90,7 +94,7 @@ class FAQ(models.Model):
     question = models.CharField("سوال", max_length=300)
     answer = models.TextField("پاسخ")
     category = models.CharField("دسته‌بندی", max_length=100, blank=True)
-    order = models.IntegerField("ترتیب نمایش", default=0)
+    order = models.IntegerField("ترتیب نمایش", default=0, db_index=True)
 
     class Meta:
         verbose_name = "سوال متداول"
@@ -109,7 +113,7 @@ class ServiceCenter(models.Model):
     )
     name = models.CharField("نام مرکز", max_length=200)
     address = models.TextField("آدرس کامل")
-    city = models.CharField("شهر", max_length=100)
+    city = models.CharField("شهر", max_length=100, db_index=True)
     phone = models.CharField("شماره تماس", max_length=11, blank=True)
     working_hours = models.TextField("ساعت کاری", blank=True)
     postal_code = models.CharField("کد پستی", max_length=20, blank=True)
@@ -153,26 +157,106 @@ class ContactMessage(models.Model):
         return f"{self.name} - {self.email}"
 
 
-class Rating(models.Model):
-    """A user rating and feedback for a service."""
+class Comment(models.Model):
+    """A user comment on a service or service center, with optional nesting."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ratings")
+    EDIT_WINDOW_HOURS = 24
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
     service = models.ForeignKey(
-        Service, on_delete=models.CASCADE, related_name="ratings"
+        Service,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="comments",
+    )
+    service_center = models.ForeignKey(
+        "ServiceCenter",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="comments",
+    )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="replies",
+        verbose_name="نظر والد",
+    )
+    text = models.TextField("متن نظر")
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField("آخرین ویرایش", auto_now=True)
+    edited_at = models.DateTimeField("زمان ویرایش", null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="deleted_comments",
+        verbose_name="حذف شده توسط",
+    )
+
+    class Meta:
+        verbose_name = "نظر"
+        verbose_name_plural = "نظرات"
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(service__isnull=False)
+                | models.Q(service_center__isnull=False),
+                name="comment_has_target",
+            )
+        ]
+
+    def __str__(self) -> str:
+        target = self.service.name if self.service else self.service_center.name
+        return f"{self.user.username} - {target}"
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_by_id is not None
+
+    def can_be_edited_by(self, user: User) -> bool:
+        if not user.is_authenticated:
+            return False
+        if self.user_id != user.id:
+            return False
+        if self.is_deleted:
+            return False
+        deadline = self.created_at + timedelta(hours=self.EDIT_WINDOW_HOURS)
+        return timezone.now() < deadline
+
+    def can_be_deleted_by(self, user: User) -> bool:
+        if not user.is_authenticated:
+            return False
+        if self.is_deleted:
+            return False
+        return self.user_id == user.id or user.is_staff
+
+
+class CenterRating(models.Model):
+    """A user star rating for a service center."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="center_ratings"
+    )
+    service_center = models.ForeignKey(
+        ServiceCenter, on_delete=models.CASCADE, related_name="ratings"
     )
     score = models.PositiveSmallIntegerField("امتیاز (۱ تا ۵)")
-    comment = models.TextField("نظر", blank=True)
-    created_at = models.DateTimeField("تاریخ", auto_now_add=True)
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
     updated_at = models.DateTimeField("آخرین ویرایش", auto_now=True)
 
     class Meta:
-        verbose_name = "امتیاز"
-        verbose_name_plural = "امتیازها"
-        unique_together = ("user", "service")
+        verbose_name = "امتیاز مرکز"
+        verbose_name_plural = "امتیازهای مراکز"
+        unique_together = ("user", "service_center")
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        return f"{self.user.username} - {self.service.name} - {self.score}"
+        return f"{self.user.username} - {self.service_center.name} - {self.score}"
 
 
 class Bookmark(models.Model):

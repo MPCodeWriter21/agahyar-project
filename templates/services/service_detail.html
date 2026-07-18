@@ -1,5 +1,5 @@
 {% extends 'services/base.html' %}
-{% load static %}
+{% load static jalali_tags %}
 {% block title %}جزئیات {{ service.name }} | آگاه‌یار{% endblock %}
 {% block meta_description %}مدارک، مراحل، هزینه و مدت زمان مورد نیاز برای {{ service.name }} - سامانه آگاه‌یار{% endblock %}
 {% block meta_keywords %}{{ service.name }}, {{ service.organization }}, خدمات دولتی{% endblock %}
@@ -11,16 +11,18 @@
   <div class="detail-header">
     <div class="detail-header-row">
       <h1>{{ service.name }}</h1>
-      <form method="post"
-            action="{% url 'toggle_bookmark' service.id %}"
-            class="bookmark-icon-form">
-        {% csrf_token %}
-        <button type="submit"
-                class="btn-bookmark-icon"
-                title="{% if is_bookmarked %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
-          <i class="{% if is_bookmarked %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
-        </button>
-      </form>
+      {% if user.is_authenticated %}
+        <form method="post"
+              action="{% url 'toggle_bookmark' service.id %}"
+              class="bookmark-icon-form">
+          {% csrf_token %}
+          <button type="submit"
+                  class="btn-bookmark-icon"
+                  title="{% if is_bookmarked %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
+            <i class="{% if is_bookmarked %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
+          </button>
+        </form>
+      {% endif %}
     </div>
     <div class="org-address-box">
       <strong>سازمان مسئول:</strong> {{ service.organization }}
@@ -63,138 +65,130 @@
       {{ service.duration }}
     </div>
   </div>
-  {% if nearest_center %}
-    <div class="info-card nearest-card">
-      <h3>نزدیک‌ترین مرکز به شما</h3>
-      <div class="nearest-box">
-        <div class="center-name">{{ nearest_center.name }}</div>
-        <div class="nearest-address">{{ nearest_center.address }}</div>
-        {% if nearest_center.postal_code %}
-          <div class="nearest-postal">کد پستی: {{ nearest_center.postal_code }}</div>
-        {% endif %}
-        {% if nearest_center.phone %}
-          <div class="nearest-phone">{{ nearest_center.phone }}</div>
-        {% endif %}
-        {% if nearest_center.working_hours %}
-          <div class="nearest-hours">{{ nearest_center.working_hours|linebreaksbr }}</div>
-        {% endif %}
-        <a href="{{ nearest_center.get_map_url }}"
-           target="_blank"
-           class="nearest-map-link">مشاهده در نقشه</a>
-      </div>
-      <p class="nearest-note">بر اساس محله شما ({{ user_neighborhood }}) نزدیک‌ترین مرکز معرفی شده است.</p>
-    </div>
-  {% endif %}
-  {% include "services/partials/service_map.html" %}
-  <div class="alert-note">
-    <strong>نکته مهم:</strong> قبل از مراجعه حضوری، تمام مدارک بالا را کامل آماده کنید و با {{ service.organization }} تماس بگیرید.
-  </div>
-  <div class="rating-section info-card">
-    <h3>امتیاز و نظرات</h3>
-    {% if avg_rating %}
-      <div class="rating-summary">
-        <span class="avg-rating">{{ avg_rating }}</span>
-        <span class="stars">
-          {% if avg_rating >= 1 %}★{% else %}☆{% endif %}
-          {% if avg_rating >= 2 %}★{% else %}☆{% endif %}
-          {% if avg_rating >= 3 %}★{% else %}☆{% endif %}
-          {% if avg_rating >= 4 %}★{% else %}☆{% endif %}
-          {% if avg_rating >= 5 %}★{% else %}☆{% endif %}
-        </span>
-        <span class="rating-count">({{ rating_count }} نظر)</span>
-      </div>
-    {% else %}
-      <p class="empty-text">هنوز امتیازی ثبت نشده است.</p>
-    {% endif %}
-    {% if comments %}
-      <div class="comments-list">
-        {% for r in comments %}
-          <div class="comment-item">
-            <div class="comment-header">
-              <span class="comment-user">{{ r.user.first_name|default:r.user.username }}</span>
-              <span class="comment-stars">
-                {% if r.score >= 1 %}★{% endif %}{% if r.score >= 2 %}★{% endif %}{% if r.score >= 3 %}★{% endif %}{% if r.score >= 4 %}★{% endif %}{% if r.score >= 5 %}★{% endif %}
-              </span>
-              <span class="comment-date">{{ r.created_at|date:"Y/m/d" }}</span>
+  <div class="info-card">
+    <h3>مراکز ارائه خدمت</h3>
+    {% if initial_centers %}
+      <div id="centers-list" class="centers-list">
+        {% for center in initial_centers %}
+          <div class="center-item" data-center-id="{{ center.id }}">
+            <div class="center-item-header">
+              <a href="{% url 'center_detail' center.id %}" class="center-item-name">{{ center.name }}</a>
+              {% if center.avg_score %}
+                <span class="center-item-rating">
+                  <i class="fas fa-star"></i> {{ center.avg_score|fa }}
+                </span>
+              {% endif %}
             </div>
-            {% if r.comment %}<div class="comment-text">{{ r.comment|linebreaksbr }}</div>{% endif %}
+            <div class="center-item-address">{{ center.address }}</div>
+            {% if center.phone %}
+              <div class="center-item-phone"><i class="fas fa-phone"></i> {{ center.phone }}</div>
+            {% endif %}
           </div>
         {% endfor %}
       </div>
+      {% if has_more_centers %}
+        <button type="button"
+                id="load-more-centers"
+                class="btn-load-more"
+                data-service-id="{{ service.id }}"
+                data-page="2"
+                onclick="loadMoreCenters(this)">نمایش مراکز بیشتر</button>
+      {% endif %}
+    {% else %}
+      <p class="empty-text">مرکزی برای این خدمت یافت نشد.</p>
     {% endif %}
-    <form method="post"
-          action="{% url 'submit_rating' service.id %}"
-          class="rating-form">
-      {% csrf_token %}
-      <div class="rating-score-row">
-        <label>امتیاز شما:</label>
-        <div class="star-rating-input">
-          <input type="radio"
-                 id="star5"
-                 name="score"
-                 value="5"
-                 {% if user_rating and user_rating.score == 5 %}checked{% endif %}>
-          <label for="star5" title="5 - عالی"></label>
-          <input type="radio"
-                 id="star4"
-                 name="score"
-                 value="4"
-                 {% if user_rating and user_rating.score == 4 %}checked{% endif %}>
-          <label for="star4" title="4 - خوب"></label>
-          <input type="radio"
-                 id="star3"
-                 name="score"
-                 value="3"
-                 {% if user_rating and user_rating.score == 3 %}checked{% endif %}>
-          <label for="star3" title="3 - متوسط"></label>
-          <input type="radio"
-                 id="star2"
-                 name="score"
-                 value="2"
-                 {% if user_rating and user_rating.score == 2 %}checked{% endif %}>
-          <label for="star2" title="2 - بد"></label>
-          <input type="radio"
-                 id="star1"
-                 name="score"
-                 value="1"
-                 {% if user_rating and user_rating.score == 1 %}checked{% endif %}>
-          <label for="star1" title="1 - خیلی بد"></label>
-        </div>
-      </div>
-      <div class="rating-comment-row">
-        <textarea name="comment"
-                  id="id_comment"
-                  rows="3"
-                  placeholder="نظر خود را بنویسید (اختیاری)...">{{ user_rating.comment|default:"" }}</textarea>
-      </div>
-      <button type="submit" class="btn-rate">{% if user_rating %}به‌روزرسانی امتیاز{% else %}ثبت امتیاز{% endif %}</button>
-    </form>
   </div>
+  {% if center_locations %}
+    {{ center_locations|json_script:"center-locations-data" }}
+    {% csrf_token %}
+    <div class="info-card map-card">
+      <h3>موقعیت روی نقشه</h3>
+      <div id="service-map-wrapper" class="map-wrapper">
+        <div id="service-map" class="leaflet-container"></div>
+        <button type="button"
+                class="btn-geolocate-icon"
+                title="پیدا کردن نزدیک‌ترین مرکز با موقعیت فعلی"
+                data-service-id="{{ service.id }}"
+                onclick="suggestClosestCenter(this)">
+          <i class="fas fa-location-crosshairs"></i>
+        </button>
+      </div>
+      <div id="geolocate-result" class="geolocate-result" style="display:none;"></div>
+    </div>
+  {% endif %}
+  <div class="alert-note">
+    <strong>نکته مهم:</strong> قبل از مراجعه حضوری، تمام مدارک بالا را کامل آماده کنید و با {{ service.organization }} تماس بگیرید.
+  </div>
+  <div class="comments-section info-card">
+    <h3>نظرات</h3>
+    {% if comments %}
+      <div class="comments-list" id="comments-list">
+        {% for comment in comments %}
+          {% include "services/partials/comment.html" with comment=comment depth=0 %}
+        {% endfor %}
+      </div>
+      {% if has_more_comments %}
+        <button type="button"
+                class="btn-load-more"
+                data-target="service"
+                data-target-id="{{ service.id }}"
+                data-page="2"
+                onclick="loadMoreComments(this)">نمایش نظرات بیشتر</button>
+      {% endif %}
+    {% else %}
+      <p class="empty-text">هنوز نظری ثبت نشده است.</p>
+    {% endif %}
+    {% if user.is_authenticated %}
+      <form method="post"
+            action="{% url 'submit_comment_service' service.id %}"
+            class="comment-form">
+        {% csrf_token %}
+        {{ comment_form.text }}
+        {{ comment_form.parent_id }}
+        <button type="submit" class="btn-rate">ارسال نظر</button>
+      </form>
+    {% else %}
+      <div class="login-prompt">
+        <p>برای ارسال نظر باید <a href="{% url 'login' %}">وارد شوید</a>.</p>
+      </div>
+    {% endif %}
+  </div>
+  <dialog id="delete-comment-modal" class="delete-modal">
+    <div class="delete-modal-content">
+      <p>آیا از حذف این نظر اطمینان دارید؟</p>
+      <div class="delete-modal-actions">
+        <button type="button" class="btn-confirm-delete" onclick="confirmDelete()">حذف</button>
+        <button type="button" class="btn-cancel-delete" onclick="cancelDelete()">لغو</button>
+      </div>
+    </div>
+  </dialog>
+  {% csrf_token %}
 {% endblock %}
 {% block extra_js %}
   <script src="{% static 'libs/leaflet/leaflet.js' %}"></script>
+  <script src="{% static 'services/js/main.js' %}"></script>
   {% if center_locations %}
     <script>
         (function() {
             var dataEl = document.getElementById("center-locations-data");
             if (!dataEl) return;
             var locations = JSON.parse(dataEl.textContent);
-            var map = L.map("service-map");
+            window.serviceMap = L.map("service-map");
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 18,
                 attribution: "&copy; OpenStreetMap contributors"
-            }).addTo(map);
+            }).addTo(window.serviceMap);
             var bounds = L.latLngBounds();
             locations.forEach(function(loc) {
-                var marker = L.marker([loc.lat, loc.lng]).addTo(map).bindPopup(
+                var marker = L.marker([loc.lat, loc.lng]).addTo(window.serviceMap).bindPopup(
                     "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? "<br>" + loc.phone : "")
                 );
                 bounds.extend(marker.getLatLng());
             });
             if (locations.length === 1) {
-                map.setView(bounds.getCenter(), 15);
+                window.serviceMap.setView(bounds.getCenter(), 15);
             } else {
-                map.fitBounds(bounds, {
+                window.serviceMap.fitBounds(bounds, {
                     padding: [30, 30]
                 });
             }
