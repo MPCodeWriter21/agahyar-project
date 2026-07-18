@@ -1,5 +1,5 @@
 # Add support for multiple phone numbers for a single center
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 65
 - TAGS: enhancement

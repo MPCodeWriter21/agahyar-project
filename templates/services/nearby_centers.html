@@ -1,4 +1,5 @@
 {% extends 'services/base.html' %}
+{% load jalali_tags %}
 {% block title %}نزدیک‌ترین مراکز | آگاه‌یار{% endblock %}
 {% block meta_description %}نزدیک‌ترین مراکز ارائه خدمات دولتی به محل سکونت شما{% endblock %}
 {% block meta_keywords %}مراکز خدمات, نزدیک‌ترین مرکز, آگاه‌یار{% endblock %}
@@ -28,9 +29,11 @@
           {% if center.postal_code %}
             <div class="center-postal">کد پستی: {{ center.postal_code }}</div>
           {% endif %}
-          {% if center.phone %}
-            <div class="center-phone">{{ center.phone }}</div>
-          {% endif %}
+          {% with primary=center.phones.all.first %}
+            {% if primary %}
+              <div class="center-phone"><a href="tel:{{ primary.phone }}" class="center-phone-link">{{ primary.phone|fa }}</a></div>
+            {% endif %}
+          {% endwith %}
           {% if center.working_hours %}
             <div class="center-hours">{{ center.working_hours|linebreaksbr }}</div>
           {% endif %}

@@ -2,6 +2,13 @@
  * Agahyar - Main JavaScript
  */
 
+function toPersianDigits(str) {
+  var persian = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+  return String(str).replace(/\d/g, function (d) {
+    return persian[parseInt(d)];
+  });
+}
+
 function toggleMenu() {
   var nav = document.getElementById("navLinks");
   nav.classList.toggle("show");
@@ -240,10 +247,16 @@ function loadMoreCenters(btn) {
           addr.textContent = center.address;
           item.appendChild(addr);
 
-          if (center.phone) {
+          if (center.phones && center.phones.length > 0) {
             var phone = document.createElement("div");
             phone.className = "center-item-phone";
-            phone.innerHTML = '<i class="fas fa-phone"></i> ' + center.phone;
+            var phoneNum = center.phones[0].phone;
+            phone.innerHTML =
+              '<i class="fas fa-phone"></i> <a href="tel:' +
+              phoneNum +
+              '" class="center-phone-link">' +
+              toPersianDigits(phoneNum) +
+              "</a>";
             item.appendChild(phone);
           }
 
@@ -323,7 +336,13 @@ function suggestClosestCenter(btn) {
               data.center.name +
               "</strong><br>" +
               data.center.address +
-              (data.center.phone ? "<br>" + data.center.phone : "") +
+              (data.center.phones && data.center.phones.length > 0
+                ? '<br><a href="tel:' +
+                  data.center.phones[0] +
+                  '" class="center-phone-link">' +
+                  toPersianDigits(data.center.phones[0]) +
+                  "</a>"
+                : "") +
               "<br>\u0627\u0637\u0644\u0627\u0639\u0627\u062A: " +
               data.center.distance_km +
               " \u06A9\u06CC\u0644\u0648\u0645\u062A\u0631 " +

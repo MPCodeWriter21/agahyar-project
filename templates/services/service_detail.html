@@ -80,9 +80,11 @@
               {% endif %}
             </div>
             <div class="center-item-address">{{ center.address }}</div>
-            {% if center.phone %}
-              <div class="center-item-phone"><i class="fas fa-phone"></i> {{ center.phone }}</div>
-            {% endif %}
+            {% with primary=center.phones.all.first %}
+              {% if primary %}
+                <div class="center-item-phone"><i class="fas fa-phone"></i> <a href="tel:{{ primary.phone }}" class="center-phone-link">{{ primary.phone|fa }}</a></div>
+              {% endif %}
+            {% endwith %}
           </div>
         {% endfor %}
       </div>
@@ -181,7 +183,7 @@
             var bounds = L.latLngBounds();
             locations.forEach(function(loc) {
                 var marker = L.marker([loc.lat, loc.lng]).addTo(window.serviceMap).bindPopup(
-                    "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? "<br>" + loc.phone : "")
+                    "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? '<br><a href="tel:' + loc.phone + '" class="center-phone-link">' + toPersianDigits(loc.phone) + '</a>' : "")
                 );
                 bounds.extend(marker.getLatLng());
             });

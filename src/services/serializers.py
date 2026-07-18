@@ -12,6 +12,7 @@ from .models import (
     Comment,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 from .validators import iranian_phone_number_validator
@@ -49,12 +50,23 @@ class ServiceSerializer(serializers.ModelSerializer):
         return obj.get_steps_list()
 
 
+class ServiceCenterPhoneSerializer(serializers.ModelSerializer):
+    """Serializer for :class:`ServiceCenterPhone`."""
+
+    label_display = serializers.CharField(source="get_label_display", read_only=True)
+
+    class Meta:
+        model = ServiceCenterPhone
+        fields = ["id", "phone", "label", "label_display", "order"]
+
+
 class ServiceCenterSerializer(serializers.ModelSerializer):
-    """Serializer for :class:`ServiceCenter` with map URL and avg rating."""
+    """Serializer for :class:`ServiceCenter` with map URL, avg rating, and phones."""
 
     service_name = serializers.CharField(source="service.name", read_only=True)
     map_url = serializers.CharField(read_only=True)
     avg_rating = serializers.FloatField(read_only=True, default=None)
+    phones = ServiceCenterPhoneSerializer(many=True, read_only=True)
 
     class Meta:
         model = ServiceCenter
@@ -65,7 +77,7 @@ class ServiceCenterSerializer(serializers.ModelSerializer):
             "name",
             "address",
             "city",
-            "phone",
+            "phones",
             "working_hours",
             "postal_code",
             "map_url",

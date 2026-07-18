@@ -19,6 +19,7 @@ from services.models import (
     ContactMessage,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 
@@ -336,3 +337,92 @@ class TestCommentEditDelete:
         c.deleted_by = c.user
         c.save(update_fields=["deleted_by"])
         assert c.can_be_deleted_by(c.user) is False
+
+
+@pytest.mark.django_db
+class TestServiceCenterPhoneModel:
+    def test_str(self):
+        service = Service.objects.create(
+            name="خدمت", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز", address="آدرس", city="تهران"
+        )
+        phone = ServiceCenterPhone.objects.create(
+            center=center, phone="02112345678", label="main", order=0
+        )
+        assert "02112345678" in str(phone)
+        assert "تلفن اصلی" in str(phone)
+
+    def test_str_fax(self):
+        service = Service.objects.create(
+            name="خدمت", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز", address="آدرس", city="تهران"
+        )
+        phone = ServiceCenterPhone.objects.create(
+            center=center, phone="02199999999", label="fax", order=1
+        )
+        assert "فکس" in str(phone)
+
+    def test_label_choices(self):
+        assert ServiceCenterPhone.LABEL_CHOICES[0] == ("main", "تلفن اصلی")
+        assert ServiceCenterPhone.LABEL_CHOICES[1] == ("fax", "فکس")
+        assert ServiceCenterPhone.LABEL_CHOICES[2] == ("mobile", "موبایل")
+        assert ServiceCenterPhone.LABEL_CHOICES[3] == ("other", "سایر")
+
+    def test_default_label_is_main(self):
+        service = Service.objects.create(
+            name="خدمت", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز", address="آدرس", city="تهران"
+        )
+        phone = ServiceCenterPhone.objects.create(center=center, phone="02112345678")
+        assert phone.label == "main"
+        assert phone.order == 0
+
+    def test_center_related_name(self):
+        service = Service.objects.create(
+            name="خدمت", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز", address="آدرس", city="تهران"
+        )
+        ServiceCenterPhone.objects.create(
+            center=center, phone="02111111111", label="main", order=0
+        )
+        ServiceCenterPhone.objects.create(
+            center=center, phone="02122222222", label="fax", order=1
+        )
+        assert center.phones.count() == 2
+
+    def test_cascade_delete(self):
+        service = Service.objects.create(
+            name="خدمت", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز", address="آدرس", city="تهران"
+        )
+        ServiceCenterPhone.objects.create(center=center, phone="02112345678")
+        assert ServiceCenterPhone.objects.count() == 1
+        center.delete()
+        assert ServiceCenterPhone.objects.count() == 0
+
+    def test_ordering(self):
+        service = Service.objects.create(
+            name="خدمت", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز", address="آدرس", city="تهران"
+        )
+        ServiceCenterPhone.objects.create(
+            center=center, phone="02133333333", label="fax", order=2
+        )
+        ServiceCenterPhone.objects.create(
+            center=center, phone="02111111111", label="main", order=0
+        )
+        phones = list(center.phones.all())
+        assert phones[0].phone == "02111111111"
+        assert phones[1].phone == "02133333333"

@@ -9,7 +9,7 @@ from django.contrib.gis.geos import Point
 from django.test import Client
 
 from services.maps import get_center_locations, get_city_center
-from services.models import Service, ServiceCenter, User
+from services.models import Service, ServiceCenter, ServiceCenterPhone, User
 
 
 @pytest.mark.django_db
@@ -65,8 +65,10 @@ class TestGetCenterLocations:
             name="مرکز الف",
             address="آدرس یک",
             city="تهران",
-            phone="02112345678",
             coordinate=Point(51.3890, 35.6892, srid=4326),
+        )
+        ServiceCenterPhone.objects.create(
+            center=center, phone="02112345678", label="main", order=0
         )
         result = get_center_locations([center])
         assert len(result) == 1

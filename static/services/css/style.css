@@ -1912,6 +1912,18 @@ button.muted-link:disabled {
   font-size: 0.9rem;
 }
 
+.center-phone-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: inherit;
+  transition: color 0.2s;
+}
+
+.center-phone-link:hover {
+  color: var(--color-primary, #1a73e8);
+  text-decoration: underline;
+}
+
 .badge-near {
   display: inline-block;
   background: var(--color-success);

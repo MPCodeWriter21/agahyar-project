@@ -41,13 +41,17 @@ def get_center_locations(centers) -> list[dict]:
     locations = []
     for c in centers:
         if c.coordinate is not None:
+            primary_phone = ""
+            first_phone = c.phones.order_by("order", "id").first()
+            if first_phone:
+                primary_phone = first_phone.phone
             locations.append(
                 {
                     "lat": c.coordinate.y,
                     "lng": c.coordinate.x,
                     "name": c.name,
                     "address": c.address or "",
-                    "phone": c.phone or "",
+                    "phone": primary_phone,
                 }
             )
     return locations

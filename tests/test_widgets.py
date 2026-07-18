@@ -139,3 +139,13 @@ class TestServiceCenterAdminMapWidget:
         content = response.content.decode()
         assert "neshan-lat-input" in content
         assert "neshan-lng-input" in content
+
+    def test_admin_add_page_has_phone_inline(self):
+        from django.contrib.auth.models import User
+
+        User.objects.create_superuser("admin6", "admin6@test.com", "admin12345")
+        client = Client()
+        assert client.login(username="admin6", password="admin12345")
+        response = client.get("/admin/services/servicecenter/add/")
+        content = response.content.decode()
+        assert "phones-TOTAL_FORMS" in content

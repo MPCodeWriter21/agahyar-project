@@ -1115,13 +1115,14 @@ def suggest_closest_center(request: HttpRequest, service_id: int) -> HttpRespons
         return JsonResponse({"center": None})
 
     center = centers[0]
+    phones = list(center.phones.values_list("phone", flat=True)[:3])
     return JsonResponse(
         {
             "center": {
                 "id": center.id,
                 "name": center.name,
                 "address": center.address,
-                "phone": center.phone,
+                "phones": phones,
                 "distance_km": round(center.distance.km, 2),
                 "map_url": center.get_map_url(),
                 "lat": center.coordinate.y,
@@ -1182,13 +1183,14 @@ def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
     centers_data = []
     for center in page_obj:
         score = getattr(center, "avg_score", None)
+        phones = list(center.phones.values("phone", "label"))
         centers_data.append(
             {
                 "id": center.id,
                 "name": center.name,
                 "address": center.address,
                 "city": center.city,
-                "phone": center.phone,
+                "phones": phones,
                 "working_hours": center.working_hours,
                 "postal_code": center.postal_code,
                 "map_url": center.get_map_url(),
