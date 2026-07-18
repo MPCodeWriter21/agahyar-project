@@ -108,7 +108,7 @@ You can either build locally or pull a pre-built image from GHCR:
 docker compose -f docker-compose.prod.yml up --build -d
 
 # Or pull from GHCR (replace with the correct image name for your fork)
-VERSION=1.0.0
+VERSION=1.1.0
 docker pull ghcr.io/fatemehmohammadganji/agahyar-project:$VERSION
 ```
 
