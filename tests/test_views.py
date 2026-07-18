@@ -2192,7 +2192,10 @@ class TestNeshanSearchProxy:
                 fp=type(
                     "FP",
                     (),
-                    {"read": lambda s: b'{"error": "KeyNotFound"}'},
+                    {
+                        "read": lambda s: b'{"error": "KeyNotFound"}',
+                        "close": lambda s: None,
+                    },
                 )(),
             )
             mock_open.side_effect = http_err
