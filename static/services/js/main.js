@@ -218,6 +218,7 @@ function loadMoreCenters(btn) {
     })
     .then(function (data) {
       if (data.centers && data.centers.length > 0) {
+        var newBounds = [];
         data.centers.forEach(function (center) {
           var item = document.createElement("div");
           item.className = "center-item";
@@ -268,7 +269,45 @@ function loadMoreCenters(btn) {
           }
 
           listEl.appendChild(item);
+
+          if (
+            window.serviceMap &&
+            center.lat !== undefined &&
+            center.lng !== undefined
+          ) {
+            var phoneStr =
+              center.phones && center.phones.length > 0
+                ? center.phones[0].phone
+                : "";
+            var marker = L.marker([center.lat, center.lng])
+              .addTo(window.serviceMap)
+              .bindPopup(
+                "<b>" +
+                  center.name +
+                  "</b><br>" +
+                  center.address +
+                  (phoneStr
+                    ? '<br><a href="tel:' +
+                      phoneStr +
+                      '" class="center-phone-link">' +
+                      toPersianDigits(phoneStr) +
+                      "</a>"
+                    : ""),
+              );
+            if (window.serviceMarkers) {
+              window.serviceMarkers.push(marker);
+            }
+            newBounds.push(marker.getLatLng());
+          }
         });
+
+        if (newBounds.length > 0 && window.serviceMap) {
+          var allBounds = L.latLngBounds(newBounds);
+          window.serviceMap.fitBounds(allBounds, {
+            padding: [30, 30],
+            maxZoom: 15,
+          });
+        }
       }
 
       if (data.has_next) {
