@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.0] - 2026-07-18
+
+### Changed
+
+- **City-based center ordering**: The service detail page now orders
+  centers with the user's profile city first (defaulting to Tehran for
+  anonymous users), showing all centers available via "load more" instead
+  of filtering to only the user's city.
+- **Map syncs with loaded centers**: The service detail map now shows
+  markers only for centers loaded in the list, adding markers as new
+  pages are loaded via AJAX.
+
+### Fixed
+
+- **City name validation**: Cleaned up invalid city names in the SRA
+  epishkhan data pipeline (street names, address fragments, province
+  names no longer used as city names).
+
 ## [1.1.0] - 2026-07-18
 
 ### Added
