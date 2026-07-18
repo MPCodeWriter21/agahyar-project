@@ -75,6 +75,7 @@ MIDDLEWARE = [
     "django.middleware.gzip.GZipMiddleware",
     "agahyar_project.middleware.RequestIDMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -144,10 +145,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = "fa"
+LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Tehran"
 USE_I18N = True
 USE_TZ = True
+
+LANGUAGES = [
+    ("fa", "Persian"),
+    ("en", "English"),
+]
 
 
 # Static files (CSS, JavaScript, Images)
