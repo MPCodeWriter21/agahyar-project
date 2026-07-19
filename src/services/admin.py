@@ -17,6 +17,7 @@ from .models import (
     ContactMessage,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 from .resources import (
@@ -62,14 +63,30 @@ class FAQAdmin(ImportExportModelAdmin):
     list_filter = ("category",)
 
 
+class ServiceCenterPhoneInline(admin.TabularInline):
+    """Inline editor for phone numbers on a ServiceCenter."""
+
+    model = ServiceCenterPhone
+    extra = 1
+    fields = ("phone", "label", "order")
+
+
 @admin.register(ServiceCenter)
 class ServiceCenterAdmin(ImportExportModelAdmin):
     """Admin configuration for the ServiceCenter model."""
 
     resource_classes = [ServiceCenterResource]
-    list_display = ("name", "service", "city", "phone", "postal_code", "working_hours")
+    list_display = (
+        "name",
+        "service",
+        "city",
+        "postal_code",
+        "working_hours",
+        "description",
+    )
     search_fields = ("name", "address", "city", "postal_code")
     list_filter = ("service", "city")
+    inlines = [ServiceCenterPhoneInline]
     formfield_overrides = {
         models.GeometryField: {"widget": LocalOpenLayersWidget},
     }

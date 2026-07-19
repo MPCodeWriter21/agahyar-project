@@ -26,12 +26,18 @@
     {% endif %}
     <button onclick="window.print()" class="btn-print">چاپ</button>
   </div>
+  {% if center.description %}
+    <div class="description-card">
+      <strong>توضیحات</strong>
+      <div class="description-card-body">{{ center.description|linebreaksbr }}</div>
+    </div>
+  {% endif %}
   <div class="meta-grid">
-    {% if center.phone %}
+    {% if center.phones.all %}
       <div class="meta-item">
         <strong>شماره تماس</strong>
         <br>
-        {{ center.phone }}
+        {% for p in center.phones.all %}{% if not forloop.first %} &mdash; {% endif %}<a href="tel:{{ p.phone }}" class="center-phone-link">{{ p.phone|fa }}</a>{% endfor %}
       </div>
     {% endif %}
     {% if center.postal_code %}
@@ -173,7 +179,7 @@
             var bounds = L.latLngBounds();
             locations.forEach(function(loc) {
                 var marker = L.marker([loc.lat, loc.lng]).addTo(map).bindPopup(
-                    "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? "<br>" + loc.phone : "")
+                    "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? '<br><a href="tel:' + loc.phone + '" class="center-phone-link">' + toPersianDigits(loc.phone) + '</a>' : "")
                 );
                 bounds.extend(marker.getLatLng());
             });

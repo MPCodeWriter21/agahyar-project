@@ -189,3 +189,136 @@ a:hover {
 .stats-table tbody tr:hover {
   background: var(--selected-row, #f0f0f0);
 }
+
+/* ========== Admin Map Widget: Neshan Search + Coord Inputs ========== */
+
+.neshan-widget-wrapper {
+  position: relative;
+}
+
+.neshan-search-container {
+  margin-bottom: 8px;
+  position: relative;
+  display: flex;
+  gap: 6px;
+}
+
+.neshan-search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline-color, #ccc);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: Vazirmatn, inherit;
+  box-sizing: border-box;
+  direction: rtl;
+}
+
+.neshan-search-input:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.neshan-search-btn {
+  padding: 8px 16px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: Vazirmatn, inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.neshan-search-btn:hover {
+  background: color-mix(in srgb, var(--primary) 80%, black);
+}
+
+.neshan-search-results {
+  display: none;
+  position: absolute;
+  z-index: 1000;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--darkened-bg, #fff);
+  border: 1px solid var(--hairline-color, #ccc);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.neshan-search-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--hairline-color, #eee);
+  text-align: right;
+}
+
+.neshan-search-item:last-child {
+  border-bottom: none;
+}
+
+.neshan-search-item:hover {
+  background: var(--selected-row, #f0f0f0);
+}
+
+.neshan-search-title {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--body-loud-color, var(--body-fg));
+  margin-bottom: 2px;
+}
+
+.neshan-search-address {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--body-quiet-color, #666);
+}
+
+.neshan-search-error,
+.neshan-search-empty {
+  color: var(--body-quiet-color, #666);
+  cursor: default;
+  font-style: italic;
+}
+
+.neshan-coord-inputs {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.neshan-coord-field {
+  flex: 1;
+}
+
+.neshan-coord-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--body-loud-color, var(--body-fg));
+  margin-bottom: 4px;
+}
+
+.neshan-coord-field-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--hairline-color, #ccc);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  direction: ltr;
+  text-align: left;
+}
+
+.neshan-coord-field-input:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}

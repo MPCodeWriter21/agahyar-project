@@ -1,8 +1,8 @@
 """Data models for the Agahyar services application.
 
 Defines ``Service``, ``UserProfile``, ``FAQ``, ``ServiceCenter``,
-``ContactMessage``, ``Comment``, ``CenterRating``, and ``Bookmark``
-with Persian verbose names and helper methods.
+``ServiceCenterPhone``, ``ContactMessage``, ``Comment``, ``CenterRating``,
+and ``Bookmark`` with Persian verbose names and helper methods.
 """
 
 from datetime import timedelta
@@ -11,7 +11,11 @@ from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.utils import timezone
 
-from services.validators import iranian_phone_number_validator
+from services.validators import (
+    center_phone_validator,
+    iranian_phone_number_validator,
+    normalize_phone,
+)
 
 
 class Service(models.Model):
@@ -114,7 +118,7 @@ class ServiceCenter(models.Model):
     name = models.CharField("نام مرکز", max_length=200)
     address = models.TextField("آدرس کامل")
     city = models.CharField("شهر", max_length=100, db_index=True)
-    phone = models.CharField("شماره تماس", max_length=11, blank=True)
+    description = models.TextField("توضیحات", blank=True, default="")
     working_hours = models.TextField("ساعت کاری", blank=True)
     postal_code = models.CharField("کد پستی", max_length=20, blank=True)
     coordinate = models.PointField(
@@ -139,6 +143,59 @@ class ServiceCenter(models.Model):
                 f"https://www.google.com/maps?q={self.coordinate.y},{self.coordinate.x}"
             )
         return f"https://www.google.com/maps/search/{self.address}"
+
+
+class ServiceCenterPhone(models.Model):
+    """A phone number associated with a service center."""
+
+    LABEL_CHOICES = [
+        ("main", "تلفن اصلی"),
+        ("fax", "فکس"),
+        ("mobile", "موبایل"),
+        ("other", "سایر"),
+    ]
+
+    center = models.ForeignKey(
+        ServiceCenter,
+        on_delete=models.CASCADE,
+        related_name="phones",
+        verbose_name="مرکز",
+    )
+    phone = models.CharField(
+        "شماره تماس",
+        max_length=11,
+        validators=[center_phone_validator],
+    )
+    label = models.CharField(
+        "برچسب",
+        max_length=20,
+        choices=LABEL_CHOICES,
+        default="main",
+    )
+    order = models.IntegerField("ترتیب", default=0)
+
+    class Meta:
+        verbose_name = "شماره تماس مرکز"
+        verbose_name_plural = "شماره تماس‌های مراکز"
+        ordering = ["order", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.get_label_display()}: {self.phone}"
+
+    def clean(self) -> None:
+        """Normalise Persian digits to English before validation."""
+        self.phone = normalize_phone(self.phone)
+        super().clean()
+
+    def full_clean(self, exclude=None, validate_unique=True, **kwargs):
+        """Normalise phone digits before field validators run."""
+        self.phone = normalize_phone(self.phone)
+        super().full_clean(exclude=exclude, validate_unique=validate_unique, **kwargs)
+
+    def save(self, *args, **kwargs):
+        """Normalise phone digits before saving."""
+        self.phone = normalize_phone(self.phone)
+        super().save(*args, **kwargs)
 
 
 class ContactMessage(models.Model):

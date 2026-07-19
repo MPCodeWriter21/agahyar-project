@@ -72,7 +72,7 @@ def suggest_centers(service_name: str, user_city: str) -> list:
                 {
                     "name": c.name,
                     "address": c.address,
-                    "phone": c.phone,
+                    "phone": c.phones.first().phone if c.phones.exists() else "---",
                     "distance": "نزدیک",
                 }
                 for c in centers

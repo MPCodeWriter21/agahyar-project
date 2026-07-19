@@ -9,7 +9,11 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
 from services.models import UserProfile
-from services.validators import iranian_phone_number_validator
+from services.validators import (
+    center_phone_validator,
+    iranian_phone_number_validator,
+    normalize_phone,
+)
 
 
 class TestIranianPhoneNumberValidator:
@@ -54,3 +58,56 @@ class TestUserProfilePhoneValidation:
         with pytest.raises(ValidationError):
             profile = UserProfile(user=user, city="Tehran", phone="12345")
             profile.full_clean()
+
+
+class TestNormalizePhone:
+    def test_converts_persian_digits(self):
+        assert normalize_phone("۰۲۱۱۲۳۴۵۶۷") == "0211234567"
+
+    def test_converts_mixed_digits(self):
+        assert normalize_phone("۰۹۱۲abc۴۵۶۷") == "0912abc4567"
+
+    def test_already_english(self):
+        assert normalize_phone("02112345678") == "02112345678"
+
+    def test_strips_whitespace(self):
+        assert normalize_phone("  02112345678  ") == "02112345678"
+
+    def test_empty_string(self):
+        assert normalize_phone("") == ""
+
+
+class TestCenterPhoneValidator:
+    def test_valid_landline(self):
+        center_phone_validator("02112345678")
+
+    def test_valid_mobile(self):
+        center_phone_validator("09121234567")
+
+    def test_invalid_too_short(self):
+        with pytest.raises(ValidationError):
+            center_phone_validator("0211234567")
+
+    def test_invalid_too_long(self):
+        with pytest.raises(ValidationError):
+            center_phone_validator("021123456789")
+
+    def test_invalid_prefix(self):
+        with pytest.raises(ValidationError):
+            center_phone_validator("12112345678")
+
+
+@pytest.mark.django_db
+class TestServiceCenterPhoneClean:
+    def test_persian_digits_normalised_on_clean(self):
+        from services.models import Service, ServiceCenter, ServiceCenterPhone
+
+        service = Service.objects.create(
+            name="خدمت", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="مرکز", address="آدرس", city="تهران"
+        )
+        phone = ServiceCenterPhone(center=center, phone="۰۲۱۱۲۳۴۵۶۷۸")
+        phone.full_clean()
+        assert phone.phone == "02112345678"

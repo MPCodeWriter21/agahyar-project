@@ -20,6 +20,7 @@ from services.models import (
     ContactMessage,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 
@@ -44,8 +45,10 @@ def sample_data():
         name="Test Center",
         address="123 Test St",
         city="Tehran",
-        phone="02112345678",
         coordinate=Point(51.3890, 35.6892, srid=4326),
+    )
+    ServiceCenterPhone.objects.create(
+        center=center, phone="02112345678", label="main", order=0
     )
     faq = FAQ.objects.create(
         question="Test question?",

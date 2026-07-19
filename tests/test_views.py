@@ -2094,3 +2094,126 @@ class TestAdminStats:
         assert json.loads(response.context["chart_comments"]) is not None
         assert json.loads(response.context["chart_ratings"]) is not None
         assert json.loads(response.context["chart_services"]) is not None
+
+
+@pytest.mark.django_db
+class TestNeshanSearchProxy:
+    """Tests for the Neshan search proxy view."""
+
+    def _staff_client(self):
+        User.objects.create_user("mapadmin", password="pass12345", is_staff=True)
+        c = Client()
+        c.login(username="mapadmin", password="pass12345")
+        return c
+
+    def test_requires_staff(self):
+        c = Client()
+        resp = c.get("/admin/neshan-search/", {"term": "test", "lat": 35, "lng": 51})
+        assert resp.status_code in (302, 403)
+
+    def test_missing_params_returns_400(self):
+        c = self._staff_client()
+        resp = c.get("/admin/neshan-search/")
+        assert resp.status_code == 400
+        data = json.loads(resp.content)
+        assert "error" in data
+
+    def test_missing_term_returns_400(self):
+        c = self._staff_client()
+        resp = c.get("/admin/neshan-search/", {"lat": 35, "lng": 51})
+        assert resp.status_code == 400
+
+    def test_missing_lat_returns_400(self):
+        c = self._staff_client()
+        resp = c.get("/admin/neshan-search/", {"term": "test", "lng": 51})
+        assert resp.status_code == 400
+
+    def test_missing_lng_returns_400(self):
+        c = self._staff_client()
+        resp = c.get("/admin/neshan-search/", {"term": "test", "lat": 35})
+        assert resp.status_code == 400
+
+    @override_settings(NESHAN_API_KEY="")
+    def test_missing_api_key_returns_503(self):
+        c = self._staff_client()
+        resp = c.get("/admin/neshan-search/", {"term": "test", "lat": 35, "lng": 51})
+        assert resp.status_code == 503
+        data = json.loads(resp.content)
+        assert "NESHAN_API_KEY" in data["error"]
+
+    @override_settings(NESHAN_API_KEY="test-key-123")
+    def test_successful_search(self):
+        mock_response = {
+            "count": 1,
+            "items": [
+                {
+                    "title": "Test Place",
+                    "address": "Test Address",
+                    "neighbourhood": "Test Hood",
+                    "region": "Tehran",
+                    "type": "place",
+                    "category": "place",
+                    "location": {"x": 51.389, "y": 35.689},
+                }
+            ],
+        }
+        c = self._staff_client()
+        with patch("urllib.request.urlopen") as mock_open:
+            mock_resp = type(
+                "Response",
+                (),
+                {
+                    "read": lambda s: json.dumps(mock_response).encode("utf-8"),
+                    "__enter__": lambda s: s,
+                    "__exit__": lambda s, *a: None,
+                },
+            )()
+            mock_open.return_value = mock_resp
+            resp = c.get(
+                "/admin/neshan-search/",
+                {"term": "test", "lat": 35.689, "lng": 51.389},
+            )
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert data["count"] == 1
+        assert data["items"][0]["title"] == "Test Place"
+
+    @override_settings(NESHAN_API_KEY="test-key-123")
+    def test_api_error_returns_error_json(self):
+        import urllib.error
+
+        c = self._staff_client()
+        with patch("urllib.request.urlopen") as mock_open:
+            http_err = urllib.error.HTTPError(
+                url="test",
+                code=480,
+                msg="KeyNotFound",
+                hdrs=None,
+                fp=type(
+                    "FP",
+                    (),
+                    {
+                        "read": lambda s: b'{"error": "KeyNotFound"}',
+                        "close": lambda s: None,
+                    },
+                )(),
+            )
+            mock_open.side_effect = http_err
+            resp = c.get(
+                "/admin/neshan-search/",
+                {"term": "test", "lat": 35, "lng": 51},
+            )
+        assert resp.status_code == 480
+
+    @override_settings(NESHAN_API_KEY="test-key-123")
+    def test_network_error_returns_502(self):
+        import urllib.error
+
+        c = self._staff_client()
+        with patch("urllib.request.urlopen") as mock_open:
+            mock_open.side_effect = urllib.error.URLError("connection refused")
+            resp = c.get(
+                "/admin/neshan-search/",
+                {"term": "test", "lat": 35, "lng": 51},
+            )
+        assert resp.status_code == 502

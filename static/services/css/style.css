@@ -1732,6 +1732,13 @@ button.muted-link:disabled {
   margin-bottom: 4px;
 }
 
+.center-item-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  white-space: pre-line;
+}
+
 .center-item-phone {
   color: var(--text-secondary);
   font-size: 0.85rem;
@@ -1907,9 +1914,46 @@ button.muted-link:disabled {
   margin: 8px 0;
 }
 
+.center-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 6px 0;
+  white-space: pre-line;
+}
+
+.description-card {
+  background: var(--bg-light);
+  padding: 12px 18px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.description-card strong {
+  color: var(--text-primary);
+}
+
+.description-card-body {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 6px;
+  white-space: pre-line;
+}
+
 .center-phone {
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.center-phone-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: inherit;
+  transition: color 0.2s;
+}
+
+.center-phone-link:hover {
+  color: var(--color-primary, #1a73e8);
+  text-decoration: underline;
 }
 
 .badge-near {

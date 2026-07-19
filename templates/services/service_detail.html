@@ -80,9 +80,14 @@
               {% endif %}
             </div>
             <div class="center-item-address">{{ center.address }}</div>
-            {% if center.phone %}
-              <div class="center-item-phone"><i class="fas fa-phone"></i> {{ center.phone }}</div>
+            {% if center.description %}
+              <div class="center-item-description">{{ center.description|linebreaksbr }}</div>
             {% endif %}
+            {% with primary=center.phones.all.first %}
+              {% if primary %}
+                <div class="center-item-phone"><i class="fas fa-phone"></i> <a href="tel:{{ primary.phone }}" class="center-phone-link">{{ primary.phone|fa }}</a></div>
+              {% endif %}
+            {% endwith %}
           </div>
         {% endfor %}
       </div>
@@ -98,8 +103,9 @@
       <p class="empty-text">مرکزی برای این خدمت یافت نشد.</p>
     {% endif %}
   </div>
-  {% if center_locations %}
+  {% if initial_centers %}
     {{ center_locations|json_script:"center-locations-data" }}
+    {{ city_center|json_script:"city-center-data" }}
     {% csrf_token %}
     <div class="info-card map-card">
       <h3>موقعیت روی نقشه</h3>
@@ -167,30 +173,40 @@
 {% block extra_js %}
   <script src="{% static 'libs/leaflet/leaflet.js' %}"></script>
   <script src="{% static 'services/js/main.js' %}"></script>
-  {% if center_locations %}
+  {% if initial_centers %}
     <script>
         (function() {
             var dataEl = document.getElementById("center-locations-data");
-            if (!dataEl) return;
-            var locations = JSON.parse(dataEl.textContent);
+            var cityEl = document.getElementById("city-center-data");
+            var centerData = cityEl ? JSON.parse(cityEl.textContent) : {
+                lat: 35.6892,
+                lng: 51.3890
+            };
             window.serviceMap = L.map("service-map");
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 18,
                 attribution: "&copy; OpenStreetMap contributors"
             }).addTo(window.serviceMap);
-            var bounds = L.latLngBounds();
-            locations.forEach(function(loc) {
-                var marker = L.marker([loc.lat, loc.lng]).addTo(window.serviceMap).bindPopup(
-                    "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? "<br>" + loc.phone : "")
-                );
-                bounds.extend(marker.getLatLng());
-            });
-            if (locations.length === 1) {
-                window.serviceMap.setView(bounds.getCenter(), 15);
-            } else {
-                window.serviceMap.fitBounds(bounds, {
-                    padding: [30, 30]
+            window.serviceMarkers = [];
+            var locations = dataEl ? JSON.parse(dataEl.textContent) : [];
+            if (locations.length > 0) {
+                var bounds = L.latLngBounds();
+                locations.forEach(function(loc) {
+                    var marker = L.marker([loc.lat, loc.lng]).addTo(window.serviceMap).bindPopup(
+                        "<b>" + loc.name + "</b><br>" + loc.address + (loc.phone ? '<br><a href="tel:' + loc.phone + '" class="center-phone-link">' + toPersianDigits(loc.phone) + '</a>' : "")
+                    );
+                    window.serviceMarkers.push(marker);
+                    bounds.extend(marker.getLatLng());
                 });
+                if (locations.length === 1) {
+                    window.serviceMap.setView(bounds.getCenter(), 15);
+                } else {
+                    window.serviceMap.fitBounds(bounds, {
+                        padding: [30, 30]
+                    });
+                }
+            } else {
+                window.serviceMap.setView([centerData.lat, centerData.lng], 13);
             }
         })();
     </script>

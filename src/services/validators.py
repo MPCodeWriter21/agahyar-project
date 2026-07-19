@@ -23,6 +23,17 @@ from django.core.exceptions import ValidationError
 
 from .error_codes import get_error_message
 
+PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
+
+
+def normalize_phone(value: str) -> str:
+    """Translate Persian digits to English and strip whitespace.
+
+    :param value: The phone number string (may contain Persian digits).
+    :returns: A string with only ASCII digits and no surrounding whitespace.
+    """
+    return value.strip().translate(PERSIAN_DIGITS)
+
 
 def iranian_phone_number_validator(value: str) -> None:
     """Validate that *value* is a valid Iranian mobile number (11 digits starting with 09).
@@ -33,6 +44,22 @@ def iranian_phone_number_validator(value: str) -> None:
     if not re.match(r"^09\d{9}$", value):
         raise ValidationError(
             "Phone number must be 11 digits and start with 09.",
+        )
+
+
+def center_phone_validator(value: str) -> None:
+    """Validate a service-center phone number.
+
+    Accepts 11-digit Iranian numbers (landline or mobile).  Persian
+    digits are expected to have been normalised *before* this
+    validator runs.
+
+    :param value: The phone number string to validate.
+    :raises ValidationError: If the number does not match the expected pattern.
+    """
+    if not re.match(r"^0\d{10}$", value):
+        raise ValidationError(
+            "Phone number must be 11 digits starting with 0.",
         )
 
 

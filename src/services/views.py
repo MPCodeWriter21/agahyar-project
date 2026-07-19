@@ -7,6 +7,9 @@ and SEO endpoints, with rate limiting on sensitive views.
 
 import json
 import logging
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import timedelta
 
 from django.conf import settings as django_settings
@@ -510,15 +513,14 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
 
     user_city = get_default_city()
     user_neighborhood = ""
-    user_city_for_centers = None
     if request.user.is_authenticated:
         try:
             profile: UserProfile = request.user.profile
             user_city = profile.city
             user_neighborhood = profile.neighborhood
-            user_city_for_centers = profile.city
         except UserProfile.DoesNotExist:
             pass
+    user_city_for_centers = user_city
 
     nearest_center = get_nearest_center(service.name, user_city, user_neighborhood)
 
@@ -531,27 +533,33 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
         avg_score=Avg("ratings__score")
     )
 
-    if user_city_for_centers:
-        city_centers = centers_qs.filter(city__icontains=user_city_for_centers)
+    coord_center = centers_qs.filter(
+        city__icontains=user_city_for_centers, coordinate__isnull=False
+    ).first()
+
+    if coord_center:
         from django.contrib.gis.db.models.functions import Distance as DistFunc
 
-        coord_center = city_centers.filter(coordinate__isnull=False).first()
-        if coord_center:
-            city_centers = city_centers.annotate(
-                city_distance=DistFunc("coordinate", coord_center.coordinate)
-            ).order_by(
-                "city_distance",
-                F("avg_score").desc(nulls_last=True),
-            )
-        else:
-            city_centers = city_centers.order_by(F("avg_score").desc(nulls_last=True))
+        centers_qs = centers_qs.annotate(
+            city_distance=DistFunc("coordinate", coord_center.coordinate),
+            is_in_city=Count("id", filter=Q(city__icontains=user_city_for_centers)),
+        ).order_by(
+            "-is_in_city",
+            "city_distance",
+            F("avg_score").desc(nulls_last=True),
+        )
     else:
-        city_centers = centers_qs.order_by(F("avg_score").desc(nulls_last=True))
+        centers_qs = centers_qs.annotate(
+            is_in_city=Count("id", filter=Q(city__icontains=user_city_for_centers)),
+        ).order_by(
+            "-is_in_city",
+            F("avg_score").desc(nulls_last=True),
+        )
 
-    initial_centers = list(city_centers[:5])
-    has_more_centers = city_centers.count() > 5
+    initial_centers = list(centers_qs[:5])
+    has_more_centers = centers_qs.count() > 5
 
-    center_locations = get_center_locations(city_centers)
+    center_locations = get_center_locations(initial_centers)
     city_center = get_city_center(user_city)
 
     is_bookmarked = False
@@ -1112,13 +1120,14 @@ def suggest_closest_center(request: HttpRequest, service_id: int) -> HttpRespons
         return JsonResponse({"center": None})
 
     center = centers[0]
+    phones = list(center.phones.values_list("phone", flat=True)[:3])
     return JsonResponse(
         {
             "center": {
                 "id": center.id,
                 "name": center.name,
                 "address": center.address,
-                "phone": center.phone,
+                "phones": phones,
                 "distance_km": round(center.distance.km, 2),
                 "map_url": center.get_map_url(),
                 "lat": center.coordinate.y,
@@ -1132,8 +1141,8 @@ def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
     """API endpoint: load more centers for a service with pagination.
 
     GET with query params ``page`` (default 1) and ``per_page`` (default 5).
-    For authenticated users, centers are ordered by proximity if their profile
-    city is known, otherwise by rating. For anonymous users, by rating.
+    Centers are ordered by proximity to the user's profile city (or Tehran
+    for anonymous users), then by average rating.
     """
     service = get_object_or_404(Service, id=service_id)
     page = int(request.GET.get("page", 1))
@@ -1144,34 +1153,36 @@ def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
     annotate_rating = Avg("ratings__score")
     qs = qs.annotate(avg_score=annotate_rating)
 
+    user_city = get_default_city()
     if request.user.is_authenticated:
         try:
             profile = request.user.profile
             user_city = profile.city
         except UserProfile.DoesNotExist:
-            user_city = None
+            pass
 
-        if user_city:
-            from django.contrib.gis.db.models.functions import Distance
+    coord_center = qs.filter(
+        city__icontains=user_city, coordinate__isnull=False
+    ).first()
 
-            city_qs = qs.filter(city__icontains=user_city, coordinate__isnull=False)
-            coord_center = city_qs.first()
-            if coord_center:
-                qs = qs.filter(city__icontains=user_city)
-                qs = qs.annotate(
-                    city_distance=Distance("coordinate", coord_center.coordinate)
-                ).order_by(
-                    "city_distance",
-                    F("avg_score").desc(nulls_last=True),
-                )
-            else:
-                qs = qs.filter(city__icontains=user_city).order_by(
-                    F("avg_score").desc(nulls_last=True)
-                )
-        else:
-            qs = qs.order_by(F("avg_score").desc(nulls_last=True))
+    if coord_center:
+        from django.contrib.gis.db.models.functions import Distance
+
+        qs = qs.annotate(
+            city_distance=Distance("coordinate", coord_center.coordinate),
+            is_in_city=Count("id", filter=Q(city__icontains=user_city)),
+        ).order_by(
+            "-is_in_city",
+            "city_distance",
+            F("avg_score").desc(nulls_last=True),
+        )
     else:
-        qs = qs.order_by(F("avg_score").desc(nulls_last=True))
+        qs = qs.annotate(
+            is_in_city=Count("id", filter=Q(city__icontains=user_city)),
+        ).order_by(
+            "-is_in_city",
+            F("avg_score").desc(nulls_last=True),
+        )
 
     paginator = Paginator(qs, per_page)
     page_obj = paginator.get_page(page)
@@ -1179,19 +1190,22 @@ def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
     centers_data = []
     for center in page_obj:
         score = getattr(center, "avg_score", None)
-        centers_data.append(
-            {
-                "id": center.id,
-                "name": center.name,
-                "address": center.address,
-                "city": center.city,
-                "phone": center.phone,
-                "working_hours": center.working_hours,
-                "postal_code": center.postal_code,
-                "map_url": center.get_map_url(),
-                "avg_rating": round(score, 1) if score else None,
-            }
-        )
+        phones = list(center.phones.values("phone", "label"))
+        center_data = {
+            "id": center.id,
+            "name": center.name,
+            "address": center.address,
+            "city": center.city,
+            "phones": phones,
+            "working_hours": center.working_hours,
+            "postal_code": center.postal_code,
+            "map_url": center.get_map_url(),
+            "avg_rating": round(score, 1) if score else None,
+        }
+        if center.coordinate is not None:
+            center_data["lat"] = center.coordinate.y
+            center_data["lng"] = center.coordinate.x
+        centers_data.append(center_data)
 
     return JsonResponse(
         {
@@ -1395,3 +1409,52 @@ def admin_stats(request: HttpRequest) -> HttpResponse:
             "chart_services": chart_services,
         },
     )
+
+
+NESHAN_SEARCH_URL = "https://api.neshan.org/v1/search"
+
+
+@staff_member_required
+def neshan_search(request: HttpRequest) -> JsonResponse:
+    """Proxy the Neshan search API to keep the API key server-side.
+
+    Accepts ``term``, ``lat``, and ``lng`` query parameters and forwards
+    them to ``api.neshan.org/v1/search``.  Returns the Neshan response
+    as-is (JSON), or an error JSON on failure.
+    """
+    term = request.GET.get("term", "").strip()
+    lat = request.GET.get("lat", "").strip()
+    lng = request.GET.get("lng", "").strip()
+
+    if not term or not lat or not lng:
+        return JsonResponse(
+            {"error": "term, lat, and lng are required."},
+            status=400,
+        )
+
+    api_key = getattr(django_settings, "NESHAN_API_KEY", "")
+    if not api_key:
+        return JsonResponse(
+            {"error": "NESHAN_API_KEY is not configured on the server."},
+            status=503,
+        )
+
+    params = urllib.parse.urlencode({"term": term, "lat": lat, "lng": lng})
+    url = f"{NESHAN_SEARCH_URL}?{params}"
+
+    req = urllib.request.Request(url, headers={"Api-Key": api_key})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosec B310
+            data = json.loads(resp.read().decode("utf-8"))
+            return JsonResponse(data, safe=False)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        return JsonResponse(
+            {"error": f"Neshan API error ({exc.code})", "detail": body},
+            status=exc.code,
+        )
+    except (urllib.error.URLError, TimeoutError):
+        return JsonResponse(
+            {"error": "Could not reach the Neshan search API."},
+            status=502,
+        )

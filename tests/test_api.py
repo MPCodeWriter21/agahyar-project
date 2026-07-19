@@ -21,6 +21,7 @@ from services.models import (
     PhoneVerification,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
 )
 
 
@@ -945,7 +946,9 @@ class ServiceCenterAPITest(TestCase):
             name="مرکز تست",
             address="خیابان ولیعصر",
             city="تهران",
-            phone="02112345678",
+        )
+        ServiceCenterPhone.objects.create(
+            center=self.center, phone="02112345678", label="main", order=0
         )
         self.url = "/api/v1/centers/"
 
@@ -958,6 +961,10 @@ class ServiceCenterAPITest(TestCase):
         resp = self.client.get(f"{self.url}{self.center.id}/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["service_name"], "گواهینامه")
+        self.assertIn("phones", resp.data)
+        self.assertEqual(len(resp.data["phones"]), 1)
+        self.assertEqual(resp.data["phones"][0]["phone"], "02112345678")
+        self.assertEqual(resp.data["phones"][0]["label"], "main")
 
     def test_filter_by_city(self):
         resp = self.client.get(f"{self.url}?city=تهران")

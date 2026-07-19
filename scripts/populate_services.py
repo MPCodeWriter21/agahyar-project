@@ -24,7 +24,7 @@ django.setup()
 
 from django.contrib.gis.geos import Point  # noqa: E402
 
-from services.models import Service, ServiceCenter  # noqa: E402
+from services.models import Service, ServiceCenter, ServiceCenterPhone  # noqa: E402
 
 SERVICES = [
     {
@@ -564,7 +564,6 @@ def populate_centers() -> int:
                 defaults={
                     "service": service,
                     "address": center_data["address"],
-                    "phone": center_data["phone"],
                     "working_hours": center_data.get("working_hours", service_wh),
                     "postal_code": center_data.get("postal_code", ""),
                     "coordinate": coordinate,
@@ -573,6 +572,19 @@ def populate_centers() -> int:
             count += 1
             action = " created" if created else " updated"
             print(f"  [{action.strip():>7}] {obj}")
+
+            phone_number = center_data.get("phone", "")
+            if phone_number:
+                phone_obj, phone_created = ServiceCenterPhone.objects.update_or_create(
+                    center=obj,
+                    label="main",
+                    defaults={
+                        "phone": phone_number,
+                        "order": 0,
+                    },
+                )
+                if phone_created:
+                    print(f"    [  added] phone: {phone_number}")
 
     return count
 
