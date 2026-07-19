@@ -655,6 +655,174 @@ class TestPasswordReset:
 
 
 @pytest.mark.django_db
+class TestPasswordResetPhone:
+    """Tests for the phone-based password reset flow."""
+
+    def _setup_user(self):
+        user = User.objects.create_user("resetphone", password="oldpass123")
+        UserProfile.objects.create(user=user, city="Tehran", phone="09121234567")
+        return user
+
+    @override_settings(DISABLE_SMS=True)
+    def test_phone_lookup_page_loads(self):
+        c = Client()
+        resp = c.get("/password-reset-phone/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "شماره موبایل" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_phone_lookup_sends_otp(self):
+        self._setup_user()
+        c = Client()
+        resp = c.post("/password-reset-phone/", {"phone": "09121234567"})
+        assert resp.status_code == 302
+        assert "/verify-password-reset-otp/" in resp.url
+        assert "pending_password_reset" in c.session
+
+    @override_settings(DISABLE_SMS=True)
+    def test_phone_lookup_not_found(self):
+        c = Client()
+        resp = c.post("/password-reset-phone/", {"phone": "09999999999"})
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "یافت نشد" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_page_loads(self):
+        self._setup_user()
+        c = Client()
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        resp = c.get("/verify-password-reset-otp/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "09121234567" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_redirect_without_session(self):
+        c = Client()
+        resp = c.get("/verify-password-reset-otp/")
+        assert resp.status_code == 302
+        assert "/password-reset-phone/" in resp.url
+
+    @override_settings(DISABLE_SMS=True)
+    def test_set_new_password_page_loads(self):
+        self._setup_user()
+        c = Client()
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        # Manually mark OTP as verified by setting session and creating valid OTP
+        from services.models import PhoneVerification
+        from services.otp import generate_otp, hash_otp
+
+        otp = generate_otp()
+        PhoneVerification.objects.create(phone="09121234567", otp_code=hash_otp(otp))
+        # Verify the OTP to mark it used
+        c.post(
+            "/verify-password-reset-otp/",
+            {"otp_code": otp},
+        )
+        resp = c.get("/set-new-password/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "رمز عبور جدید" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_set_new_password_redirect_without_session(self):
+        c = Client()
+        resp = c.get("/set-new-password/")
+        assert resp.status_code == 302
+        assert "/password-reset-phone/" in resp.url
+
+    @override_settings(DISABLE_SMS=True)
+    def test_full_flow_changes_password(self):
+        user = self._setup_user()
+        c = Client()
+        # Step 1: phone lookup
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        # Step 2: verify OTP
+        from services.models import PhoneVerification
+        from services.otp import generate_otp, hash_otp
+
+        otp = generate_otp()
+        PhoneVerification.objects.create(phone="09121234567", otp_code=hash_otp(otp))
+        c.post("/verify-password-reset-otp/", {"otp_code": otp})
+        # Step 3: set new password
+        resp = c.post(
+            "/set-new-password/",
+            {"new_password1": "NewPass123!", "new_password2": "NewPass123!"},
+        )
+        assert resp.status_code == 302
+        assert resp.url == reverse("login")
+        # Verify password changed
+        user.refresh_from_db()
+        assert user.check_password("NewPass123!")
+        assert not user.check_password("oldpass123")
+
+    @override_settings(DISABLE_SMS=True)
+    def test_done_page_loads(self):
+        c = Client()
+        resp = c.get("/password-reset-phone/done/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "تغییر کرد" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_password_mismatch_error(self):
+        self._setup_user()
+        c = Client()
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        from services.models import PhoneVerification
+        from services.otp import generate_otp, hash_otp
+
+        otp = generate_otp()
+        PhoneVerification.objects.create(phone="09121234567", otp_code=hash_otp(otp))
+        c.post("/verify-password-reset-otp/", {"otp_code": otp})
+        resp = c.post(
+            "/set-new-password/",
+            {"new_password1": "NewPass123!", "new_password2": "DifferentPass!"},
+        )
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "مطابقت ندارند" in content
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_resend_otp_api(self):
+        self._setup_user()
+        c = Client()
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        resp = c.post(
+            "/api/resend-password-reset-otp/",
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "message" in data
+
+    @override_settings(DISABLE_SMS=True)
+    def test_resend_otp_api_no_session(self):
+        c = Client()
+        resp = c.post(
+            "/api/resend-password-reset-otp/",
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+
+    @override_settings(DISABLE_SMS=True)
+    def test_link_on_email_reset_form(self):
+        c = Client()
+        resp = c.get("/password-reset/")
+        content = resp.content.decode()
+        assert "/password-reset-phone/" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_link_on_phone_reset_form(self):
+        c = Client()
+        resp = c.get("/password-reset-phone/")
+        content = resp.content.decode()
+        assert "/password-reset/" in content
+
+
+@pytest.mark.django_db
 class TestLogoutView:
     def test_logout_redirects_to_login(self):
         User.objects.create_user("logoutuser", password="pass12345")

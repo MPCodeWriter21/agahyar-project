@@ -354,3 +354,86 @@ class InfoReportForm(forms.Form):
 
         choices = [("", "--- انتخاب کنید ---")] + list(InfoReport.ReportReason.choices)
         self.fields["reason"].choices = choices
+
+
+class PhoneLookupForm(forms.Form):
+    """Form for entering a phone number to initiate password reset."""
+
+    phone = forms.CharField(
+        label="شماره موبایل",
+        max_length=11,
+        validators=[iranian_phone_number_validator],
+        error_messages={"required": REQUIRED_MSG, "invalid": INVALID_PHONE_MSG},
+        widget=forms.TextInput(
+            attrs={
+                "class": "ltr-input",
+                "dir": "ltr",
+                "placeholder": "09121234567",
+                "autocomplete": "tel",
+                "inputmode": "numeric",
+            }
+        ),
+    )
+
+
+class SetNewPasswordForm(forms.Form):
+    """Form for setting a new password after OTP verification (no old password required)."""
+
+    new_password1 = forms.CharField(
+        label="رمز عبور جدید",
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "ltr-input",
+                "dir": "ltr",
+                "placeholder": "رمز جدید را وارد کنید",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+    new_password2 = forms.CharField(
+        label="تکرار رمز عبور جدید",
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "ltr-input",
+                "dir": "ltr",
+                "placeholder": "رمز جدید را دوباره وارد کنید",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        self.fields["new_password1"].error_messages["required"] = REQUIRED_MSG
+        self.fields["new_password2"].error_messages["required"] = REQUIRED_MSG
+
+    def clean_new_password2(self):
+        password1 = self.cleaned_data.get("new_password1")
+        password2 = self.cleaned_data.get("new_password2")
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError(get_error_message("password/mismatch"))
+        return password2
+
+    def validate_password(self):
+        password = self.cleaned_data.get("new_password1")
+        if password and self.user:
+            try:
+                password_validation.validate_password(password, self.user)
+            except forms.ValidationError as error:
+                if error.error_list:
+                    first_error = error.error_list[0]
+                    code = first_error.code
+                    if code == "password_too_short":
+                        msg = get_error_message("password/too-short")
+                    elif code == "password_too_common":
+                        msg = get_error_message("password/too-common")
+                    elif code == "password_entirely_numeric":
+                        msg = get_error_message("password/numeric-only")
+                    elif code == "password_too_similar":
+                        msg = get_error_message("password/too-similar")
+                    else:
+                        msg = first_error.message
+                    self.add_error(
+                        "new_password1", forms.ValidationError(msg, code=code)
+                    )

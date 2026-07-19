@@ -1,6 +1,6 @@
 # Support for reset password via phone number
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: OTP, login, feature, enhancement, forgot password
 

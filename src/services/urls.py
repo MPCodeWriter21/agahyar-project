@@ -93,6 +93,32 @@ urlpatterns: List[URLPattern] = [
         name="resend_profile_otp_api",
     ),
     path("logout/", views.logout_view, name="app_logout"),
+    # ===== Password reset (phone) =====
+    path(
+        "password-reset-phone/",
+        views.password_reset_phone_view,
+        name="password_reset_phone",
+    ),
+    path(
+        "verify-password-reset-otp/",
+        views.verify_password_reset_otp_view,
+        name="verify_password_reset_otp",
+    ),
+    path(
+        "api/resend-password-reset-otp/",
+        views.resend_password_reset_otp_api,
+        name="resend_password_reset_otp_api",
+    ),
+    path(
+        "set-new-password/",
+        views.set_new_password_view,
+        name="set_new_password",
+    ),
+    path(
+        "password-reset-phone/done/",
+        views.password_reset_phone_done_view,
+        name="password_reset_phone_done",
+    ),
     # ===== Password reset =====
     path(
         "password-reset/",

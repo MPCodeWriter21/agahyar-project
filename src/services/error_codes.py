@@ -73,6 +73,10 @@ ERROR_CODES: dict[str, str] = {
     "report/not-found": "مورد مورد نظر یافت نشد.",
     "report/invalid-target": "هدف گزارش نامعتبر است.",
     "report/login-required": "برای ثبت گزارش باید وارد شوید.",
+    # ---- Password reset (phone) ----
+    "auth/no-user-with-phone": "کاربری با این شماره موبایل یافت نشد.",
+    "password/reset-done": "رمز عبور شما با موفقیت تغییر کرد. اکنون می‌توانید وارد شوید.",
+    "otp/no-pending-password-reset": "فرآیند بازیابی رمز عبور منقضی شده است. لطفاً دوباره اقدام کنید.",
 }
 
 
