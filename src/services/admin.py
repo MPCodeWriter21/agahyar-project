@@ -81,18 +81,23 @@ class ServiceCenterAdmin(ImportExportModelAdmin):
     resource_classes = [ServiceCenterResource]
     list_display = (
         "name",
-        "service",
+        "get_services",
         "city",
         "postal_code",
         "working_hours",
         "description",
     )
     search_fields = ("name", "address", "city", "postal_code")
-    list_filter = ("service", "city")
+    list_filter = ("city",)
     inlines = [ServiceCenterPhoneInline]
+    filter_horizontal = ("services",)
     formfield_overrides = {
         models.GeometryField: {"widget": LocalOpenLayersWidget},
     }
+
+    @admin.display(description="خدمات")
+    def get_services(self, obj):
+        return ", ".join(obj.services.values_list("name", flat=True)) or "-"
 
 
 @admin.register(ContactMessage)

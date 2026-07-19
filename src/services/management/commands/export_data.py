@@ -136,7 +136,11 @@ class Command(BaseCommand):
         """Convert a model instance to a flat dictionary."""
         data = {}
         for field in obj._meta.get_fields():
-            if hasattr(field, "attname"):
+            if field.many_to_many and not field.auto_created:
+                data[field.attname] = list(
+                    getattr(obj, field.attname).values_list("pk", flat=True)
+                )
+            elif hasattr(field, "attname"):
                 value = getattr(obj, field.attname, None)
                 if isinstance(value, Point):
                     value = f"{value.y},{value.x}"

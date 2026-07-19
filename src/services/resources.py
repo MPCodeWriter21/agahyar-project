@@ -71,7 +71,6 @@ class ServiceCenterResource(resources.ModelResource):
         import_id_fields = ("id",)
         fields = (
             "id",
-            "service",
             "name",
             "description",
             "address",
@@ -82,7 +81,6 @@ class ServiceCenterResource(resources.ModelResource):
         )
         export_order = (
             "id",
-            "service",
             "name",
             "description",
             "address",

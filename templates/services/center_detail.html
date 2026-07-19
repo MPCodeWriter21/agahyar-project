@@ -1,7 +1,7 @@
 {% extends 'services/base.html' %}
 {% load static jalali_tags %}
 {% block title %}{{ center.name }} | آگاه‌یار{% endblock %}
-{% block meta_description %}اطلاعات مرکز {{ center.name }} - {{ service.name }} - سامانه آگاه‌یار{% endblock %}
+{% block meta_description %}اطلاعات مرکز {{ center.name }} - سامانه آگاه‌یار{% endblock %}
 {% block og_title %}آگاه‌یار | {{ center.name }}{% endblock %}
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
@@ -18,8 +18,8 @@
       </button>
     </div>
     <div class="org-address-box">
-      <strong>خدمت:</strong>
-      <a href="{% url 'service_detail' service.id %}" class="link-service">{{ service.name }}</a>
+      <strong>خدمات:</strong>
+      {% for svc in services %}{% if not forloop.first %} &mdash; {% endif %}<a href="{% url 'service_detail' svc.id %}" class="link-service">{{ svc.name }}</a>{% endfor %}
     </div>
     <div class="org-address-box">
       <strong>آدرس:</strong> {{ center.address }}

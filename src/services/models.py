@@ -110,10 +110,10 @@ class FAQ(models.Model):
 
 
 class ServiceCenter(models.Model):
-    """A physical location where a government service is provided."""
+    """A physical location where government services are provided."""
 
-    service = models.ForeignKey(
-        Service, on_delete=models.CASCADE, related_name="centers"
+    services = models.ManyToManyField(
+        Service, related_name="service_centers", blank=True, verbose_name="خدمات"
     )
     name = models.CharField("نام مرکز", max_length=200)
     address = models.TextField("آدرس کامل")

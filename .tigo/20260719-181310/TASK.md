@@ -1,6 +1,6 @@
 # Each service center might provide multiple services
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: schema, admin UX, services, dataabase, service centers
 

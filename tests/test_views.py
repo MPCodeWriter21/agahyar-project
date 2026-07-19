@@ -361,12 +361,12 @@ class TestSearchView:
         svc_b = Service.objects.create(
             name="سرویس دیگر", organization="org2", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
-            service=svc_a, name="مرکز تهران", address="آدرس", city="تهران"
+        c1 = ServiceCenter.objects.create(
+            name="مرکز تهران", address="آدرس", city="تهران"
         )
-        ServiceCenter.objects.create(
-            service=svc_b, name="مرکز مشهد", address="آدرس", city="مشهد"
-        )
+        c1.services.add(svc_a)
+        c2 = ServiceCenter.objects.create(name="مرکز مشهد", address="آدرس", city="مشهد")
+        c2.services.add(svc_b)
         client = Client()
         client.login(username="cityfilteruser", password="pass12345")
         response = client.get("/search/", {"city": "تهران"})
@@ -1384,9 +1384,10 @@ class TestNearbyCentersView:
         service = Service.objects.create(
             name="سرویس تست", organization="org", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
-            service=service, name="مرکز الف", address="آدرس", city="تهران"
+        center = ServiceCenter.objects.create(
+            name="مرکز الف", address="آدرس", city="تهران"
         )
+        center.services.add(service)
         client = Client()
         client.login(username="nbcityuser", password="pass12345")
         response = client.get("/nearby-centers/")
@@ -1819,9 +1820,8 @@ class TestCommentPagination:
         service = Service.objects.create(
             name="centerapi-svc", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            name="centerapi-center", service=service, city="Tehran"
-        )
+        center = ServiceCenter.objects.create(name="centerapi-center", city="Tehran")
+        center.services.add(service)
         for i in range(7):
             Comment.objects.create(
                 user=user, service_center=center, text=f"center comment {i}"
@@ -1840,8 +1840,9 @@ class TestCenterDetail:
             name="center-svc", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="Test Center", address="addr", city="Tehran"
+            name="Test Center", address="addr", city="Tehran"
         )
+        center.services.add(service)
         client = Client()
         response = client.get(f"/center/{center.id}/")
         assert response.status_code == 200
@@ -1853,8 +1854,9 @@ class TestCenterDetail:
             name="cr-svc", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center", address="addr", city="Tehran"
+            name="CR Center", address="addr", city="Tehran"
         )
+        center.services.add(service)
         CenterRating.objects.create(user=user, service_center=center, score=4)
         client = Client()
         response = client.get(f"/center/{center.id}/")
@@ -1871,8 +1873,9 @@ class TestSubmitCenterRating:
             name="cr-svc", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center", address="addr", city="Tehran"
+            name="CR Center", address="addr", city="Tehran"
         )
+        center.services.add(service)
         client = Client()
         client.login(username="crater", password="pass12345")
         response = client.post(f"/rate-center/{center.id}/", {"score": "4"})
@@ -1886,8 +1889,9 @@ class TestSubmitCenterRating:
             name="cr-svc2", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center2", address="addr", city="Tehran"
+            name="CR Center2", address="addr", city="Tehran"
         )
+        center.services.add(service)
         CenterRating.objects.create(user=user, service_center=center, score=2)
         client = Client()
         client.login(username="crater2", password="pass12345")
@@ -1901,8 +1905,9 @@ class TestSubmitCenterRating:
             name="cr-svc3", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center3", address="addr", city="Tehran"
+            name="CR Center3", address="addr", city="Tehran"
         )
+        center.services.add(service)
         client = Client()
         response = client.post(f"/rate-center/{center.id}/")
         assert response.status_code == 302
@@ -1914,8 +1919,9 @@ class TestSubmitCenterRating:
             name="cr-svc4", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center4", address="addr", city="Tehran"
+            name="CR Center4", address="addr", city="Tehran"
         )
+        center.services.add(service)
         client = Client()
         client.login(username="crater3", password="pass12345")
         response = client.get(f"/rate-center/{center.id}/")
@@ -2645,9 +2651,8 @@ class TestSubmitReport:
         service = Service.objects.create(
             name="S1", organization="O1", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="C1", address="A1", city="Tehran"
-        )
+        center = ServiceCenter.objects.create(name="C1", address="A1", city="Tehran")
+        center.services.add(service)
         return user, service, center
 
     def test_unauthenticated_returns_401(self):

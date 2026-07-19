@@ -851,7 +851,7 @@ def search(request: HttpRequest) -> HttpResponse:
         if org_filter:
             q &= Q(organization__icontains=org_filter)
         if city_filter:
-            q &= Q(centers__city__icontains=city_filter)
+            q &= Q(service_centers__city__icontains=city_filter)
         results = Service.objects.filter(q).distinct().order_by("id")
 
     organizations = (
@@ -917,10 +917,10 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
 
     if not nearest_center:
         nearest_center = ServiceCenter.objects.filter(
-            service=service, city__icontains=user_city
+            services=service, city__icontains=user_city
         ).first()
 
-    centers_qs = ServiceCenter.objects.filter(service=service).annotate(
+    centers_qs = ServiceCenter.objects.filter(services=service).annotate(
         avg_score=Avg("ratings__score")
     )
 
@@ -1063,11 +1063,12 @@ def nearby_centers_view(request: HttpRequest) -> HttpResponse:
 
     all_centers = ServiceCenter.objects.filter(
         city__icontains=user_city
-    ).select_related("service")
+    ).prefetch_related("services")
 
     centers_by_service: dict = {}
     for center in all_centers:
-        centers_by_service.setdefault(center.service.name, []).append(center)
+        for svc in center.services.all():
+            centers_by_service.setdefault(svc.name, []).append(center)
 
     for service_name, centers_list in centers_by_service.items():
         nearest = get_nearest_center(service_name, user_city, user_neighborhood)
@@ -1404,7 +1405,7 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
     Publicly accessible. Shows center info, map, ratings, and comments.
     """
     center: ServiceCenter = get_object_or_404(
-        ServiceCenter.objects.select_related("service"), id=center_id
+        ServiceCenter.objects.prefetch_related("services"), id=center_id
     )
 
     ratings = center.ratings.all()
@@ -1442,7 +1443,7 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
         "services/center_detail.html",
         {
             "center": center,
-            "service": center.service,
+            "services": center.services.all(),
             "center_locations": center_locations,
             "avg_rating": round(avg_rating, 1) if avg_rating else None,
             "rating_count": rating_count,
@@ -1455,10 +1456,13 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
             "breadcrumbs": [
                 {"label": "خانه", "url": "/"},
                 {"label": "خدمات", "url": "/services/"},
-                {
-                    "label": center.service.name,
-                    "url": f"/service/{center.service.id}/",
-                },
+                *[
+                    {
+                        "label": svc.name,
+                        "url": f"/service/{svc.id}/",
+                    }
+                    for svc in center.services.all()
+                ],
                 {"label": center.name},
             ],
         },
@@ -1609,7 +1613,7 @@ def suggest_closest_center(request: HttpRequest, service_id: int) -> HttpRespons
     user_point = Point(lng, lat, srid=4326)
     centers = (
         ServiceCenter.objects.filter(
-            service_id=service_id,
+            services__id=service_id,
             coordinate__isnull=False,
         )
         .annotate(distance=Distance("coordinate", user_point))
@@ -1648,7 +1652,7 @@ def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
     page = int(request.GET.get("page", 1))
     per_page = min(int(request.GET.get("per_page", 5)), 20)
 
-    qs = ServiceCenter.objects.filter(service=service)
+    qs = ServiceCenter.objects.filter(services=service)
 
     annotate_rating = Avg("ratings__score")
     qs = qs.annotate(avg_score=annotate_rating)

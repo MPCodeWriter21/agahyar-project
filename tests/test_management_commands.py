@@ -41,12 +41,12 @@ def sample_data():
         duration="1 week",
     )
     center = ServiceCenter.objects.create(
-        service=service,
         name="Test Center",
         address="123 Test St",
         city="Tehran",
         coordinate=Point(51.3890, 35.6892, srid=4326),
     )
+    center.services.add(service)
     ServiceCenterPhone.objects.create(
         center=center, phone="02112345678", label="main", order=0
     )

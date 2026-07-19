@@ -54,7 +54,7 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
         org = self.request.query_params.get("organization")
         if org:
             qs = qs.filter(organization__icontains=org)
-        return qs.annotate(centers_count=Count("centers"))
+        return qs.annotate(centers_count=Count("service_centers"))
 
 
 class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
@@ -64,7 +64,7 @@ class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
     """
 
     queryset = (
-        ServiceCenter.objects.select_related("service")
+        ServiceCenter.objects.prefetch_related("services")
         .annotate(avg_rating=Avg("ratings__score"))
         .order_by("name")
     )
@@ -80,7 +80,7 @@ class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(city__icontains=city)
         service_id = self.request.query_params.get("service")
         if service_id:
-            qs = qs.filter(service_id=service_id)
+            qs = qs.filter(services__id=service_id)
         return qs
 
 

@@ -63,7 +63,7 @@ class ServiceCenterPhoneSerializer(serializers.ModelSerializer):
 class ServiceCenterSerializer(serializers.ModelSerializer):
     """Serializer for :class:`ServiceCenter` with map URL, avg rating, and phones."""
 
-    service_name = serializers.CharField(source="service.name", read_only=True)
+    service_names = serializers.SerializerMethodField()
     map_url = serializers.CharField(read_only=True)
     avg_rating = serializers.FloatField(read_only=True, default=None)
     phones = ServiceCenterPhoneSerializer(many=True, read_only=True)
@@ -72,8 +72,8 @@ class ServiceCenterSerializer(serializers.ModelSerializer):
         model = ServiceCenter
         fields = [
             "id",
-            "service",
-            "service_name",
+            "services",
+            "service_names",
             "name",
             "description",
             "address",
@@ -84,6 +84,9 @@ class ServiceCenterSerializer(serializers.ModelSerializer):
             "map_url",
             "avg_rating",
         ]
+
+    def get_service_names(self, obj: ServiceCenter) -> list[str]:
+        return list(obj.services.values_list("name", flat=True))
 
 
 class FAQSerializer(serializers.ModelSerializer):
