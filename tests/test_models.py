@@ -426,3 +426,75 @@ class TestServiceCenterPhoneModel:
         phones = list(center.phones.all())
         assert phones[0].phone == "02111111111"
         assert phones[1].phone == "02133333333"
+
+
+@pytest.mark.django_db
+class TestInfoReportModel:
+    """Tests for the InfoReport model."""
+
+    def _create_report(self, target_type="service", **kwargs):
+        import uuid
+
+        from services.models import InfoReport
+
+        user = kwargs.pop("user", None)
+        if user is None:
+            user = User.objects.create_user(
+                f"reporter_{uuid.uuid4().hex[:8]}", password="pass12345"
+            )
+        service = kwargs.pop("service", None)
+        center = kwargs.pop("center", None)
+        if service is None and target_type == "service":
+            service = Service.objects.create(
+                name="S", organization="O", documents="d", steps="s"
+            )
+        if center is None and target_type == "center":
+            svc = Service.objects.create(
+                name="S", organization="O", documents="d", steps="s"
+            )
+            center = ServiceCenter.objects.create(
+                service=svc, name="C", address="A", city="Tehran"
+            )
+        return InfoReport.objects.create(
+            user=user,
+            target_type=target_type,
+            service=service,
+            service_center=center,
+            reason=kwargs.get("reason", "incorrect_info"),
+            description=kwargs.get("description", ""),
+        )
+
+    def test_str_service(self):
+        report = self._create_report(target_type="service")
+        assert "reporter" in str(report)
+
+    def test_str_center(self):
+        report = self._create_report(target_type="center")
+        assert "reporter" in str(report)
+
+    def test_default_not_resolved(self):
+        report = self._create_report()
+        assert report.is_resolved is False
+
+    def test_service_target(self):
+        report = self._create_report(target_type="service")
+        assert report.service is not None
+        assert report.service_center is None
+
+    def test_center_target(self):
+        report = self._create_report(target_type="center")
+        assert report.service_center is not None
+        assert report.service is None
+
+    def test_ordering_newest_first(self):
+        user = User.objects.create_user("reporter_order", password="pass12345")
+        svc = Service.objects.create(
+            name="SO", organization="OO", documents="d", steps="s"
+        )
+        r1 = self._create_report(reason="incorrect_info", user=user, service=svc)
+        r2 = self._create_report(reason="outdated_info", user=user, service=svc)
+        from services.models import InfoReport
+
+        reports = list(InfoReport.objects.all())
+        assert reports[0].id == r2.id
+        assert reports[1].id == r1.id

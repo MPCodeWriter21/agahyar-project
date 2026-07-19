@@ -2415,3 +2415,243 @@ class TestNeshanSearchProxy:
                 {"term": "test", "lat": 35, "lng": 51},
             )
         assert resp.status_code == 502
+
+
+@pytest.mark.django_db
+class TestSubmitReport:
+    """Tests for the submit_report view."""
+
+    def _create_data(self):
+        user = User.objects.create_user("reportuser", password="pass12345")
+        UserProfile.objects.create(user=user, city="Tehran", phone="09121234567")
+        service = Service.objects.create(
+            name="S1", organization="O1", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            service=service, name="C1", address="A1", city="Tehran"
+        )
+        return user, service, center
+
+    def test_unauthenticated_returns_401(self):
+        user, service, center = self._create_data()
+        c = Client()
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": service.id,
+                    "reason": "incorrect_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 401
+        data = resp.json()
+        assert "error" in data
+
+    def test_submit_service_report(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": service.id,
+                    "reason": "incorrect_info",
+                    "description": "test desc",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "message" in data
+        from services.models import InfoReport
+
+        report = InfoReport.objects.filter(user=user).first()
+        assert report is not None
+        assert report.target_type == "service"
+        assert report.reason == "incorrect_info"
+        assert report.description == "test desc"
+
+    def test_submit_center_report(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "center",
+                    "target_id": center.id,
+                    "reason": "wrong_address",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 200
+        from services.models import InfoReport
+
+        report = InfoReport.objects.filter(user=user).first()
+        assert report is not None
+        assert report.target_type == "center"
+        assert report.service_center_id == center.id
+
+    def test_duplicate_returns_409(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        payload = {
+            "target_type": "service",
+            "target_id": service.id,
+            "reason": "incorrect_info",
+        }
+        resp1 = c.post(
+            "/api/report/",
+            json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp1.status_code == 200
+        resp2 = c.post(
+            "/api/report/",
+            json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp2.status_code == 409
+        from services.models import InfoReport
+
+        assert InfoReport.objects.filter(user=user).count() == 1
+
+    def test_invalid_target_type_returns_400(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "invalid",
+                    "target_id": service.id,
+                    "reason": "incorrect_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 400
+
+    def test_invalid_target_id_returns_400(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": 99999,
+                    "reason": "incorrect_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 404
+
+    def test_get_method_returns_405(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.get("/api/report/")
+        assert resp.status_code == 405
+
+    def test_different_reason_same_target_allows(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp1 = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": service.id,
+                    "reason": "incorrect_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp1.status_code == 200
+        resp2 = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": service.id,
+                    "reason": "outdated_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp2.status_code == 200
+        from services.models import InfoReport
+
+        assert InfoReport.objects.filter(user=user).count() == 2
+
+    def test_non_ajax_redirects(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            {
+                "target_type": "service",
+                "target_id": service.id,
+                "reason": "incorrect_info",
+            },
+        )
+        assert resp.status_code == 302
+        assert f"/service/{service.id}/" in resp.url
+
+    def test_report_button_visible_on_service_detail(self):
+        user, service, center = self._create_data()
+        c = Client()
+        resp = c.get(f"/service/{service.id}/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "گزارش" in content
+        assert "openReportDialog" in content
+
+    def test_report_button_visible_on_center_detail(self):
+        user, service, center = self._create_data()
+        c = Client()
+        resp = c.get(f"/center/{center.id}/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "گزارش" in content
+        assert "openReportDialog" in content
+
+    def test_unauthenticated_shows_login_prompt(self):
+        user, service, center = self._create_data()
+        c = Client()
+        resp = c.get(f"/service/{service.id}/")
+        content = resp.content.decode()
+        assert "برای ثبت گزارش باید وارد شوید" in content
+
+    def test_authenticated_shows_report_form(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.get(f"/service/{service.id}/")
+        content = resp.content.decode()
+        assert "report-reason" in content
+        assert "report-description" in content

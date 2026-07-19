@@ -46,6 +46,7 @@ from .models import (
     CenterRating,
     Comment,
     ContactMessage,
+    InfoReport,
     PhoneVerification,
     Service,
     ServiceCenter,
@@ -1241,6 +1242,96 @@ def submit_center_rating(request: HttpRequest, center_id: int) -> HttpResponse:
             messages.success(request, get_error_message("center-rating/updated"))
 
     return redirect("center_detail", center_id=center_id)
+
+
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
+def submit_report(request: HttpRequest) -> HttpResponse:
+    """Submit a report about incorrect or outdated information.
+
+    POST with JSON body: ``{"reason": str, "description": str, "target_type": str,
+    "target_id": int}``.  Returns JSON for AJAX callers, redirects for plain forms.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": get_error_message("report/login-required")},
+            status=401,
+        )
+
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    try:
+        data = (
+            json.loads(request.body)
+            if request.content_type == "application/json"
+            else request.POST
+        )
+    except json.JSONDecodeError:
+        data = request.POST
+
+    target_type = data.get("target_type", "")
+    target_id = data.get("target_id") or data.get("target_id")
+    reason = data.get("reason", "")
+    description = data.get("description", "")
+
+    if target_type not in dict(InfoReport.ReportTarget.choices):
+        msg = get_error_message("report/invalid-target")
+        if is_ajax:
+            return JsonResponse({"error": msg}, status=400)
+        messages.error(request, msg)
+        return redirect("home")
+
+    try:
+        target_id = int(target_id)
+    except (TypeError, ValueError):
+        msg = get_error_message("report/not-found")
+        if is_ajax:
+            return JsonResponse({"error": msg}, status=400)
+        messages.error(request, msg)
+        return redirect("home")
+
+    if target_type == "service":
+        target = get_object_or_404(Service, id=target_id)
+        redirect_url = f"/service/{target_id}/"
+    else:
+        target = get_object_or_404(ServiceCenter, id=target_id)
+        redirect_url = f"/center/{target_id}/"
+
+    valid_reasons = dict(InfoReport.ReportReason.choices)
+    if reason not in valid_reasons:
+        reason = InfoReport.ReportReason.OTHER
+
+    existing = InfoReport.objects.filter(
+        user=request.user,
+        target_type=target_type,
+        service=target if target_type == "service" else None,
+        service_center=target if target_type == "center" else None,
+        reason=reason,
+    ).first()
+
+    if existing:
+        msg = get_error_message("report/duplicate")
+        if is_ajax:
+            return JsonResponse({"error": msg}, status=409)
+        messages.warning(request, msg)
+        return redirect(redirect_url)
+
+    InfoReport.objects.create(
+        user=request.user,
+        target_type=target_type,
+        service=target if target_type == "service" else None,
+        service_center=target if target_type == "center" else None,
+        reason=reason,
+        description=description,
+    )
+
+    msg = get_error_message("report/submitted")
+    if is_ajax:
+        return JsonResponse({"message": msg})
+    messages.success(request, msg)
+    return redirect(redirect_url)
 
 
 def suggest_closest_center(request: HttpRequest, service_id: int) -> HttpResponse:

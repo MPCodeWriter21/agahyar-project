@@ -1,6 +1,6 @@
 # Add an option to report incorrect/outdated information
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 80
 - TAGS: report, feature, enhancement
 

@@ -326,3 +326,31 @@ class OTPVerifyForm(forms.Form):
             }
         ),
     )
+
+
+class InfoReportForm(forms.Form):
+    """Form for reporting incorrect or outdated information."""
+
+    reason = forms.ChoiceField(
+        label="دلیل گزارش",
+        error_messages={"required": REQUIRED_MSG},
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+    description = forms.CharField(
+        label="توضیحات (اختیاری)",
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "class": "form-control",
+                "placeholder": "توضیحات خود را بنویسید...",
+            }
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import InfoReport
+
+        choices = [("", "--- انتخاب کنید ---")] + list(InfoReport.ReportReason.choices)
+        self.fields["reason"].choices = choices

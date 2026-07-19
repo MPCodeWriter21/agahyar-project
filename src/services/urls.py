@@ -52,6 +52,8 @@ urlpatterns: List[URLPattern] = [
         views.submit_center_rating,
         name="submit_center_rating",
     ),
+    # ===== Reports =====
+    path("api/report/", views.submit_report, name="submit_report"),
     # ===== Geolocation API =====
     path(
         "api/suggest-center/<int:service_id>/",

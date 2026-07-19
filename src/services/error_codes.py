@@ -67,6 +67,12 @@ ERROR_CODES: dict[str, str] = {
     # ---- Uniqueness ----
     "email/duplicate": "این ایمیل قبلاً ثبت شده است.",
     "phone/duplicate": "این شماره تماس قبلاً ثبت شده است.",
+    # ---- Report ----
+    "report/submitted": "گزارش شما با موفقیت ثبت شد. از بازخورد شما متشکریم.",
+    "report/duplicate": "شما قبلاً برای این مورد گزارش ثبت کرده‌اید.",
+    "report/not-found": "مورد مورد نظر یافت نشد.",
+    "report/invalid-target": "هدف گزارش نامعتبر است.",
+    "report/login-required": "برای ثبت گزارش باید وارد شوید.",
 }
 
 
