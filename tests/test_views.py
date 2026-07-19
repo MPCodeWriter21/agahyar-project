@@ -745,7 +745,7 @@ class TestProfileView:
                 "email": "",
                 "city": "مشهد",
                 "neighborhood": "سجاد",
-                "phone": "09131234567",
+                "phone": "09121234567",
             },
         )
         assert response.status_code == 302
@@ -871,6 +871,204 @@ class TestProfileView:
         content = response.content.decode()
         self._assert_no_english_password_errors(content)
         assert "رمز عبور و تکرار آن مطابقت ندارند." in content
+
+
+@pytest.mark.django_db
+class TestProfilePhoneVerification:
+    """Tests for OTP verification when changing phone number in profile."""
+
+    def _create_user_with_phone(self, username="pver", phone="09121234567"):
+        user = User.objects.create_user(username, password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="تهران", neighborhood="", phone=phone
+        )
+        return user
+
+    def _login(self, client, username="pver"):
+        client.login(username=username, password="pass12345")
+
+    def test_same_phone_no_otp_redirect(self):
+        user = self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09121234567",
+            },
+        )
+        assert response.status_code == 302
+        assert response.url == "/profile/"
+        user.refresh_from_db()
+        assert user.first_name == "تست"
+
+    @override_settings(DISABLE_SMS=True)
+    def test_different_phone_redirects_to_otp(self):
+        self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        assert response.status_code == 302
+        assert response.url == "/verify-profile-otp/"
+        assert "pending_profile_update" in client.session
+
+    def test_verify_profile_otp_no_pending(self):
+        client = Client()
+        self._login(client)
+        response = client.get("/verify-profile-otp/")
+        assert response.status_code == 302
+        assert response.url == "/profile/"
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_profile_otp_get_renders_form(self):
+        self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        response = client.get("/verify-profile-otp/")
+        assert response.status_code == 200
+        assert "form" in response.context
+        assert response.context["phone"] == "09139998877"
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_profile_otp_wrong_code(self):
+        self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        response = client.post("/verify-profile-otp/", {"otp_code": "000000"})
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "تأیید شماره موبایل" in content
+        assert "pending_profile_update" in client.session
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_profile_otp_valid_code(self):
+        from services.models import PhoneVerification
+        from services.otp import hash_otp
+
+        user = self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        PhoneVerification.objects.create(
+            phone="09139998877", otp_code=hash_otp("123456")
+        )
+        response = client.post("/verify-profile-otp/", {"otp_code": "123456"})
+        assert response.status_code == 302
+        assert response.url == "/profile/"
+        user.refresh_from_db()
+        assert user.first_name == "تست"
+        profile = user.profile
+        assert profile.phone == "09139998877"
+        assert "pending_profile_update" not in client.session
+
+    def test_profile_update_without_phone_field_no_otp(self):
+        user = self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "بدون_otp",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            },
+        )
+        assert response.status_code == 302
+        user.refresh_from_db()
+        assert user.first_name == "بدون_otp"
+        assert user.profile.neighborhood == "ونک"
+
+    def test_resend_profile_otp_api_no_pending(self):
+        client = Client()
+        self._login(client)
+        response = client.post(
+            "/api/resend-profile-otp/",
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_resend_profile_otp_api_success(self):
+        self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        response = client.post(
+            "/api/resend-profile-otp/",
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN="test",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert "cooldown" in data
 
 
 def test_static_js_files_exist():

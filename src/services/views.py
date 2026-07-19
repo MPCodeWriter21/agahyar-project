@@ -348,6 +348,148 @@ def resend_otp_api(request: HttpRequest) -> JsonResponse:
     )
 
 
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
+def verify_profile_otp_view(request: HttpRequest) -> HttpResponse:
+    """Handle OTP verification for a profile phone number change.
+
+    GET: displays the OTP input form.
+    POST: verifies the OTP and applies the pending profile update.
+    """
+    pending = request.session.get("pending_profile_update")
+    if not pending:
+        messages.error(request, get_error_message("otp/no-pending-profile-update"))
+        return redirect("profile")
+
+    phone = pending["phone"]
+    cooldown = _otp_remaining_cooldown(phone)
+
+    if request.method == "POST":
+        form = OTPVerifyForm(request.POST)
+        if form.is_valid():
+            otp_code = form.cleaned_data["otp_code"]
+            verification = (
+                PhoneVerification.objects.filter(phone=phone, is_used=False)
+                .order_by("-created_at")
+                .first()
+            )
+
+            if not verification:
+                messages.error(request, get_error_message("otp/invalid"))
+                return render(
+                    request,
+                    "services/auth/verify_profile_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            otp_max_age = timedelta(
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+            )
+            if timezone.now() - verification.created_at > otp_max_age:
+                messages.error(request, get_error_message("otp/expired"))
+                return render(
+                    request,
+                    "services/auth/verify_profile_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            if not verify_otp(verification.otp_code, otp_code):
+                messages.error(request, get_error_message("otp/invalid"))
+                return render(
+                    request,
+                    "services/auth/verify_profile_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            verification.is_used = True
+            verification.save(update_fields=["is_used"])
+
+            user = request.user
+            user.first_name = pending["first_name"]
+            user.last_name = pending["last_name"]
+            user.email = pending.get("email", "")
+            user.save()
+            save_user_profile(
+                user.id,
+                pending["city"],
+                pending.get("neighborhood", ""),
+                pending["phone"],
+            )
+
+            del request.session["pending_profile_update"]
+            messages.success(request, get_error_message("profile/updated"))
+            return redirect("profile")
+    else:
+        form = OTPVerifyForm()
+
+    return render(
+        request,
+        "services/auth/verify_profile_otp.html",
+        {"form": form, "phone": phone, "cooldown": cooldown},
+    )
+
+
+@ratelimit(key="ip", rate="2/m", method="POST", block=False)
+def resend_profile_otp_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint for resending OTP during profile phone change.
+
+    POST: validates cooldown, generates a new OTP, sends it, and returns JSON.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    pending = request.session.get("pending_profile_update")
+    if not pending:
+        return JsonResponse(
+            {"error": get_error_message("otp/no-pending-profile-update")},
+            status=400,
+        )
+
+    phone = pending["phone"]
+    remaining = _otp_remaining_cooldown(phone)
+
+    if remaining > 0:
+        return JsonResponse(
+            {
+                "error": get_error_message("otp/cooldown", seconds=str(remaining)),
+                "cooldown": remaining,
+            },
+            status=429,
+        )
+
+    was_limited = getattr(request, "view_limited", False)
+    if was_limited:
+        return JsonResponse(
+            {"error": get_error_message("otp/too-many-resends")},
+            status=429,
+        )
+
+    PhoneVerification.objects.filter(phone=phone, is_used=False).update(is_used=True)
+
+    otp = generate_otp()
+    PhoneVerification.objects.create(
+        phone=phone,
+        otp_code=hash_otp(otp),
+    )
+
+    sms_client = get_sms_client()
+    try:
+        sms_client.send_otp(phone, otp)
+    except SMSAPIError:
+        logger.exception("Failed to resend OTP to %s", phone)
+        return JsonResponse(
+            {"error": get_error_message("otp/send-failed")},
+            status=500,
+        )
+
+    return JsonResponse(
+        {
+            "message": get_error_message("otp/resend-success"),
+            "cooldown": getattr(django_settings, "OTP_RESEND_COOLDOWN_SECONDS", 60),
+        },
+        status=200,
+    )
+
+
 @ratelimit(key="ip", rate="10/m", method="POST", block=True)
 def login_view(request: HttpRequest) -> HttpResponse:
     """Handle user login.
@@ -749,6 +891,25 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             form = ProfileForm(request.POST, user_id=request.user.id)
             password_form = PersianPasswordChangeForm(request.user)
             if form.is_valid():
+                new_phone = form.cleaned_data["phone"]
+                current_phone = profile.phone if profile else ""
+                if new_phone != current_phone:
+                    request.session["pending_profile_update"] = form.cleaned_data
+                    otp = generate_otp()
+                    PhoneVerification.objects.create(
+                        phone=new_phone,
+                        otp_code=hash_otp(otp),
+                    )
+                    sms_client = get_sms_client()
+                    try:
+                        sms_client.send_otp(new_phone, otp)
+                    except SMSAPIError:
+                        logger.exception("Failed to send OTP to %s", new_phone)
+                        del request.session["pending_profile_update"]
+                        messages.error(request, get_error_message("otp/send-failed"))
+                        return redirect("profile")
+                    messages.success(request, get_error_message("otp/sent"))
+                    return redirect("verify_profile_otp")
                 user = request.user
                 user.first_name = form.cleaned_data["first_name"]
                 user.last_name = form.cleaned_data["last_name"]
