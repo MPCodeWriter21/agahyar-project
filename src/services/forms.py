@@ -123,11 +123,22 @@ class RegisterForm(UserCreationForm):
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
-        if username and User.objects.filter(username__iexact=username).exists():
-            raise forms.ValidationError(
-                get_error_message("username/duplicate"),
-                code="duplicate_username",
-            )
+        if username:
+            if User.objects.filter(username__iexact=username).exists():
+                raise forms.ValidationError(
+                    get_error_message("username/duplicate"),
+                    code="duplicate_username",
+                )
+            if username.isdigit():
+                raise forms.ValidationError(
+                    get_error_message("username/all-numeric"),
+                    code="all_numeric_username",
+                )
+            if "@" in username:
+                raise forms.ValidationError(
+                    get_error_message("username/contains-at"),
+                    code="contains_at_username",
+                )
         return username
 
     def clean_email(self):

@@ -543,6 +543,56 @@ class TestLoginView:
         session = client.session
         assert session.get_expire_at_browser_close()
 
+    def test_login_with_phone_number(self):
+        user = User.objects.create_user("phoneuser", password="pass12345")
+        from services.models import UserProfile
+
+        UserProfile.objects.create(user=user, city="تهران", phone="09121234567")
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "09121234567", "password": "pass12345"},
+        )
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_login_with_email(self):
+        User.objects.create_user(
+            "emailuser", email="test@example.com", password="pass12345"
+        )
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "test@example.com", "password": "pass12345"},
+        )
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_login_with_wrong_password_phone_fails(self):
+        user = User.objects.create_user("wrongpwuser", password="pass12345")
+        from services.models import UserProfile
+
+        UserProfile.objects.create(user=user, city="تهران", phone="09198765432")
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "09198765432", "password": "wrongpass"},
+        )
+        assert response.status_code == 200
+        assert not response.context["user"].is_authenticated
+
+    def test_login_with_wrong_password_email_fails(self):
+        User.objects.create_user(
+            "emailfail", email="fail@example.com", password="pass12345"
+        )
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "fail@example.com", "password": "wrongpass"},
+        )
+        assert response.status_code == 200
+        assert not response.context["user"].is_authenticated
+
 
 @pytest.mark.django_db
 class TestAboutAndContactViews:

@@ -222,6 +222,7 @@ RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)
 RATELIMIT_FAIL_OPEN = False
 
 # Auth
+AUTHENTICATION_BACKENDS = ["services.backends.PhoneEmailBackend"]
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 

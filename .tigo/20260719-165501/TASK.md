@@ -1,6 +1,6 @@
 # Add support for login via phone number
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: UX, enhancement
 

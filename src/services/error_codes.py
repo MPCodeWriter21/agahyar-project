@@ -25,6 +25,8 @@ ERROR_CODES: dict[str, str] = {
     # ---- Username ----
     "username/duplicate": "این نام کاربری قبلاً ثبت شده است.",
     "username/required": "وارد کردن نام کاربری الزامی است.",
+    "username/all-numeric": "نام کاربری نمی‌تواند فقط شامل عدد باشد.",
+    "username/contains-at": "نام کاربری نمی‌تواند شامل علامت @ باشد.",
     # ---- Profile ----
     "profile/updated": "پروفایل شما با موفقیت به‌روزرسانی شد.",
     "password/changed": "رمز عبور شما با موفقیت تغییر یافت.",

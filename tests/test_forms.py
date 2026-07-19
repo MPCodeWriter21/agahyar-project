@@ -152,6 +152,42 @@ class TestRegisterForm:
         assert not form.is_valid()
         assert "phone" in form.errors
 
+    def test_all_numeric_username_rejected(self):
+        form = RegisterForm(
+            data={
+                "username": "12345678",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "password1": "ComplexPass1!",
+                "password2": "ComplexPass1!",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            }
+        )
+        assert not form.is_valid()
+        assert "username" in form.errors
+        assert "فقط شامل عدد" in form.errors["username"][0]
+
+    def test_at_in_username_rejected(self):
+        form = RegisterForm(
+            data={
+                "username": "user@name",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "password1": "ComplexPass1!",
+                "password2": "ComplexPass1!",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            }
+        )
+        assert not form.is_valid()
+        assert "username" in form.errors
+        assert "@" in form.errors["username"][0]
+
 
 @pytest.mark.django_db
 class TestProfileForm:
