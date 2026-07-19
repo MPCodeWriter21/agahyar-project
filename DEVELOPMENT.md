@@ -23,10 +23,15 @@ cp .env.example .env
 > and is designed to run via Docker. Local (non-Docker) development is not
 > supported.
 
-> **Note:** SMS phone verification (OTP) is enabled by default. In
+> **Note:** SMS phone verification (OTP) is enabled by default.  In
 > development, set ``DISABLE_SMS=True`` in your ``.env`` to skip sending
 > actual SMS messages -- OTP codes will be printed to the container console
 > instead.
+
+> **Note:** Email is sent via the console backend by default.  All emails
+> (e.g. password reset links) are printed to the terminal.  No SMTP server
+> is needed for local development.  See [MAIL_SETUP.md](MAIL_SETUP.md) for
+> production email configuration.
 
 Docker
 ------

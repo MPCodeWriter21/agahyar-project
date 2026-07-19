@@ -1,6 +1,6 @@
 # Make e-mail setup more real and usable
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: auth, mail, email, feature, enhancement, notification
 

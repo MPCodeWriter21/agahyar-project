@@ -31,6 +31,11 @@ cp .env.example .env
 > - `SMS_IR_API_KEY=<your-sms-api-key>`
 > - `SMS_IR_OTP_TEMPLATE_ID=<template-id>`
 > - `DISABLE_SMS=False`
+> - `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`
+> - `EMAIL_HOST=mail.yourdomain.com`
+> - `EMAIL_HOST_USER=noreply@yourdomain.com`
+> - `EMAIL_HOST_PASSWORD=<your-smtp-password>`
+> - `DEFAULT_FROM_EMAIL=noreply@yourdomain.com`
 
 Local Deployment (for testing)
 -------------------------------
@@ -74,6 +79,21 @@ can manage:
 - **User profiles** -- view users' city, neighborhood, and phone number
 - **Contact messages** -- read messages submitted via the contact form
   (read-only)
+
+### Email (Mailcow)
+
+For production email delivery (password reset links, etc.), set up Mailcow
+as the SMTP server.  See [MAIL_SETUP.md](MAIL_SETUP.md) for full
+instructions.
+
+Quick version:
+
+1. Set up DNS records (MX, A, SPF, DKIM, DMARC) for your mail domain
+2. Install Mailcow using ``docker-compose.mailcow.yml``
+3. Create a mailbox (e.g. ``noreply@yourdomain.com``)
+4. Add ``mail-network`` to the web service in your main compose file
+5. Configure the email variables in your ``.env`` (see ``MAIL_SETUP.md``)
+6. Restart the web container
 
 ### Running Tests
 
@@ -138,6 +158,16 @@ SMS_IR_OTP_TEMPLATE_ID=<template-id>
 DISABLE_SMS=False
 OTP_EXPIRE_MINUTES=5
 OTP_RESEND_COOLDOWN_SECONDS=60
+
+# Email (Mailcow SMTP)
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=mail
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=noreply@yourdomain.com
+EMAIL_HOST_PASSWORD=<your-smtp-password>
+DEFAULT_FROM_EMAIL=noreply@yourdomain.com
+SERVER_EMAIL=server@yourdomain.com
 ```
 
 After the containers are running, create the admin user:
@@ -169,6 +199,9 @@ Security Checklist
 - [ ] `.env` is **not** committed to the repository
 - [ ] `SMS_IR_API_KEY` is set and valid
 - [ ] `DISABLE_SMS=False` in production
+- [ ] `EMAIL_BACKEND` is set to the SMTP backend
+- [ ] `EMAIL_HOST_PASSWORD` is set and strong
+- [ ] DNS records (SPF, DKIM, DMARC) are configured for email deliverability
 - [ ] Regular database backups are configured
 
 Data Management
