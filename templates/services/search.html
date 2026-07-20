@@ -20,7 +20,11 @@
             <option value="{{ org }}" {% if org_filter == org %}selected{% endif %}>{{ org }}</option>
           {% endfor %}
         </select>
-        <select name="city" onchange="this.form.submit()">
+        <select name="city"
+                data-searchable="true"
+                data-api-url="/api/cities/"
+                data-search-only="true"
+                onchange="this.form.submit()">
           <option value="">همه شهرها</option>
           {% for city in cities %}
             <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>

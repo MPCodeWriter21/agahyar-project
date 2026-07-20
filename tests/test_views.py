@@ -2878,3 +2878,67 @@ class TestSubmitReport:
         content = resp.content.decode()
         assert "report-reason" in content
         assert "report-description" in content
+
+
+@pytest.mark.django_db
+class TestCitiesApi:
+    def _create_cities(self):
+        svc = Service.objects.create(
+            name="test_cities", organization="o", documents="d", steps="s"
+        )
+        for i in range(5):
+            c = ServiceCenter.objects.create(name=f"مرکز الف {i}", city="تهران")
+            c.services.add(svc)
+        c2 = ServiceCenter.objects.create(name="مرکز ب", city="اصفهان")
+        c2.services.add(svc)
+        c3 = ServiceCenter.objects.create(name="مرکز ج", city="شیراز")
+        c3.services.add(svc)
+
+    def test_returns_top_cities_by_count(self):
+        self._create_cities()
+        c = Client()
+        resp = c.get("/api/cities/")
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert len(data["cities"]) > 0
+        assert data["cities"][0]["name"] == "تهران"
+        assert data["cities"][0]["center_count"] == 5
+
+    def test_search_filters_cities(self):
+        self._create_cities()
+        c = Client()
+        resp = c.get("/api/cities/?search=اصفهان")
+        data = json.loads(resp.content)
+        names = [city["name"] for city in data["cities"]]
+        assert "اصفهان" in names
+        assert "تهران" not in names
+
+    def test_single_city_param(self):
+        self._create_cities()
+        c = Client()
+        resp = c.get("/api/cities/?city=تهران")
+        data = json.loads(resp.content)
+        assert len(data["cities"]) == 1
+        assert data["cities"][0]["name"] == "تهران"
+        assert data["cities"][0]["center_count"] == 5
+        assert data["has_next"] is False
+
+    def test_pagination(self):
+        svc = Service.objects.create(
+            name="test_pagination", organization="o", documents="d", steps="s"
+        )
+        for i in range(25):
+            cs = ServiceCenter.objects.create(name=f"مرکز {i}", city=f"شهر_{i}")
+            cs.services.add(svc)
+        c = Client()
+        resp = c.get("/api/cities/?per_page=5")
+        data = json.loads(resp.content)
+        assert len(data["cities"]) == 5
+        assert data["has_next"] is True
+
+    def test_empty_database(self):
+        c = Client()
+        resp = c.get("/api/cities/")
+        data = json.loads(resp.content)
+        assert data["cities"] == []
+        assert data["has_next"] is False

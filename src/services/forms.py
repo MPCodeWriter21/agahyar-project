@@ -22,18 +22,23 @@ INVALID_PHONE_MSG: str = get_error_message("field/invalid-phone")
 PLACEHOLDER_CITY = ("", "شهر خود را انتخاب کنید")
 
 
-def get_city_choices() -> list[tuple[str, str]]:
-    """Return city choices dynamically from the database.
+def get_top_city_choices(limit: int = 20) -> list[tuple[str, str]]:
+    """Return the top *limit* city choices ordered by service center count.
 
-    Queries distinct city names from :class:`ServiceCenter` records
-    and prepends a placeholder entry.
+    Queries distinct city names from :class:`ServiceCenter` records,
+    annotates each with its center count, orders descending, and
+    prepends a placeholder entry.
     """
+    from django.db.models import Count
+
     from .models import ServiceCenter
 
     cities = (
-        ServiceCenter.objects.values_list("city", flat=True).distinct().order_by("city")
+        ServiceCenter.objects.values("city")
+        .annotate(center_count=Count("id"))
+        .order_by("-center_count")[:limit]
     )
-    return [PLACEHOLDER_CITY, *[(c, c) for c in cities]]
+    return [PLACEHOLDER_CITY, *[(c["city"], c["city"]) for c in cities]]
 
 
 def get_default_city() -> str:
@@ -119,7 +124,16 @@ class RegisterForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["city"].widget.choices = get_city_choices()
+        self.fields["city"].widget.choices = get_top_city_choices()
+
+    def clean_city(self):
+        city = self.cleaned_data.get("city")
+        if city:
+            from .models import ServiceCenter
+
+            if not ServiceCenter.objects.filter(city__iexact=city).exists():
+                raise forms.ValidationError("شهر انتخاب‌شده معتبر نیست.")
+        return city
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
@@ -173,8 +187,12 @@ class ProfileForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         self.user_id = kwargs.pop("user_id", None)
+        user_city = kwargs.pop("user_city", None)
         super().__init__(*args, **kwargs)
-        self.fields["city"].widget.choices = get_city_choices()
+        choices = get_top_city_choices()
+        if user_city and not any(v == user_city for v, _ in choices[1:]):
+            choices.insert(1, (user_city, user_city))
+        self.fields["city"].widget.choices = choices
 
     first_name = forms.CharField(
         label="نام",
@@ -210,6 +228,15 @@ class ProfileForm(forms.Form):
         error_messages={"required": REQUIRED_MSG, "invalid": INVALID_PHONE_MSG},
         widget=forms.TextInput(attrs={"placeholder": "مثال: 09121234567"}),
     )
+
+    def clean_city(self):
+        city = self.cleaned_data.get("city")
+        if city:
+            from .models import ServiceCenter
+
+            if not ServiceCenter.objects.filter(city__iexact=city).exists():
+                raise forms.ValidationError("شهر انتخاب‌شده معتبر نیست.")
+        return city
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone")

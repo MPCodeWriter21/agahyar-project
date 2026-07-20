@@ -87,6 +87,8 @@
           <div class="form-group{% if form.city.errors %} has-error{% endif %}">
             <label>شهر محل سکونت</label>
             <select name="city"
+                    data-searchable="true"
+                    data-api-url="/api/cities/"
                     class="{% if form.city.errors %}field-error{% endif %}"
                     required>
               {% for value, label in city_choices %}

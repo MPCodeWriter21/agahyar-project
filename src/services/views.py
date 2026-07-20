@@ -38,8 +38,8 @@ from .forms import (
     ProfileForm,
     RegisterForm,
     SetNewPasswordForm,
-    get_city_choices,
     get_default_city,
+    get_top_city_choices,
 )
 from .maps import get_center_locations, get_city_center
 from .models import (
@@ -111,7 +111,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 return render(
                     request,
                     "services/auth/register.html",
-                    {"form": form, "city_choices": get_city_choices()},
+                    {"form": form, "city_choices": get_top_city_choices()},
                 )
 
             messages.success(request, get_error_message("otp/sent"))
@@ -122,7 +122,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "services/auth/register.html",
-        {"form": form, "city_choices": get_city_choices()},
+        {"form": form, "city_choices": get_top_city_choices()},
     )
 
 
@@ -1136,9 +1136,13 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             }
         )
 
+    user_city = profile.city if profile else None
+
     if request.method == "POST":
         if "update_profile" in request.POST:
-            form = ProfileForm(request.POST, user_id=request.user.id)
+            form = ProfileForm(
+                request.POST, user_id=request.user.id, user_city=user_city
+            )
             password_form = PersianPasswordChangeForm(request.user)
             if form.is_valid():
                 new_phone = form.cleaned_data["phone"]
@@ -1174,7 +1178,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
                 messages.success(request, get_error_message("profile/updated"))
                 return redirect("profile")
         elif "change_password" in request.POST:
-            form = ProfileForm(initial=profile_initial)
+            form = ProfileForm(initial=profile_initial, user_city=user_city)
             password_form = PersianPasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
                 password_form.save()
@@ -1185,8 +1189,12 @@ def profile_view(request: HttpRequest) -> HttpResponse:
                     request, "خطا در تغییر رمز عبور. لطفاً خطوط قرمز را بررسی کنید."
                 )
     else:
-        form = ProfileForm(initial=profile_initial)
+        form = ProfileForm(initial=profile_initial, user_city=user_city)
         password_form = PersianPasswordChangeForm(request.user)
+
+    city_choices = get_top_city_choices()
+    if user_city and not any(v == user_city for v, _ in city_choices[1:]):
+        city_choices.insert(1, (user_city, user_city))
 
     return render(
         request,
@@ -1195,7 +1203,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             "form": form,
             "password_form": password_form,
             "profile": profile,
-            "city_choices": get_city_choices(),
+            "city_choices": city_choices,
             "breadcrumbs": [
                 {"label": "خانه", "url": "/"},
                 {"label": "پروفایل"},
@@ -1759,6 +1767,54 @@ def load_comments(
         {
             "html": "".join(html_parts),
             "has_next": page_obj.has_next(),
+        }
+    )
+
+
+def cities_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint: return cities with service center counts.
+
+    GET ``/api/cities/`` returns the top cities ordered by center count.
+    Query params:
+
+    - ``page`` (default 1): page number
+    - ``per_page`` (default 20): results per page
+    - ``search``: filter cities by name (case-insensitive contains)
+    - ``city``: return a single city by exact name
+    """
+    page = int(request.GET.get("page", 1))
+    per_page = min(int(request.GET.get("per_page", 20)), 50)
+    search = request.GET.get("search", "").strip()
+    single_city = request.GET.get("city", "").strip()
+
+    qs = (
+        ServiceCenter.objects.values("city")
+        .annotate(center_count=Count("id"))
+        .order_by("-center_count")
+    )
+
+    if single_city:
+        qs = qs.filter(city__iexact=single_city)
+        cities_data = [
+            {"name": c["city"], "center_count": c["center_count"]} for c in qs[:1]
+        ]
+        return JsonResponse({"cities": cities_data, "has_next": False, "page": 1})
+
+    if search:
+        qs = qs.filter(city__icontains=search)
+
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page)
+
+    cities_data = [
+        {"name": c["city"], "center_count": c["center_count"]} for c in page_obj
+    ]
+
+    return JsonResponse(
+        {
+            "cities": cities_data,
+            "has_next": page_obj.has_next(),
+            "page": page,
         }
     )
 
