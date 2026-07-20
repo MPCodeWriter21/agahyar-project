@@ -222,6 +222,7 @@ RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)
 RATELIMIT_FAIL_OPEN = False
 
 # Auth
+AUTHENTICATION_BACKENDS = ["services.backends.PhoneEmailBackend"]
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 
@@ -237,8 +238,21 @@ OTP_RESEND_COOLDOWN_SECONDS = config(
 # Neshan Maps search API (used by admin map widget)
 NESHAN_API_KEY = config("NESHAN_API_KEY", default="")
 
-# Email backend for development (prints to console)
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Email configuration
+# Default: console backend (prints to terminal in development).
+# For production, set EMAIL_BACKEND to the SMTP backend and configure
+# the remaining variables to point at your Mailcow (or other) SMTP server.
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST = config("EMAIL_HOST", default="localhost")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@agahyar4iran.ir")
+SERVER_EMAIL = config("SERVER_EMAIL", default="server@agahyar4iran.ir")
 
 # Logging
 LOGGING = {
@@ -344,6 +358,6 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Agahyar API",
     "DESCRIPTION": "REST API for the Agahyar smart citizen information system.",
-    "VERSION": "1.2.0",
+    "VERSION": "1.3.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }

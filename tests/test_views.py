@@ -361,12 +361,12 @@ class TestSearchView:
         svc_b = Service.objects.create(
             name="سرویس دیگر", organization="org2", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
-            service=svc_a, name="مرکز تهران", address="آدرس", city="تهران"
+        c1 = ServiceCenter.objects.create(
+            name="مرکز تهران", address="آدرس", city="تهران"
         )
-        ServiceCenter.objects.create(
-            service=svc_b, name="مرکز مشهد", address="آدرس", city="مشهد"
-        )
+        c1.services.add(svc_a)
+        c2 = ServiceCenter.objects.create(name="مرکز مشهد", address="آدرس", city="مشهد")
+        c2.services.add(svc_b)
         client = Client()
         client.login(username="cityfilteruser", password="pass12345")
         response = client.get("/search/", {"city": "تهران"})
@@ -543,6 +543,56 @@ class TestLoginView:
         session = client.session
         assert session.get_expire_at_browser_close()
 
+    def test_login_with_phone_number(self):
+        user = User.objects.create_user("phoneuser", password="pass12345")
+        from services.models import UserProfile
+
+        UserProfile.objects.create(user=user, city="تهران", phone="09121234567")
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "09121234567", "password": "pass12345"},
+        )
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_login_with_email(self):
+        User.objects.create_user(
+            "emailuser", email="test@example.com", password="pass12345"
+        )
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "test@example.com", "password": "pass12345"},
+        )
+        assert response.status_code == 302
+        assert response.url == "/"
+
+    def test_login_with_wrong_password_phone_fails(self):
+        user = User.objects.create_user("wrongpwuser", password="pass12345")
+        from services.models import UserProfile
+
+        UserProfile.objects.create(user=user, city="تهران", phone="09198765432")
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "09198765432", "password": "wrongpass"},
+        )
+        assert response.status_code == 200
+        assert not response.context["user"].is_authenticated
+
+    def test_login_with_wrong_password_email_fails(self):
+        User.objects.create_user(
+            "emailfail", email="fail@example.com", password="pass12345"
+        )
+        client = Client()
+        response = client.post(
+            "/login/",
+            {"username": "fail@example.com", "password": "wrongpass"},
+        )
+        assert response.status_code == 200
+        assert not response.context["user"].is_authenticated
+
 
 @pytest.mark.django_db
 class TestAboutAndContactViews:
@@ -655,6 +705,174 @@ class TestPasswordReset:
 
 
 @pytest.mark.django_db
+class TestPasswordResetPhone:
+    """Tests for the phone-based password reset flow."""
+
+    def _setup_user(self):
+        user = User.objects.create_user("resetphone", password="oldpass123")
+        UserProfile.objects.create(user=user, city="Tehran", phone="09121234567")
+        return user
+
+    @override_settings(DISABLE_SMS=True)
+    def test_phone_lookup_page_loads(self):
+        c = Client()
+        resp = c.get("/password-reset-phone/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "شماره موبایل" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_phone_lookup_sends_otp(self):
+        self._setup_user()
+        c = Client()
+        resp = c.post("/password-reset-phone/", {"phone": "09121234567"})
+        assert resp.status_code == 302
+        assert "/verify-password-reset-otp/" in resp.url
+        assert "pending_password_reset" in c.session
+
+    @override_settings(DISABLE_SMS=True)
+    def test_phone_lookup_not_found(self):
+        c = Client()
+        resp = c.post("/password-reset-phone/", {"phone": "09999999999"})
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "یافت نشد" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_page_loads(self):
+        self._setup_user()
+        c = Client()
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        resp = c.get("/verify-password-reset-otp/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "09121234567" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_redirect_without_session(self):
+        c = Client()
+        resp = c.get("/verify-password-reset-otp/")
+        assert resp.status_code == 302
+        assert "/password-reset-phone/" in resp.url
+
+    @override_settings(DISABLE_SMS=True)
+    def test_set_new_password_page_loads(self):
+        self._setup_user()
+        c = Client()
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        # Manually mark OTP as verified by setting session and creating valid OTP
+        from services.models import PhoneVerification
+        from services.otp import generate_otp, hash_otp
+
+        otp = generate_otp()
+        PhoneVerification.objects.create(phone="09121234567", otp_code=hash_otp(otp))
+        # Verify the OTP to mark it used
+        c.post(
+            "/verify-password-reset-otp/",
+            {"otp_code": otp},
+        )
+        resp = c.get("/set-new-password/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "رمز عبور جدید" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_set_new_password_redirect_without_session(self):
+        c = Client()
+        resp = c.get("/set-new-password/")
+        assert resp.status_code == 302
+        assert "/password-reset-phone/" in resp.url
+
+    @override_settings(DISABLE_SMS=True)
+    def test_full_flow_changes_password(self):
+        user = self._setup_user()
+        c = Client()
+        # Step 1: phone lookup
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        # Step 2: verify OTP
+        from services.models import PhoneVerification
+        from services.otp import generate_otp, hash_otp
+
+        otp = generate_otp()
+        PhoneVerification.objects.create(phone="09121234567", otp_code=hash_otp(otp))
+        c.post("/verify-password-reset-otp/", {"otp_code": otp})
+        # Step 3: set new password
+        resp = c.post(
+            "/set-new-password/",
+            {"new_password1": "NewPass123!", "new_password2": "NewPass123!"},
+        )
+        assert resp.status_code == 302
+        assert resp.url == reverse("login")
+        # Verify password changed
+        user.refresh_from_db()
+        assert user.check_password("NewPass123!")
+        assert not user.check_password("oldpass123")
+
+    @override_settings(DISABLE_SMS=True)
+    def test_done_page_loads(self):
+        c = Client()
+        resp = c.get("/password-reset-phone/done/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "تغییر کرد" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_password_mismatch_error(self):
+        self._setup_user()
+        c = Client()
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        from services.models import PhoneVerification
+        from services.otp import generate_otp, hash_otp
+
+        otp = generate_otp()
+        PhoneVerification.objects.create(phone="09121234567", otp_code=hash_otp(otp))
+        c.post("/verify-password-reset-otp/", {"otp_code": otp})
+        resp = c.post(
+            "/set-new-password/",
+            {"new_password1": "NewPass123!", "new_password2": "DifferentPass!"},
+        )
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "مطابقت ندارند" in content
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_resend_otp_api(self):
+        self._setup_user()
+        c = Client()
+        c.post("/password-reset-phone/", {"phone": "09121234567"})
+        resp = c.post(
+            "/api/resend-password-reset-otp/",
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "message" in data
+
+    @override_settings(DISABLE_SMS=True)
+    def test_resend_otp_api_no_session(self):
+        c = Client()
+        resp = c.post(
+            "/api/resend-password-reset-otp/",
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
+
+    @override_settings(DISABLE_SMS=True)
+    def test_link_on_email_reset_form(self):
+        c = Client()
+        resp = c.get("/password-reset/")
+        content = resp.content.decode()
+        assert "/password-reset-phone/" in content
+
+    @override_settings(DISABLE_SMS=True)
+    def test_link_on_phone_reset_form(self):
+        c = Client()
+        resp = c.get("/password-reset-phone/")
+        content = resp.content.decode()
+        assert "/password-reset/" in content
+
+
+@pytest.mark.django_db
 class TestLogoutView:
     def test_logout_redirects_to_login(self):
         User.objects.create_user("logoutuser", password="pass12345")
@@ -745,7 +963,7 @@ class TestProfileView:
                 "email": "",
                 "city": "مشهد",
                 "neighborhood": "سجاد",
-                "phone": "09131234567",
+                "phone": "09121234567",
             },
         )
         assert response.status_code == 302
@@ -873,6 +1091,204 @@ class TestProfileView:
         assert "رمز عبور و تکرار آن مطابقت ندارند." in content
 
 
+@pytest.mark.django_db
+class TestProfilePhoneVerification:
+    """Tests for OTP verification when changing phone number in profile."""
+
+    def _create_user_with_phone(self, username="pver", phone="09121234567"):
+        user = User.objects.create_user(username, password="pass12345")
+        UserProfile.objects.create(
+            user=user, city="تهران", neighborhood="", phone=phone
+        )
+        return user
+
+    def _login(self, client, username="pver"):
+        client.login(username=username, password="pass12345")
+
+    def test_same_phone_no_otp_redirect(self):
+        user = self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09121234567",
+            },
+        )
+        assert response.status_code == 302
+        assert response.url == "/profile/"
+        user.refresh_from_db()
+        assert user.first_name == "تست"
+
+    @override_settings(DISABLE_SMS=True)
+    def test_different_phone_redirects_to_otp(self):
+        self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        assert response.status_code == 302
+        assert response.url == "/verify-profile-otp/"
+        assert "pending_profile_update" in client.session
+
+    def test_verify_profile_otp_no_pending(self):
+        client = Client()
+        self._login(client)
+        response = client.get("/verify-profile-otp/")
+        assert response.status_code == 302
+        assert response.url == "/profile/"
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_profile_otp_get_renders_form(self):
+        self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        response = client.get("/verify-profile-otp/")
+        assert response.status_code == 200
+        assert "form" in response.context
+        assert response.context["phone"] == "09139998877"
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_profile_otp_wrong_code(self):
+        self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        response = client.post("/verify-profile-otp/", {"otp_code": "000000"})
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "تأیید شماره موبایل" in content
+        assert "pending_profile_update" in client.session
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_profile_otp_valid_code(self):
+        from services.models import PhoneVerification
+        from services.otp import hash_otp
+
+        user = self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        PhoneVerification.objects.create(
+            phone="09139998877", otp_code=hash_otp("123456")
+        )
+        response = client.post("/verify-profile-otp/", {"otp_code": "123456"})
+        assert response.status_code == 302
+        assert response.url == "/profile/"
+        user.refresh_from_db()
+        assert user.first_name == "تست"
+        profile = user.profile
+        assert profile.phone == "09139998877"
+        assert "pending_profile_update" not in client.session
+
+    def test_profile_update_without_phone_field_no_otp(self):
+        user = self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        response = client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "بدون_otp",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            },
+        )
+        assert response.status_code == 302
+        user.refresh_from_db()
+        assert user.first_name == "بدون_otp"
+        assert user.profile.neighborhood == "ونک"
+
+    def test_resend_profile_otp_api_no_pending(self):
+        client = Client()
+        self._login(client)
+        response = client.post(
+            "/api/resend-profile-otp/",
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_resend_profile_otp_api_success(self):
+        self._create_user_with_phone()
+        client = Client()
+        self._login(client)
+        client.post(
+            "/profile/",
+            {
+                "update_profile": "1",
+                "first_name": "تست",
+                "last_name": "تست",
+                "email": "",
+                "city": "تهران",
+                "neighborhood": "",
+                "phone": "09139998877",
+            },
+        )
+        response = client.post(
+            "/api/resend-profile-otp/",
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN="test",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert "cooldown" in data
+
+
 def test_static_js_files_exist():
     from django.conf import settings
 
@@ -968,9 +1384,10 @@ class TestNearbyCentersView:
         service = Service.objects.create(
             name="سرویس تست", organization="org", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
-            service=service, name="مرکز الف", address="آدرس", city="تهران"
+        center = ServiceCenter.objects.create(
+            name="مرکز الف", address="آدرس", city="تهران"
         )
+        center.services.add(service)
         client = Client()
         client.login(username="nbcityuser", password="pass12345")
         response = client.get("/nearby-centers/")
@@ -1403,9 +1820,8 @@ class TestCommentPagination:
         service = Service.objects.create(
             name="centerapi-svc", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            name="centerapi-center", service=service, city="Tehran"
-        )
+        center = ServiceCenter.objects.create(name="centerapi-center", city="Tehran")
+        center.services.add(service)
         for i in range(7):
             Comment.objects.create(
                 user=user, service_center=center, text=f"center comment {i}"
@@ -1424,8 +1840,9 @@ class TestCenterDetail:
             name="center-svc", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="Test Center", address="addr", city="Tehran"
+            name="Test Center", address="addr", city="Tehran"
         )
+        center.services.add(service)
         client = Client()
         response = client.get(f"/center/{center.id}/")
         assert response.status_code == 200
@@ -1437,8 +1854,9 @@ class TestCenterDetail:
             name="cr-svc", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center", address="addr", city="Tehran"
+            name="CR Center", address="addr", city="Tehran"
         )
+        center.services.add(service)
         CenterRating.objects.create(user=user, service_center=center, score=4)
         client = Client()
         response = client.get(f"/center/{center.id}/")
@@ -1455,8 +1873,9 @@ class TestSubmitCenterRating:
             name="cr-svc", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center", address="addr", city="Tehran"
+            name="CR Center", address="addr", city="Tehran"
         )
+        center.services.add(service)
         client = Client()
         client.login(username="crater", password="pass12345")
         response = client.post(f"/rate-center/{center.id}/", {"score": "4"})
@@ -1470,8 +1889,9 @@ class TestSubmitCenterRating:
             name="cr-svc2", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center2", address="addr", city="Tehran"
+            name="CR Center2", address="addr", city="Tehran"
         )
+        center.services.add(service)
         CenterRating.objects.create(user=user, service_center=center, score=2)
         client = Client()
         client.login(username="crater2", password="pass12345")
@@ -1485,8 +1905,9 @@ class TestSubmitCenterRating:
             name="cr-svc3", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center3", address="addr", city="Tehran"
+            name="CR Center3", address="addr", city="Tehran"
         )
+        center.services.add(service)
         client = Client()
         response = client.post(f"/rate-center/{center.id}/")
         assert response.status_code == 302
@@ -1498,8 +1919,9 @@ class TestSubmitCenterRating:
             name="cr-svc4", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="CR Center4", address="addr", city="Tehran"
+            name="CR Center4", address="addr", city="Tehran"
         )
+        center.services.add(service)
         client = Client()
         client.login(username="crater3", password="pass12345")
         response = client.get(f"/rate-center/{center.id}/")
@@ -2217,3 +2639,242 @@ class TestNeshanSearchProxy:
                 {"term": "test", "lat": 35, "lng": 51},
             )
         assert resp.status_code == 502
+
+
+@pytest.mark.django_db
+class TestSubmitReport:
+    """Tests for the submit_report view."""
+
+    def _create_data(self):
+        user = User.objects.create_user("reportuser", password="pass12345")
+        UserProfile.objects.create(user=user, city="Tehran", phone="09121234567")
+        service = Service.objects.create(
+            name="S1", organization="O1", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(name="C1", address="A1", city="Tehran")
+        center.services.add(service)
+        return user, service, center
+
+    def test_unauthenticated_returns_401(self):
+        user, service, center = self._create_data()
+        c = Client()
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": service.id,
+                    "reason": "incorrect_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 401
+        data = resp.json()
+        assert "error" in data
+
+    def test_submit_service_report(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": service.id,
+                    "reason": "incorrect_info",
+                    "description": "test desc",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "message" in data
+        from services.models import InfoReport
+
+        report = InfoReport.objects.filter(user=user).first()
+        assert report is not None
+        assert report.target_type == "service"
+        assert report.reason == "incorrect_info"
+        assert report.description == "test desc"
+
+    def test_submit_center_report(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "center",
+                    "target_id": center.id,
+                    "reason": "wrong_address",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 200
+        from services.models import InfoReport
+
+        report = InfoReport.objects.filter(user=user).first()
+        assert report is not None
+        assert report.target_type == "center"
+        assert report.service_center_id == center.id
+
+    def test_duplicate_returns_409(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        payload = {
+            "target_type": "service",
+            "target_id": service.id,
+            "reason": "incorrect_info",
+        }
+        resp1 = c.post(
+            "/api/report/",
+            json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp1.status_code == 200
+        resp2 = c.post(
+            "/api/report/",
+            json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp2.status_code == 409
+        from services.models import InfoReport
+
+        assert InfoReport.objects.filter(user=user).count() == 1
+
+    def test_invalid_target_type_returns_400(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "invalid",
+                    "target_id": service.id,
+                    "reason": "incorrect_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 400
+
+    def test_invalid_target_id_returns_400(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": 99999,
+                    "reason": "incorrect_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp.status_code == 404
+
+    def test_get_method_returns_405(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.get("/api/report/")
+        assert resp.status_code == 405
+
+    def test_different_reason_same_target_allows(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp1 = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": service.id,
+                    "reason": "incorrect_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp1.status_code == 200
+        resp2 = c.post(
+            "/api/report/",
+            json.dumps(
+                {
+                    "target_type": "service",
+                    "target_id": service.id,
+                    "reason": "outdated_info",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert resp2.status_code == 200
+        from services.models import InfoReport
+
+        assert InfoReport.objects.filter(user=user).count() == 2
+
+    def test_non_ajax_redirects(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.post(
+            "/api/report/",
+            {
+                "target_type": "service",
+                "target_id": service.id,
+                "reason": "incorrect_info",
+            },
+        )
+        assert resp.status_code == 302
+        assert f"/service/{service.id}/" in resp.url
+
+    def test_report_button_visible_on_service_detail(self):
+        user, service, center = self._create_data()
+        c = Client()
+        resp = c.get(f"/service/{service.id}/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "گزارش" in content
+        assert "openReportDialog" in content
+
+    def test_report_button_visible_on_center_detail(self):
+        user, service, center = self._create_data()
+        c = Client()
+        resp = c.get(f"/center/{center.id}/")
+        assert resp.status_code == 200
+        content = resp.content.decode()
+        assert "گزارش" in content
+        assert "openReportDialog" in content
+
+    def test_unauthenticated_shows_login_prompt(self):
+        user, service, center = self._create_data()
+        c = Client()
+        resp = c.get(f"/service/{service.id}/")
+        content = resp.content.decode()
+        assert "برای ثبت گزارش باید وارد شوید" in content
+
+    def test_authenticated_shows_report_form(self):
+        user, service, center = self._create_data()
+        c = Client()
+        c.login(username="reportuser", password="pass12345")
+        resp = c.get(f"/service/{service.id}/")
+        content = resp.content.decode()
+        assert "report-reason" in content
+        assert "report-description" in content

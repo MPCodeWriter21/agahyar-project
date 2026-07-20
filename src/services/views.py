@@ -34,8 +34,10 @@ from .forms import (
     LoginForm,
     OTPVerifyForm,
     PersianPasswordChangeForm,
+    PhoneLookupForm,
     ProfileForm,
     RegisterForm,
+    SetNewPasswordForm,
     get_city_choices,
     get_default_city,
 )
@@ -46,6 +48,7 @@ from .models import (
     CenterRating,
     Comment,
     ContactMessage,
+    InfoReport,
     PhoneVerification,
     Service,
     ServiceCenter,
@@ -348,6 +351,148 @@ def resend_otp_api(request: HttpRequest) -> JsonResponse:
     )
 
 
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
+def verify_profile_otp_view(request: HttpRequest) -> HttpResponse:
+    """Handle OTP verification for a profile phone number change.
+
+    GET: displays the OTP input form.
+    POST: verifies the OTP and applies the pending profile update.
+    """
+    pending = request.session.get("pending_profile_update")
+    if not pending:
+        messages.error(request, get_error_message("otp/no-pending-profile-update"))
+        return redirect("profile")
+
+    phone = pending["phone"]
+    cooldown = _otp_remaining_cooldown(phone)
+
+    if request.method == "POST":
+        form = OTPVerifyForm(request.POST)
+        if form.is_valid():
+            otp_code = form.cleaned_data["otp_code"]
+            verification = (
+                PhoneVerification.objects.filter(phone=phone, is_used=False)
+                .order_by("-created_at")
+                .first()
+            )
+
+            if not verification:
+                messages.error(request, get_error_message("otp/invalid"))
+                return render(
+                    request,
+                    "services/auth/verify_profile_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            otp_max_age = timedelta(
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+            )
+            if timezone.now() - verification.created_at > otp_max_age:
+                messages.error(request, get_error_message("otp/expired"))
+                return render(
+                    request,
+                    "services/auth/verify_profile_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            if not verify_otp(verification.otp_code, otp_code):
+                messages.error(request, get_error_message("otp/invalid"))
+                return render(
+                    request,
+                    "services/auth/verify_profile_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            verification.is_used = True
+            verification.save(update_fields=["is_used"])
+
+            user = request.user
+            user.first_name = pending["first_name"]
+            user.last_name = pending["last_name"]
+            user.email = pending.get("email", "")
+            user.save()
+            save_user_profile(
+                user.id,
+                pending["city"],
+                pending.get("neighborhood", ""),
+                pending["phone"],
+            )
+
+            del request.session["pending_profile_update"]
+            messages.success(request, get_error_message("profile/updated"))
+            return redirect("profile")
+    else:
+        form = OTPVerifyForm()
+
+    return render(
+        request,
+        "services/auth/verify_profile_otp.html",
+        {"form": form, "phone": phone, "cooldown": cooldown},
+    )
+
+
+@ratelimit(key="ip", rate="2/m", method="POST", block=False)
+def resend_profile_otp_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint for resending OTP during profile phone change.
+
+    POST: validates cooldown, generates a new OTP, sends it, and returns JSON.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    pending = request.session.get("pending_profile_update")
+    if not pending:
+        return JsonResponse(
+            {"error": get_error_message("otp/no-pending-profile-update")},
+            status=400,
+        )
+
+    phone = pending["phone"]
+    remaining = _otp_remaining_cooldown(phone)
+
+    if remaining > 0:
+        return JsonResponse(
+            {
+                "error": get_error_message("otp/cooldown", seconds=str(remaining)),
+                "cooldown": remaining,
+            },
+            status=429,
+        )
+
+    was_limited = getattr(request, "view_limited", False)
+    if was_limited:
+        return JsonResponse(
+            {"error": get_error_message("otp/too-many-resends")},
+            status=429,
+        )
+
+    PhoneVerification.objects.filter(phone=phone, is_used=False).update(is_used=True)
+
+    otp = generate_otp()
+    PhoneVerification.objects.create(
+        phone=phone,
+        otp_code=hash_otp(otp),
+    )
+
+    sms_client = get_sms_client()
+    try:
+        sms_client.send_otp(phone, otp)
+    except SMSAPIError:
+        logger.exception("Failed to resend OTP to %s", phone)
+        return JsonResponse(
+            {"error": get_error_message("otp/send-failed")},
+            status=500,
+        )
+
+    return JsonResponse(
+        {
+            "message": get_error_message("otp/resend-success"),
+            "cooldown": getattr(django_settings, "OTP_RESEND_COOLDOWN_SECONDS", 60),
+        },
+        status=200,
+    )
+
+
 @ratelimit(key="ip", rate="10/m", method="POST", block=True)
 def login_view(request: HttpRequest) -> HttpResponse:
     """Handle user login.
@@ -388,6 +533,252 @@ def logout_view(request: HttpRequest) -> HttpResponse:
     """Log out the current user and redirect to login."""
     logout(request)
     return redirect("login")
+
+
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
+def password_reset_phone_view(request: HttpRequest) -> HttpResponse:
+    """Initiate password reset via phone number.
+
+    GET: display the phone lookup form.
+    POST: look up the user by phone, send OTP, redirect to verification.
+    """
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    if request.method == "POST":
+        form = PhoneLookupForm(request.POST)
+        if form.is_valid():
+            phone = form.cleaned_data["phone"]
+            from .models import UserProfile
+
+            profile = (
+                UserProfile.objects.select_related("user").filter(phone=phone).first()
+            )
+
+            if not profile:
+                messages.error(request, get_error_message("auth/no-user-with-phone"))
+                return render(
+                    request,
+                    "services/auth/password_reset_phone_form.html",
+                    {"form": form},
+                )
+
+            request.session["pending_password_reset"] = {
+                "user_id": profile.user_id,
+                "phone": phone,
+            }
+
+            otp = generate_otp()
+            PhoneVerification.objects.create(
+                phone=phone,
+                otp_code=hash_otp(otp),
+            )
+
+            sms_client = get_sms_client()
+            try:
+                sms_client.send_otp(phone, otp)
+            except SMSAPIError:
+                logger.exception("Failed to send OTP to %s", phone)
+                messages.error(request, get_error_message("otp/send-failed"))
+                return render(
+                    request,
+                    "services/auth/password_reset_phone_form.html",
+                    {"form": form},
+                )
+
+            messages.success(request, get_error_message("otp/sent"))
+            return redirect("verify_password_reset_otp")
+    else:
+        form = PhoneLookupForm()
+
+    return render(
+        request,
+        "services/auth/password_reset_phone_form.html",
+        {"form": form},
+    )
+
+
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
+def verify_password_reset_otp_view(request: HttpRequest) -> HttpResponse:
+    """Verify the OTP sent for password reset.
+
+    GET: displays the OTP input form.
+    POST: verifies the OTP and redirects to set new password.
+    """
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    pending = request.session.get("pending_password_reset")
+    if not pending:
+        messages.error(request, get_error_message("otp/no-pending-password-reset"))
+        return redirect("password_reset_phone")
+
+    phone = pending["phone"]
+    cooldown = _otp_remaining_cooldown(phone)
+
+    if request.method == "POST":
+        form = OTPVerifyForm(request.POST)
+        if form.is_valid():
+            otp_code = form.cleaned_data["otp_code"]
+            verification = (
+                PhoneVerification.objects.filter(phone=phone, is_used=False)
+                .order_by("-created_at")
+                .first()
+            )
+
+            if not verification:
+                messages.error(request, get_error_message("otp/invalid"))
+                return render(
+                    request,
+                    "services/auth/verify_password_reset_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            otp_max_age = timedelta(
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+            )
+            if timezone.now() - verification.created_at > otp_max_age:
+                messages.error(request, get_error_message("otp/expired"))
+                return render(
+                    request,
+                    "services/auth/verify_password_reset_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            if not verify_otp(verification.otp_code, otp_code):
+                messages.error(request, get_error_message("otp/invalid"))
+                return render(
+                    request,
+                    "services/auth/verify_password_reset_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
+            verification.is_used = True
+            verification.save(update_fields=["is_used"])
+
+            return redirect("set_new_password")
+    else:
+        form = OTPVerifyForm()
+
+    return render(
+        request,
+        "services/auth/verify_password_reset_otp.html",
+        {"form": form, "phone": phone, "cooldown": cooldown},
+    )
+
+
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
+def resend_password_reset_otp_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint for resending password-reset OTP codes via AJAX."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    if request.user.is_authenticated:
+        return JsonResponse(
+            {"error": get_error_message("otp/no-pending-password-reset")},
+            status=400,
+        )
+
+    pending = request.session.get("pending_password_reset")
+    if not pending:
+        return JsonResponse(
+            {"error": get_error_message("otp/no-pending-password-reset")},
+            status=400,
+        )
+
+    phone = pending["phone"]
+    remaining = _otp_remaining_cooldown(phone)
+
+    if remaining > 0:
+        return JsonResponse(
+            {
+                "error": get_error_message("otp/cooldown", seconds=str(remaining)),
+                "cooldown": remaining,
+            },
+            status=429,
+        )
+
+    was_limited = getattr(request, "view_limited", False)
+    if was_limited:
+        return JsonResponse(
+            {"error": get_error_message("otp/too-many-resends")},
+            status=429,
+        )
+
+    PhoneVerification.objects.filter(phone=phone, is_used=False).update(is_used=True)
+
+    otp = generate_otp()
+    PhoneVerification.objects.create(
+        phone=phone,
+        otp_code=hash_otp(otp),
+    )
+
+    sms_client = get_sms_client()
+    try:
+        sms_client.send_otp(phone, otp)
+    except SMSAPIError:
+        logger.exception("Failed to resend OTP to %s", phone)
+        return JsonResponse(
+            {"error": get_error_message("otp/send-failed")},
+            status=500,
+        )
+
+    return JsonResponse(
+        {
+            "message": get_error_message("otp/resend-success"),
+            "cooldown": getattr(django_settings, "OTP_RESEND_COOLDOWN_SECONDS", 60),
+        },
+        status=200,
+    )
+
+
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
+def set_new_password_view(request: HttpRequest) -> HttpResponse:
+    """Set a new password after successful OTP verification for password reset.
+
+    GET: display the new password form.
+    POST: validate and set the new password.
+    """
+    if request.user.is_authenticated:
+        return redirect("home")
+
+    pending = request.session.get("pending_password_reset")
+    if not pending:
+        messages.error(request, get_error_message("otp/no-pending-password-reset"))
+        return redirect("password_reset_phone")
+
+    from django.contrib.auth.models import User
+
+    try:
+        user = User.objects.get(id=pending["user_id"])
+    except User.DoesNotExist:
+        messages.error(request, get_error_message("otp/no-pending-password-reset"))
+        return redirect("password_reset_phone")
+
+    if request.method == "POST":
+        form = SetNewPasswordForm(request.POST, user=user)
+        if form.is_valid():
+            form.validate_password()
+            if not form.errors:
+                user.set_password(form.cleaned_data["new_password1"])
+                user.save(update_fields=["password"])
+
+                del request.session["pending_password_reset"]
+                messages.success(request, get_error_message("password/reset-done"))
+                return redirect("login")
+    else:
+        form = SetNewPasswordForm()
+
+    return render(
+        request,
+        "services/auth/set_new_password.html",
+        {"form": form},
+    )
+
+
+def password_reset_phone_done_view(request: HttpRequest) -> HttpResponse:
+    """Display success message after password reset via phone."""
+    return render(request, "services/auth/password_reset_phone_done.html")
 
 
 def home(request: HttpRequest) -> HttpResponse:
@@ -460,7 +851,7 @@ def search(request: HttpRequest) -> HttpResponse:
         if org_filter:
             q &= Q(organization__icontains=org_filter)
         if city_filter:
-            q &= Q(centers__city__icontains=city_filter)
+            q &= Q(service_centers__city__icontains=city_filter)
         results = Service.objects.filter(q).distinct().order_by("id")
 
     organizations = (
@@ -526,10 +917,10 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
 
     if not nearest_center:
         nearest_center = ServiceCenter.objects.filter(
-            service=service, city__icontains=user_city
+            services=service, city__icontains=user_city
         ).first()
 
-    centers_qs = ServiceCenter.objects.filter(service=service).annotate(
+    centers_qs = ServiceCenter.objects.filter(services=service).annotate(
         avg_score=Avg("ratings__score")
     )
 
@@ -672,11 +1063,12 @@ def nearby_centers_view(request: HttpRequest) -> HttpResponse:
 
     all_centers = ServiceCenter.objects.filter(
         city__icontains=user_city
-    ).select_related("service")
+    ).prefetch_related("services")
 
     centers_by_service: dict = {}
     for center in all_centers:
-        centers_by_service.setdefault(center.service.name, []).append(center)
+        for svc in center.services.all():
+            centers_by_service.setdefault(svc.name, []).append(center)
 
     for service_name, centers_list in centers_by_service.items():
         nearest = get_nearest_center(service_name, user_city, user_neighborhood)
@@ -749,6 +1141,25 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             form = ProfileForm(request.POST, user_id=request.user.id)
             password_form = PersianPasswordChangeForm(request.user)
             if form.is_valid():
+                new_phone = form.cleaned_data["phone"]
+                current_phone = profile.phone if profile else ""
+                if new_phone != current_phone:
+                    request.session["pending_profile_update"] = form.cleaned_data
+                    otp = generate_otp()
+                    PhoneVerification.objects.create(
+                        phone=new_phone,
+                        otp_code=hash_otp(otp),
+                    )
+                    sms_client = get_sms_client()
+                    try:
+                        sms_client.send_otp(new_phone, otp)
+                    except SMSAPIError:
+                        logger.exception("Failed to send OTP to %s", new_phone)
+                        del request.session["pending_profile_update"]
+                        messages.error(request, get_error_message("otp/send-failed"))
+                        return redirect("profile")
+                    messages.success(request, get_error_message("otp/sent"))
+                    return redirect("verify_profile_otp")
                 user = request.user
                 user.first_name = form.cleaned_data["first_name"]
                 user.last_name = form.cleaned_data["last_name"]
@@ -994,7 +1405,7 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
     Publicly accessible. Shows center info, map, ratings, and comments.
     """
     center: ServiceCenter = get_object_or_404(
-        ServiceCenter.objects.select_related("service"), id=center_id
+        ServiceCenter.objects.prefetch_related("services"), id=center_id
     )
 
     ratings = center.ratings.all()
@@ -1032,7 +1443,7 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
         "services/center_detail.html",
         {
             "center": center,
-            "service": center.service,
+            "services": center.services.all(),
             "center_locations": center_locations,
             "avg_rating": round(avg_rating, 1) if avg_rating else None,
             "rating_count": rating_count,
@@ -1045,10 +1456,13 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
             "breadcrumbs": [
                 {"label": "خانه", "url": "/"},
                 {"label": "خدمات", "url": "/services/"},
-                {
-                    "label": center.service.name,
-                    "url": f"/service/{center.service.id}/",
-                },
+                *[
+                    {
+                        "label": svc.name,
+                        "url": f"/service/{svc.id}/",
+                    }
+                    for svc in center.services.all()
+                ],
                 {"label": center.name},
             ],
         },
@@ -1082,6 +1496,96 @@ def submit_center_rating(request: HttpRequest, center_id: int) -> HttpResponse:
     return redirect("center_detail", center_id=center_id)
 
 
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
+def submit_report(request: HttpRequest) -> HttpResponse:
+    """Submit a report about incorrect or outdated information.
+
+    POST with JSON body: ``{"reason": str, "description": str, "target_type": str,
+    "target_id": int}``.  Returns JSON for AJAX callers, redirects for plain forms.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": get_error_message("report/login-required")},
+            status=401,
+        )
+
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    try:
+        data = (
+            json.loads(request.body)
+            if request.content_type == "application/json"
+            else request.POST
+        )
+    except json.JSONDecodeError:
+        data = request.POST
+
+    target_type = data.get("target_type", "")
+    target_id = data.get("target_id") or data.get("target_id")
+    reason = data.get("reason", "")
+    description = data.get("description", "")
+
+    if target_type not in dict(InfoReport.ReportTarget.choices):
+        msg = get_error_message("report/invalid-target")
+        if is_ajax:
+            return JsonResponse({"error": msg}, status=400)
+        messages.error(request, msg)
+        return redirect("home")
+
+    try:
+        target_id = int(target_id)
+    except (TypeError, ValueError):
+        msg = get_error_message("report/not-found")
+        if is_ajax:
+            return JsonResponse({"error": msg}, status=400)
+        messages.error(request, msg)
+        return redirect("home")
+
+    if target_type == "service":
+        target = get_object_or_404(Service, id=target_id)
+        redirect_url = f"/service/{target_id}/"
+    else:
+        target = get_object_or_404(ServiceCenter, id=target_id)
+        redirect_url = f"/center/{target_id}/"
+
+    valid_reasons = dict(InfoReport.ReportReason.choices)
+    if reason not in valid_reasons:
+        reason = InfoReport.ReportReason.OTHER
+
+    existing = InfoReport.objects.filter(
+        user=request.user,
+        target_type=target_type,
+        service=target if target_type == "service" else None,
+        service_center=target if target_type == "center" else None,
+        reason=reason,
+    ).first()
+
+    if existing:
+        msg = get_error_message("report/duplicate")
+        if is_ajax:
+            return JsonResponse({"error": msg}, status=409)
+        messages.warning(request, msg)
+        return redirect(redirect_url)
+
+    InfoReport.objects.create(
+        user=request.user,
+        target_type=target_type,
+        service=target if target_type == "service" else None,
+        service_center=target if target_type == "center" else None,
+        reason=reason,
+        description=description,
+    )
+
+    msg = get_error_message("report/submitted")
+    if is_ajax:
+        return JsonResponse({"message": msg})
+    messages.success(request, msg)
+    return redirect(redirect_url)
+
+
 def suggest_closest_center(request: HttpRequest, service_id: int) -> HttpResponse:
     """API endpoint: find the closest center based on browser geolocation.
 
@@ -1109,7 +1613,7 @@ def suggest_closest_center(request: HttpRequest, service_id: int) -> HttpRespons
     user_point = Point(lng, lat, srid=4326)
     centers = (
         ServiceCenter.objects.filter(
-            service_id=service_id,
+            services__id=service_id,
             coordinate__isnull=False,
         )
         .annotate(distance=Distance("coordinate", user_point))
@@ -1148,7 +1652,7 @@ def load_centers(request: HttpRequest, service_id: int) -> JsonResponse:
     page = int(request.GET.get("page", 1))
     per_page = min(int(request.GET.get("per_page", 5)), 20)
 
-    qs = ServiceCenter.objects.filter(service=service)
+    qs = ServiceCenter.objects.filter(services=service)
 
     annotate_rating = Avg("ratings__score")
     qs = qs.annotate(avg_score=annotate_rating)

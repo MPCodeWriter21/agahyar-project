@@ -65,7 +65,7 @@ def suggest_centers(service_name: str, user_city: str) -> list:
     """
     try:
         centers = ServiceCenter.objects.filter(
-            service__name__icontains=service_name, city__icontains=user_city
+            services__name__icontains=service_name, city__icontains=user_city
         )[:3]
         if centers.exists():
             return [

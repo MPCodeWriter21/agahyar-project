@@ -110,10 +110,10 @@ class FAQ(models.Model):
 
 
 class ServiceCenter(models.Model):
-    """A physical location where a government service is provided."""
+    """A physical location where government services are provided."""
 
-    service = models.ForeignKey(
-        Service, on_delete=models.CASCADE, related_name="centers"
+    services = models.ManyToManyField(
+        Service, related_name="service_centers", blank=True, verbose_name="خدمات"
     )
     name = models.CharField("نام مرکز", max_length=200)
     address = models.TextField("آدرس کامل")
@@ -333,3 +333,72 @@ class Bookmark(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} - {self.service.name}"
+
+
+class InfoReport(models.Model):
+    """A user-submitted report about incorrect or outdated information."""
+
+    class ReportTarget(models.TextChoices):
+        SERVICE = "service", "خدمت"
+        CENTER = "center", "مرکز"
+
+    class ReportReason(models.TextChoices):
+        INCORRECT_INFO = "incorrect_info", "اطلاعات نادرست"
+        OUTDATED_INFO = "outdated_info", "اطلاعات قدیمی"
+        CLOSED_CENTER = "closed_center", "مرکز تعطیل شده"
+        WRONG_ADDRESS = "wrong_address", "آدرس اشتباه"
+        WRONG_PHONE = "wrong_phone", "شماره تلفن اشتباه"
+        OTHER = "other", "سایر"
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="info_reports"
+    )
+    target_type = models.CharField(
+        "نوع مورد", max_length=10, choices=ReportTarget.choices
+    )
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reports",
+        verbose_name="خدمت",
+    )
+    service_center = models.ForeignKey(
+        ServiceCenter,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reports",
+        verbose_name="مرکز",
+    )
+    reason = models.CharField("دلیل گزارش", max_length=20, choices=ReportReason.choices)
+    description = models.TextField("توضیحات", blank=True, default="")
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True, db_index=True)
+    is_resolved = models.BooleanField("بررسی شده", default=False, db_index=True)
+    resolved_at = models.DateTimeField("تاریخ بررسی", null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_reports",
+        verbose_name="بررسی شده توسط",
+    )
+    admin_notes = models.TextField("یادداشت مدیر", blank=True, default="")
+
+    class Meta:
+        verbose_name = "گزارش اطلاعات"
+        verbose_name_plural = "گزارش‌های اطلاعات"
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(target_type="service", service__isnull=False)
+                | models.Q(target_type="center", service_center__isnull=False),
+                name="report_has_target",
+            )
+        ]
+
+    def __str__(self) -> str:
+        target = self.service if self.service else self.service_center
+        return f"{self.user.username} - {target}"

@@ -25,11 +25,11 @@
     <form method="post">
       {% csrf_token %}
       <div class="form-group{% if form.username.errors %} has-error{% endif %}">
-        <label>نام کاربری</label>
+        <label>نام کاربری، ایمیل یا شماره موبایل</label>
         <input type="text"
                name="username"
                value="{{ form.username.value|default:'' }}"
-               placeholder="نام کاربری خود را وارد کنید"
+               placeholder="نام کاربری، ایمیل یا شماره موبایل خود را وارد کنید"
                class="ltr-input{% if form.username.errors %} field-error{% endif %}"
                dir="ltr"
                autocomplete="username"
@@ -66,7 +66,7 @@
       حساب کاربری ندارید؟ <a href="{% url 'register' %}">ثبت‌نام کنید</a>
     </div>
     <div class="register-link">
-      <a href="{% url 'password_reset' %}" class="muted-link">رمز عبور را فراموش کرده‌اید؟</a>
+      <a href="{% url 'password_reset_phone' %}" class="muted-link">رمز عبور را فراموش کرده‌اید؟</a>
     </div>
   </div>
 {% endblock %}

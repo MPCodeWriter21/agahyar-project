@@ -74,18 +74,18 @@ class ServiceAPITest(TestCase):
         self.assertEqual(resp.data["count"], 1)
 
     def test_centers_count_annotation(self):
-        ServiceCenter.objects.create(
-            service=self.service,
+        c1 = ServiceCenter.objects.create(
             name="دفتر مرکزی",
             address="تهران",
             city="تهران",
         )
-        ServiceCenter.objects.create(
-            service=self.service,
+        c1.services.add(self.service)
+        c2 = ServiceCenter.objects.create(
             name="دفتر جنوب",
             address="تهران",
             city="تهران",
         )
+        c2.services.add(self.service)
         resp = self.client.get(f"{self.url}{self.service.id}/")
         self.assertEqual(resp.data["centers_count"], 2)
 
@@ -494,9 +494,8 @@ class CommentFilterValidationTest(TestCase):
         service = Service.objects.create(
             name="خدمت", organization="سازمان", documents="م", steps="م"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="مرکز", address="آدرس", city="تهران"
-        )
+        center = ServiceCenter.objects.create(name="مرکز", address="آدرس", city="تهران")
+        center.services.add(service)
         resp = self.client.get(f"/api/v1/comments/?service_center={center.id}")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
@@ -942,11 +941,11 @@ class ServiceCenterAPITest(TestCase):
             steps="آزمون",
         )
         self.center = ServiceCenter.objects.create(
-            service=self.service,
             name="مرکز تست",
             address="خیابان ولیعصر",
             city="تهران",
         )
+        self.center.services.add(self.service)
         ServiceCenterPhone.objects.create(
             center=self.center, phone="02112345678", label="main", order=0
         )
@@ -960,7 +959,7 @@ class ServiceCenterAPITest(TestCase):
     def test_retrieve_center(self):
         resp = self.client.get(f"{self.url}{self.center.id}/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data["service_name"], "گواهینامه")
+        self.assertIn("گواهینامه", resp.data["service_names"])
         self.assertIn("phones", resp.data)
         self.assertEqual(len(resp.data["phones"]), 1)
         self.assertEqual(resp.data["phones"][0]["phone"], "02112345678")
@@ -1062,8 +1061,9 @@ class CommentAPITest(TestCase):
             name="خدمت آزمایشی", organization="سازمان آزمایش", documents="م", steps="م"
         )
         self.center = ServiceCenter.objects.create(
-            service=self.service, name="مرکز تست", address="آدرس", city="تهران"
+            name="مرکز تست", address="آدرس", city="تهران"
         )
+        self.center.services.add(self.service)
         self.comment = Comment.objects.create(
             user=self.user, service=self.service, text="نظر تستی"
         )
@@ -1346,8 +1346,9 @@ class CenterRatingAPITest(TestCase):
             name="خدمت", organization="سازمان", documents="م", steps="م"
         )
         self.center = ServiceCenter.objects.create(
-            service=self.service, name="مرکز", address="آدرس", city="تهران"
+            name="مرکز", address="آدرس", city="تهران"
         )
+        self.center.services.add(self.service)
         self.url = "/api/v1/ratings/"
 
     # --- Public access blocked ---

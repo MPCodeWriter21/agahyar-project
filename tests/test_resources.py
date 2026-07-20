@@ -64,16 +64,16 @@ class TestResourceExport:
         svc = Service.objects.create(
             name="export-center-svc", organization="org", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
-            service=svc,
+        c = ServiceCenter.objects.create(
             name="مرکز صادرات",
             address="آدرس",
             city="تهران",
             coordinate=Point(51.3890, 35.6892, srid=4326),
         )
+        c.services.add(svc)
         dataset = ServiceCenterResource().export()
         assert len(dataset) == 1
-        assert dataset[0][2] == "مرکز صادرات"
+        assert dataset[0][1] == "مرکز صادرات"
 
     def test_user_profile_resource_export(self):
         user = User.objects.create_user("export-user")
@@ -111,8 +111,9 @@ class TestResourceExport:
             name="cr-svc", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=svc, name="CR Center", address="addr", city="Tehran"
+            name="CR Center", address="addr", city="Tehran"
         )
+        center.services.add(svc)
         CenterRating.objects.create(user=user, service_center=center, score=4)
         dataset = CenterRatingResource().export()
         assert len(dataset) == 1
@@ -150,16 +151,15 @@ class TestResourceImport:
         assert svc.name == "imported-svc"
 
     def test_service_center_resource_import(self):
-        svc = Service.objects.create(
+        Service.objects.create(
             name="import-target", organization="org", documents="d", steps="s"
         )
         dataset = tablib.Dataset(
-            headers=["id", "service", "name", "address", "city", "coordinate"],
+            headers=["id", "name", "address", "city", "coordinate"],
         )
         dataset.append(
             [
                 1,
-                svc.id,
                 "مرکز وارداتی",
                 "آدرس تست",
                 "تهران",
@@ -209,8 +209,9 @@ class TestResourceImport:
             name="import-cr-svc", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=svc, name="Import Center", address="addr", city="Tehran"
+            name="Import Center", address="addr", city="Tehran"
         )
+        center.services.add(svc)
         dataset = tablib.Dataset(
             headers=["id", "user", "service_center", "score"],
         )

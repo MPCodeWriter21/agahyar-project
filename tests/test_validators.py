@@ -105,9 +105,8 @@ class TestServiceCenterPhoneClean:
         service = Service.objects.create(
             name="خدمت", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="مرکز", address="آدرس", city="تهران"
-        )
+        center = ServiceCenter.objects.create(name="مرکز", address="آدرس", city="تهران")
+        center.services.add(service)
         phone = ServiceCenterPhone(center=center, phone="۰۲۱۱۲۳۴۵۶۷۸")
         phone.full_clean()
         assert phone.phone == "02112345678"

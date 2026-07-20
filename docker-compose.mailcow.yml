@@ -1,0 +1,125 @@
+# Mailcow Docker Mail Server
+#
+# This compose file sets up a self-hosted Mailcow mail server that runs
+# alongside the main Agahyar stack.  It exposes SMTP (587/465), IMAP
+# (993), and the Mailcow web UI (8443) for administration.
+#
+# Usage:
+#   docker compose -f docker-compose.mailcow.yml up -d
+#
+# Prerequisites:
+#   1. Point DNS records (MX, A, SPF, DKIM, DMARC) to this server.
+#      See MAIL_SETUP.md for the full DNS checklist.
+#   2. Copy mailcow/.env.example to mailcow/.env and edit it.
+#   3. Ensure the traefik-network exists (docker network create traefik-network).
+#
+# The web container in docker-compose.prod.yml (or .dev.yml) connects to
+# both traefik-network and mail-network so it can reach the SMTP server.
+# Add the following to the web service in the main compose file:
+#
+#   networks:
+#     - traefik-network
+#     - mail-network
+#
+# And add to the top-level networks section:
+#
+#   mail-network:
+#     external: true
+
+services:
+  # ---- Postfix (SMTP) ----
+  mail:
+    image: ghcr.io/mailcow/mailcowd:latest
+    hostname: mail
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Tehran
+      - SKIP_CLAMD=y
+      - SKIP_SOLR=y
+      - IPV4_ADDR=${MAILCOW_IPV4:-0.0.0.0}
+      - IPV6_ADDR=${MAILCOW_IPV6:::-::}
+    volumes:
+      - mailcow_data:/var/vmail
+      - mailcow_conf:/etc/postfix
+      - mailcow_certs:/etc/ssl/mail
+      - ./mailcow/docker-data/dms/conf:/tmp/docker-data/dms/conf
+      - ./mailcow/docker-data/dms/mailqueue:/var/spool/postfix
+    ports:
+      - "25:25"      # SMTP (inbound mail)
+      - "465:465"    # SMTP over SSL
+      - "587:587"    # SMTP submission (STARTTLS)
+    networks:
+      - mail-network
+      - traefik-network
+    depends_on:
+      redis-mail:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "postfix", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ---- Dovecot (IMAP/POP3) ----
+  imap:
+    image: ghcr.io/mailcow/dovecot:latest
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Tehran
+    volumes:
+      - mailcow_data:/var/vmail
+      - mailcow_conf:/etc/postfix
+      - mailcow_certs:/etc/ssl/mail
+      - ./mailcow/docker-data/dms/conf:/tmp/docker-data/dms/conf
+    ports:
+      - "993:993"    # IMAP over SSL
+    networks:
+      - mail-network
+    depends_on:
+      - mail
+    healthcheck:
+      test: ["CMD", "doveadm", "service", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ---- Rspamd (anti-spam filter) ----
+  rspamd-filter:
+    image: ghcr.io/mailcow/rspamd:latest
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Tehran
+    volumes:
+      - mailcow_rspamd:/var/lib/rspamd
+      - mailcow_certs:/etc/ssl/mail
+    networks:
+      - mail-network
+    depends_on:
+      - redis-mail
+
+  # ---- Redis (shared cache for mail services) ----
+  redis-mail:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - mailcow_redis:/data
+    networks:
+      - mail-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  traefik-network:
+    external: true
+  mail-network:
+    external: true
+
+volumes:
+  mailcow_data:
+  mailcow_conf:
+  mailcow_certs:
+  mailcow_rspamd:
+  mailcow_redis:

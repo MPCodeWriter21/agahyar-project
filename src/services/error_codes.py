@@ -25,6 +25,8 @@ ERROR_CODES: dict[str, str] = {
     # ---- Username ----
     "username/duplicate": "این نام کاربری قبلاً ثبت شده است.",
     "username/required": "وارد کردن نام کاربری الزامی است.",
+    "username/all-numeric": "نام کاربری نمی‌تواند فقط شامل عدد باشد.",
+    "username/contains-at": "نام کاربری نمی‌تواند شامل علامت @ باشد.",
     # ---- Profile ----
     "profile/updated": "پروفایل شما با موفقیت به‌روزرسانی شد.",
     "password/changed": "رمز عبور شما با موفقیت تغییر یافت.",
@@ -40,6 +42,7 @@ ERROR_CODES: dict[str, str] = {
     "otp/send-failed": "خطا در ارسال کد تأیید. لطفاً دوباره تلاش کنید.",
     "otp/too-many-resends": "تعداد درخواست‌های ارسال مجدد بیش از حد مجاز است. لطفاً چند دقیقه دیگر تلاش کنید.",
     "otp/no-pending-registration": "فرآیند ثبت‌نام منقضی شده است. لطفاً دوباره ثبت‌نام کنید.",
+    "otp/no-pending-profile-update": "فرآیند تغییر شماره منقضی شده است. لطفاً دوباره از پروفایل اقدام کنید.",
     "otp/resend-success": "کد جدید به شماره موبایل شما ارسال شد.",
     "otp/cooldown": "لطفاً {seconds} ثانیه دیگر صبر کنید.",
     # ---- Bookmark ----
@@ -66,6 +69,16 @@ ERROR_CODES: dict[str, str] = {
     # ---- Uniqueness ----
     "email/duplicate": "این ایمیل قبلاً ثبت شده است.",
     "phone/duplicate": "این شماره تماس قبلاً ثبت شده است.",
+    # ---- Report ----
+    "report/submitted": "گزارش شما با موفقیت ثبت شد. از بازخورد شما متشکریم.",
+    "report/duplicate": "شما قبلاً برای این مورد گزارش ثبت کرده‌اید.",
+    "report/not-found": "مورد مورد نظر یافت نشد.",
+    "report/invalid-target": "هدف گزارش نامعتبر است.",
+    "report/login-required": "برای ثبت گزارش باید وارد شوید.",
+    # ---- Password reset (phone) ----
+    "auth/no-user-with-phone": "کاربری با این شماره موبایل یافت نشد.",
+    "password/reset-done": "رمز عبور شما با موفقیت تغییر کرد. اکنون می‌توانید وارد شوید.",
+    "otp/no-pending-password-reset": "فرآیند بازیابی رمز عبور منقضی شده است. لطفاً دوباره اقدام کنید.",
 }
 
 

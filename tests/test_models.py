@@ -94,8 +94,9 @@ class TestServiceCenterModel:
             name="خدمت تست", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="مرکز تست", address="آدرس", city="تهران"
+            name="مرکز تست", address="آدرس", city="تهران"
         )
+        center.services.add(service)
         assert "مرکز تست" in str(center)
         assert "تهران" in str(center)
 
@@ -104,12 +105,12 @@ class TestServiceCenterModel:
             name="خدمت نقشه", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service,
             name="مرکز نقشه",
             address="آدرس",
             city="تهران",
             coordinate=Point(51.389, 35.6892, srid=4326),
         )
+        center.services.add(service)
         assert "google.com/maps?q=35.6892,51.389" in center.get_map_url()
 
     def test_get_map_url_without_coordinate(self):
@@ -117,11 +118,11 @@ class TestServiceCenterModel:
             name="خدمت بدون مختصات", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service,
             name="مرکز بدون مختصات",
             address="تهران، خیابان آزادی",
             city="تهران",
         )
+        center.services.add(service)
         expected = "https://www.google.com/maps/search/تهران، خیابان آزادی"
         assert center.get_map_url() == expected
 
@@ -153,8 +154,9 @@ class TestCommentModel:
             name="خدمت تست2", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="مرکز تست", address="آدرس", city="تهران"
+            name="مرکز تست", address="آدرس", city="تهران"
         )
+        center.services.add(service)
         comment = Comment.objects.create(
             user=user, service_center=center, text="نظر مرکز"
         )
@@ -202,8 +204,9 @@ class TestCenterRatingModel:
             name="خدمت تست", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="مرکز تست", address="آدرس", city="تهران"
+            name="مرکز تست", address="آدرس", city="تهران"
         )
+        center.services.add(service)
         rating = CenterRating.objects.create(user=user, service_center=center, score=4)
         assert "crater" in str(rating)
         assert "مرکز تست" in str(rating)
@@ -215,8 +218,9 @@ class TestCenterRatingModel:
             name="test", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="test center", address="addr", city="Tehran"
+            name="test center", address="addr", city="Tehran"
         )
+        center.services.add(service)
         CenterRating.objects.create(user=user, service_center=center, score=3)
         from django.db import IntegrityError
 
@@ -229,8 +233,9 @@ class TestCenterRatingModel:
             name="test2", organization="org", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=service, name="test center2", address="addr", city="Tehran"
+            name="test center2", address="addr", city="Tehran"
         )
+        center.services.add(service)
         rating = CenterRating.objects.create(user=user, service_center=center, score=5)
         assert 1 <= rating.score <= 5
 
@@ -345,9 +350,8 @@ class TestServiceCenterPhoneModel:
         service = Service.objects.create(
             name="خدمت", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="مرکز", address="آدرس", city="تهران"
-        )
+        center = ServiceCenter.objects.create(name="مرکز", address="آدرس", city="تهران")
+        center.services.add(service)
         phone = ServiceCenterPhone.objects.create(
             center=center, phone="02112345678", label="main", order=0
         )
@@ -358,9 +362,8 @@ class TestServiceCenterPhoneModel:
         service = Service.objects.create(
             name="خدمت", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="مرکز", address="آدرس", city="تهران"
-        )
+        center = ServiceCenter.objects.create(name="مرکز", address="آدرس", city="تهران")
+        center.services.add(service)
         phone = ServiceCenterPhone.objects.create(
             center=center, phone="02199999999", label="fax", order=1
         )
@@ -376,9 +379,8 @@ class TestServiceCenterPhoneModel:
         service = Service.objects.create(
             name="خدمت", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="مرکز", address="آدرس", city="تهران"
-        )
+        center = ServiceCenter.objects.create(name="مرکز", address="آدرس", city="تهران")
+        center.services.add(service)
         phone = ServiceCenterPhone.objects.create(center=center, phone="02112345678")
         assert phone.label == "main"
         assert phone.order == 0
@@ -387,9 +389,8 @@ class TestServiceCenterPhoneModel:
         service = Service.objects.create(
             name="خدمت", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="مرکز", address="آدرس", city="تهران"
-        )
+        center = ServiceCenter.objects.create(name="مرکز", address="آدرس", city="تهران")
+        center.services.add(service)
         ServiceCenterPhone.objects.create(
             center=center, phone="02111111111", label="main", order=0
         )
@@ -402,9 +403,8 @@ class TestServiceCenterPhoneModel:
         service = Service.objects.create(
             name="خدمت", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="مرکز", address="آدرس", city="تهران"
-        )
+        center = ServiceCenter.objects.create(name="مرکز", address="آدرس", city="تهران")
+        center.services.add(service)
         ServiceCenterPhone.objects.create(center=center, phone="02112345678")
         assert ServiceCenterPhone.objects.count() == 1
         center.delete()
@@ -414,9 +414,8 @@ class TestServiceCenterPhoneModel:
         service = Service.objects.create(
             name="خدمت", organization="org", documents="d", steps="s"
         )
-        center = ServiceCenter.objects.create(
-            service=service, name="مرکز", address="آدرس", city="تهران"
-        )
+        center = ServiceCenter.objects.create(name="مرکز", address="آدرس", city="تهران")
+        center.services.add(service)
         ServiceCenterPhone.objects.create(
             center=center, phone="02133333333", label="fax", order=2
         )
@@ -426,3 +425,74 @@ class TestServiceCenterPhoneModel:
         phones = list(center.phones.all())
         assert phones[0].phone == "02111111111"
         assert phones[1].phone == "02133333333"
+
+
+@pytest.mark.django_db
+class TestInfoReportModel:
+    """Tests for the InfoReport model."""
+
+    def _create_report(self, target_type="service", **kwargs):
+        import uuid
+
+        from services.models import InfoReport
+
+        user = kwargs.pop("user", None)
+        if user is None:
+            user = User.objects.create_user(
+                f"reporter_{uuid.uuid4().hex[:8]}", password="pass12345"
+            )
+        service = kwargs.pop("service", None)
+        center = kwargs.pop("center", None)
+        if service is None and target_type == "service":
+            service = Service.objects.create(
+                name="S", organization="O", documents="d", steps="s"
+            )
+        if center is None and target_type == "center":
+            svc = Service.objects.create(
+                name="S", organization="O", documents="d", steps="s"
+            )
+            center = ServiceCenter.objects.create(name="C", address="A", city="Tehran")
+            center.services.add(svc)
+        return InfoReport.objects.create(
+            user=user,
+            target_type=target_type,
+            service=service,
+            service_center=center,
+            reason=kwargs.get("reason", "incorrect_info"),
+            description=kwargs.get("description", ""),
+        )
+
+    def test_str_service(self):
+        report = self._create_report(target_type="service")
+        assert "reporter" in str(report)
+
+    def test_str_center(self):
+        report = self._create_report(target_type="center")
+        assert "reporter" in str(report)
+
+    def test_default_not_resolved(self):
+        report = self._create_report()
+        assert report.is_resolved is False
+
+    def test_service_target(self):
+        report = self._create_report(target_type="service")
+        assert report.service is not None
+        assert report.service_center is None
+
+    def test_center_target(self):
+        report = self._create_report(target_type="center")
+        assert report.service_center is not None
+        assert report.service is None
+
+    def test_ordering_newest_first(self):
+        user = User.objects.create_user("reporter_order", password="pass12345")
+        svc = Service.objects.create(
+            name="SO", organization="OO", documents="d", steps="s"
+        )
+        r1 = self._create_report(reason="incorrect_info", user=user, service=svc)
+        r2 = self._create_report(reason="outdated_info", user=user, service=svc)
+        from services.models import InfoReport
+
+        reports = list(InfoReport.objects.all())
+        assert reports[0].id == r2.id
+        assert reports[1].id == r1.id

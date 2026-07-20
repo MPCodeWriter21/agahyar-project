@@ -1,7 +1,7 @@
 {% extends 'services/base.html' %}
 {% load static jalali_tags %}
 {% block title %}{{ center.name }} | آگاه‌یار{% endblock %}
-{% block meta_description %}اطلاعات مرکز {{ center.name }} - {{ service.name }} - سامانه آگاه‌یار{% endblock %}
+{% block meta_description %}اطلاعات مرکز {{ center.name }} - سامانه آگاه‌یار{% endblock %}
 {% block og_title %}آگاه‌یار | {{ center.name }}{% endblock %}
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
@@ -10,10 +10,16 @@
   <div class="detail-header">
     <div class="detail-header-row">
       <h1>{{ center.name }}</h1>
+      <button type="button"
+              class="btn-report"
+              title="گزارش اطلاعات نادرست"
+              onclick="openReportDialog('center', '{{ center.id }}')">
+        <i class="fas fa-flag"></i>
+      </button>
     </div>
     <div class="org-address-box">
-      <strong>خدمت:</strong>
-      <a href="{% url 'service_detail' service.id %}" class="link-service">{{ service.name }}</a>
+      <strong>خدمات:</strong>
+      {% for svc in services %}{% if not forloop.first %} &mdash; {% endif %}<a href="{% url 'service_detail' svc.id %}" class="link-service">{{ svc.name }}</a>{% endfor %}
     </div>
     <div class="org-address-box">
       <strong>آدرس:</strong> {{ center.address }}
@@ -151,6 +157,46 @@
       <p class="empty-text">هنوز نظری ثبت نشده است.</p>
     {% endif %}
   </div>
+  <dialog id="report-dialog" class="report-dialog">
+    <div class="report-dialog-content">
+      {% if user.is_authenticated %}
+        <h3>گزارش اطلاعات نادرست یا قدیمی</h3>
+        <p class="report-dialog-target">{{ center.name }}</p>
+        <div class="report-form-group">
+          <label for="report-reason">دلیل گزارش:</label>
+          <select id="report-reason">
+            <option value="">--- انتخاب کنید ---</option>
+            <option value="incorrect_info">اطلاعات نادرست</option>
+            <option value="outdated_info">اطلاعات قدیمی</option>
+            <option value="closed_center">مرکز تعطیل شده</option>
+            <option value="wrong_address">آدرس اشتباه</option>
+            <option value="wrong_phone">شماره تلفن اشتباه</option>
+            <option value="other">سایر</option>
+          </select>
+        </div>
+        <div class="report-form-group">
+          <label for="report-description">توضیحات (اختیاری):</label>
+          <textarea id="report-description"
+                    rows="5"
+                    placeholder="توضیحات خود را بنویسید..."></textarea>
+        </div>
+        <p id="report-error" class="report-error" style="display:none;"></p>
+        <div class="report-dialog-actions">
+          <button type="button" class="btn-report-submit" onclick="submitReport()">ارسال گزارش</button>
+          <button type="button" class="btn-report-cancel" onclick="closeReportDialog()">لغو</button>
+        </div>
+      {% else %}
+        <h3>گزارش اطلاعات</h3>
+        <p>برای ثبت گزارش باید وارد شوید.</p>
+        <div class="report-dialog-actions">
+          <a href="{% url 'login' %}?next={{ request.path }}"
+             class="btn-report-submit">ورود</a>
+          <a href="{% url 'register' %}?next={{ request.path }}"
+             class="btn-report-cancel">ثبت‌نام</a>
+        </div>
+      {% endif %}
+    </div>
+  </dialog>
   <dialog id="delete-comment-modal" class="delete-modal">
     <div class="delete-modal-content">
       <p>آیا از حذف این نظر اطمینان دارید؟</p>

@@ -10,6 +10,7 @@ from .models import (
     CenterRating,
     Comment,
     ContactMessage,
+    InfoReport,
     Service,
     ServiceCenter,
     UserProfile,
@@ -70,7 +71,6 @@ class ServiceCenterResource(resources.ModelResource):
         import_id_fields = ("id",)
         fields = (
             "id",
-            "service",
             "name",
             "description",
             "address",
@@ -81,7 +81,6 @@ class ServiceCenterResource(resources.ModelResource):
         )
         export_order = (
             "id",
-            "service",
             "name",
             "description",
             "address",
@@ -136,3 +135,23 @@ class BookmarkResource(resources.ModelResource):
         model = Bookmark
         import_id_fields = ("id",)
         fields = ("id", "user", "service", "created_at")
+
+
+class InfoReportResource(resources.ModelResource):
+    class Meta:
+        model = InfoReport
+        import_id_fields = ("id",)
+        fields = (
+            "id",
+            "user",
+            "target_type",
+            "service",
+            "service_center",
+            "reason",
+            "description",
+            "created_at",
+            "is_resolved",
+            "resolved_at",
+            "resolved_by",
+            "admin_notes",
+        )

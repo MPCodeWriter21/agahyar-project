@@ -1,0 +1,155 @@
+{% extends 'services/base.html' %}
+{% block title %}تأیید شماره موبایل | آگاه‌یار{% endblock %}
+{% block meta_description %}تأیید شماره موبایل جدید برای ویرایش پروفایل در آگاه‌یار{% endblock %}
+{% block content %}
+  <div class="register-container">
+    <h2>تأیید شماره موبایل</h2>
+    <p class="otp-description">
+      کد تأیید به شماره <strong class="ltr-text">{{ phone }}</strong> ارسال شد.
+      <br>
+      لطفاً کد دریافتی را در فیلد زیر وارد کنید.
+    </p>
+    <form method="post" action="" id="otp-form">
+      {% csrf_token %}
+      <div class="form-group{% if form.otp_code.errors %} has-error{% endif %}">
+        <label>کد تأیید</label>
+        <input type="text"
+               name="otp_code"
+               value="{{ form.otp_code.value|default:'' }}"
+               placeholder="۰۰۰۰۰۰"
+               class="otp-input ltr-input{% if form.otp_code.errors %} field-error{% endif %}"
+               dir="ltr"
+               autocomplete="one-time-code"
+               inputmode="numeric"
+               pattern="[0-9]{6}"
+               maxlength="6"
+               autofocus
+               required>
+        {% if form.otp_code.errors %}<div class="field-error-msg">{{ form.otp_code.errors.0 }}</div>{% endif %}
+      </div>
+      <button type="submit" class="btn-primary">تأیید</button>
+    </form>
+    <div class="register-link">
+      <button type="button" id="resend-btn" class="muted-link" disabled>ارسال مجدد کد</button>
+    </div>
+    <div class="register-link">
+      <a href="{% url 'profile' %}" class="muted-link">بازگشت به پروفایل</a>
+    </div>
+  </div>
+{% endblock %}
+{% block extra_js %}
+  <script>
+      (function() {
+          var COOLDOWN = {{ cooldown }};
+          var CSRF_TOKEN = document.querySelector(
+              '#otp-form input[name="csrfmiddlewaretoken"]'
+          ).value;
+          var btn = document.getElementById('resend-btn');
+          var remaining = COOLDOWN;
+          var timer = null;
+
+          function formatTime(sec) {
+              var m = Math.floor(sec / 60);
+              var s = sec % 60;
+              if (m > 0) return m + ':' + (s < 10 ? '0' : '') + s;
+              return s + ' ثانیه';
+          }
+
+          function tick() {
+              remaining--;
+              if (remaining <= 0) {
+                  stopTimer();
+                  btn.textContent = 'ارسال مجدد کد';
+                  btn.disabled = false;
+                  return;
+              }
+              btn.textContent = 'ارسال مجدد کد (' + formatTime(remaining) + ')';
+              btn.disabled = true;
+          }
+
+          function startTimer(sec) {
+              stopTimer();
+              remaining = sec;
+              btn.disabled = true;
+              btn.textContent = 'ارسال مجدد کد (' + formatTime(remaining) + ')';
+              timer = setInterval(tick, 1000);
+          }
+
+          function stopTimer() {
+              if (timer) {
+                  clearInterval(timer);
+                  timer = null;
+              }
+          }
+
+          btn.addEventListener('click', function() {
+              btn.disabled = true;
+              btn.textContent = 'در حال ارسال...';
+
+              fetch('{% url "resend_profile_otp_api" %}', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'X-CSRFToken': CSRF_TOKEN,
+                      },
+                      credentials: 'same-origin',
+                  })
+                  .then(function(resp) {
+                      return resp.json().then(function(data) {
+                          return {
+                              ok: resp.ok,
+                              status: resp.status,
+                              data: data
+                          };
+                      });
+                  })
+                  .then(function(result) {
+                      if (result.ok) {
+                          Toastify({
+                              text: result.data.message,
+                              duration: 3000,
+                              close: false,
+                              gravity: 'bottom',
+                              position: 'center',
+                              stopOnFocus: true,
+                              style: {
+                                  background: '#28a745'
+                              },
+                          }).showToast();
+                          startTimer(result.data.cooldown || COOLDOWN);
+                      } else {
+                          var cd = result.data.cooldown || COOLDOWN;
+                          Toastify({
+                              text: result.data.error || 'خطا در ارسال مجدد کد',
+                              duration: 3000,
+                              close: false,
+                              gravity: 'bottom',
+                              position: 'center',
+                              stopOnFocus: true,
+                              style: {
+                                  background: '#dc3545'
+                              },
+                          }).showToast();
+                          startTimer(cd);
+                      }
+                  })
+                  .catch(function() {
+                      Toastify({
+                          text: 'خطا در ارتباط با سرور',
+                          duration: 3000,
+                          close: false,
+                          gravity: 'bottom',
+                          position: 'center',
+                          stopOnFocus: true,
+                          style: {
+                              background: '#dc3545'
+                          },
+                      }).showToast();
+                      startTimer(COOLDOWN);
+                  });
+          });
+
+          startTimer(COOLDOWN);
+      })();
+  </script>
+{% endblock %}

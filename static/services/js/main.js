@@ -448,3 +448,110 @@ function suggestClosestCenter(btn) {
     },
   );
 }
+
+var _reportTargetType = null;
+var _reportTargetId = null;
+
+function openReportDialog(targetType, targetId) {
+  _reportTargetType = targetType;
+  _reportTargetId = targetId;
+  var errorEl = document.getElementById("report-error");
+  if (errorEl) {
+    errorEl.style.display = "none";
+    errorEl.textContent = "";
+  }
+  var reasonEl = document.getElementById("report-reason");
+  if (reasonEl) reasonEl.value = "";
+  var descEl = document.getElementById("report-description");
+  if (descEl) descEl.value = "";
+  var dialog = document.getElementById("report-dialog");
+  if (dialog) dialog.showModal();
+}
+
+function closeReportDialog() {
+  _reportTargetType = null;
+  _reportTargetId = null;
+  var dialog = document.getElementById("report-dialog");
+  if (dialog) dialog.close();
+}
+
+function submitReport() {
+  var reasonEl = document.getElementById("report-reason");
+  var descEl = document.getElementById("report-description");
+  var errorEl = document.getElementById("report-error");
+
+  if (!reasonEl || !reasonEl.value) {
+    if (errorEl) {
+      errorEl.textContent =
+        "\u0644\u0637\u0641\u0627 \u062F\u0644\u06CC\u0644 \u06AF\u0632\u0627\u0631\u0634 \u0631\u0627 \u0627\u0646\u062A\u062E\u0627\u0628 \u06A9\u0646\u06CC\u062F.";
+      errorEl.style.display = "block";
+    }
+    return;
+  }
+
+  var csrfToken = getCsrfToken();
+  var reason = reasonEl.value;
+  var description = descEl ? descEl.value : "";
+
+  var submitBtn = document.querySelector(".btn-report-submit");
+  if (submitBtn) submitBtn.disabled = true;
+
+  fetch("/api/report/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken,
+      "X-Requested-With": "XMLHttpRequest",
+    },
+    body: JSON.stringify({
+      target_type: _reportTargetType,
+      target_id: _reportTargetId,
+      reason: reason,
+      description: description,
+    }),
+  })
+    .then(function (response) {
+      return response.json().then(function (data) {
+        return { status: response.status, data: data };
+      });
+    })
+    .then(function (result) {
+      if (submitBtn) submitBtn.disabled = false;
+
+      if (result.status === 200) {
+        closeReportDialog();
+        showReportSuccess(result.data.message);
+      } else {
+        if (errorEl) {
+          errorEl.textContent = result.data.error || "\u062E\u0637\u0627";
+          errorEl.style.display = "block";
+        }
+      }
+    })
+    .catch(function () {
+      if (submitBtn) submitBtn.disabled = false;
+      if (errorEl) {
+        errorEl.textContent =
+          "\u062E\u0637\u0627 \u062F\u0631 \u0627\u0631\u0633\u0627\u0644 \u06AF\u0632\u0627\u0631\u0634.";
+        errorEl.style.display = "block";
+      }
+    });
+}
+
+function showReportSuccess(message) {
+  var toast = document.createElement("div");
+  toast.className = "report-toast";
+  toast.textContent =
+    message ||
+    "\u06AF\u0632\u0627\u0631\u0634 \u0634\u0645\u0627 \u062B\u0628\u062A \u0634\u062F.";
+  document.body.appendChild(toast);
+  setTimeout(function () {
+    toast.classList.add("show");
+  }, 10);
+  setTimeout(function () {
+    toast.classList.remove("show");
+    setTimeout(function () {
+      toast.remove();
+    }, 300);
+  }, 3000);
+}

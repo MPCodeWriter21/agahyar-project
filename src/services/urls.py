@@ -52,6 +52,8 @@ urlpatterns: List[URLPattern] = [
         views.submit_center_rating,
         name="submit_center_rating",
     ),
+    # ===== Reports =====
+    path("api/report/", views.submit_report, name="submit_report"),
     # ===== Geolocation API =====
     path(
         "api/suggest-center/<int:service_id>/",
@@ -80,9 +82,43 @@ urlpatterns: List[URLPattern] = [
     path("login/", views.login_view, name="login"),
     path("register/", views.register_view, name="register"),
     path("verify-otp/", views.verify_otp_view, name="verify_otp"),
+    path(
+        "verify-profile-otp/", views.verify_profile_otp_view, name="verify_profile_otp"
+    ),
     path("resend-otp/", views.resend_otp_view, name="resend_otp"),
     path("api/resend-otp/", views.resend_otp_api, name="resend_otp_api"),
+    path(
+        "api/resend-profile-otp/",
+        views.resend_profile_otp_api,
+        name="resend_profile_otp_api",
+    ),
     path("logout/", views.logout_view, name="app_logout"),
+    # ===== Password reset (phone) =====
+    path(
+        "password-reset-phone/",
+        views.password_reset_phone_view,
+        name="password_reset_phone",
+    ),
+    path(
+        "verify-password-reset-otp/",
+        views.verify_password_reset_otp_view,
+        name="verify_password_reset_otp",
+    ),
+    path(
+        "api/resend-password-reset-otp/",
+        views.resend_password_reset_otp_api,
+        name="resend_password_reset_otp_api",
+    ),
+    path(
+        "set-new-password/",
+        views.set_new_password_view,
+        name="set_new_password",
+    ),
+    path(
+        "password-reset-phone/done/",
+        views.password_reset_phone_done_view,
+        name="password_reset_phone_done",
+    ),
     # ===== Password reset =====
     path(
         "password-reset/",

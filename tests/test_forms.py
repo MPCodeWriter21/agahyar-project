@@ -24,11 +24,11 @@ class TestCityChoices:
         svc = Service.objects.create(
             name="test", organization="o", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
+        c = ServiceCenter.objects.create(
             name="مرکز الف",
-            service=svc,
             city="تهران",
         )
+        c.services.add(svc)
         choices = get_city_choices()
         city_values = [c for c, _ in choices[1:]]
         assert "تهران" in city_values
@@ -38,11 +38,11 @@ class TestCityChoices:
         svc = Service.objects.create(
             name="test2", organization="o", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
+        c = ServiceCenter.objects.create(
             name="مرکز ب",
-            service=svc,
             city="اصفهان",
         )
+        c.services.add(svc)
         choices = get_city_choices()
         city_values = [c for c, _ in choices[1:]]
         assert "اصفهان" in city_values
@@ -52,11 +52,11 @@ class TestCityChoices:
         svc = Service.objects.create(
             name="test3", organization="o", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
+        c = ServiceCenter.objects.create(
             name="مرکز ج",
-            service=svc,
             city="شیراز",
         )
+        c.services.add(svc)
         form = RegisterForm()
         city_field = form.fields["city"]
         widget = city_field.widget
@@ -70,7 +70,8 @@ class TestRegisterForm:
         svc = Service.objects.create(
             name="test4", organization="o", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(name="مرکز تست", service=svc, city="تهران")
+        center = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        center.services.add(svc)
         form = RegisterForm()
         html = str(form.as_p())
         assert "تهران" in html
@@ -151,6 +152,42 @@ class TestRegisterForm:
         )
         assert not form.is_valid()
         assert "phone" in form.errors
+
+    def test_all_numeric_username_rejected(self):
+        form = RegisterForm(
+            data={
+                "username": "12345678",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "password1": "ComplexPass1!",
+                "password2": "ComplexPass1!",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            }
+        )
+        assert not form.is_valid()
+        assert "username" in form.errors
+        assert "فقط شامل عدد" in form.errors["username"][0]
+
+    def test_at_in_username_rejected(self):
+        form = RegisterForm(
+            data={
+                "username": "user@name",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "password1": "ComplexPass1!",
+                "password2": "ComplexPass1!",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            }
+        )
+        assert not form.is_valid()
+        assert "username" in form.errors
+        assert "@" in form.errors["username"][0]
 
 
 @pytest.mark.django_db

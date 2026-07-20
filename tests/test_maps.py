@@ -18,12 +18,13 @@ class TestGetCityCenter:
         svc = Service.objects.create(
             name="map-svc", organization="org", documents="d", steps="s"
         )
-        return ServiceCenter.objects.create(
-            service=svc,
+        center = ServiceCenter.objects.create(
             name=f"مرکز {city}",
             city=city,
             coordinate=Point(lng, lat, srid=4326),
         )
+        center.services.add(svc)
+        return center
 
     def test_returns_coords_for_city(self):
         self._create_center("تهران", 35.6892, 51.3890)
@@ -46,7 +47,8 @@ class TestGetCityCenter:
         svc = Service.objects.create(
             name="no-coord", organization="o", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(service=svc, name="بدون مختصات", city="زاهدان")
+        center = ServiceCenter.objects.create(name="بدون مختصات", city="زاهدان")
+        center.services.add(svc)
         center = get_city_center("زاهدان")
         assert center == {"lat": 35.6892, "lng": 51.3890}
 
@@ -61,12 +63,12 @@ class TestGetCenterLocations:
             name="test", organization="o", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=svc,
             name="مرکز الف",
             address="آدرس یک",
             city="تهران",
             coordinate=Point(51.3890, 35.6892, srid=4326),
         )
+        center.services.add(svc)
         ServiceCenterPhone.objects.create(
             center=center, phone="02112345678", label="main", order=0
         )
@@ -83,11 +85,11 @@ class TestGetCenterLocations:
             name="test", organization="o", documents="d", steps="s"
         )
         center = ServiceCenter.objects.create(
-            service=svc,
             name="بدون مختصات",
             address="آدرس",
             city="تهران",
         )
+        center.services.add(svc)
         result = get_center_locations([center])
         assert result == []
 
@@ -96,18 +98,18 @@ class TestGetCenterLocations:
             name="test", organization="o", documents="d", steps="s"
         )
         with_coord = ServiceCenter.objects.create(
-            service=svc,
             name="دارد",
             address="آدرس",
             city="تهران",
             coordinate=Point(51.3890, 35.6892, srid=4326),
         )
+        with_coord.services.add(svc)
         without_coord = ServiceCenter.objects.create(
-            service=svc,
             name="ندارد",
             address="آدرس",
             city="تهران",
         )
+        without_coord.services.add(svc)
         result = get_center_locations([with_coord, without_coord])
         assert len(result) == 1
         assert result[0]["name"] == "دارد"
@@ -120,20 +122,20 @@ class TestServiceDetailMapContext:
         svc = Service.objects.create(
             name="map-svc", organization="org", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
-            service=svc,
+        c1 = ServiceCenter.objects.create(
             name="مرکز الف",
             address="آدرس",
             city="تهران",
             coordinate=Point(51.3890, 35.6892, srid=4326),
         )
-        ServiceCenter.objects.create(
-            service=svc,
+        c1.services.add(svc)
+        c2 = ServiceCenter.objects.create(
             name="مرکز ب",
             address="آدرس ۲",
             city="تهران",
             coordinate=Point(51.4000, 35.7000, srid=4326),
         )
+        c2.services.add(svc)
         client = Client()
         client.login(username="mapuser", password="pass12345")
         response = client.get(f"/service/{svc.id}/")
@@ -157,12 +159,12 @@ class TestServiceDetailMapContext:
         svc = Service.objects.create(
             name="map-svc3", organization="org", documents="d", steps="s"
         )
-        ServiceCenter.objects.create(
-            service=svc,
+        c = ServiceCenter.objects.create(
             name="مرکز تهران",
             city="تهران",
             coordinate=Point(51.3890, 35.6892, srid=4326),
         )
+        c.services.add(svc)
         client = Client()
         client.login(username="mapuser3", password="pass12345")
         response = client.get(f"/service/{svc.id}/")

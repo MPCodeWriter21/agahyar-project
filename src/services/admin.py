@@ -7,6 +7,7 @@ list displays, search fields, and filters, plus import/export support.
 
 from django.contrib import admin
 from django.contrib.gis.db import models
+from django.utils import timezone
 from import_export.admin import ImportExportModelAdmin
 
 from .models import (
@@ -15,6 +16,7 @@ from .models import (
     CenterRating,
     Comment,
     ContactMessage,
+    InfoReport,
     Service,
     ServiceCenter,
     ServiceCenterPhone,
@@ -26,6 +28,7 @@ from .resources import (
     CommentResource,
     ContactMessageResource,
     FAQResource,
+    InfoReportResource,
     ServiceCenterResource,
     ServiceResource,
     UserProfileResource,
@@ -78,18 +81,23 @@ class ServiceCenterAdmin(ImportExportModelAdmin):
     resource_classes = [ServiceCenterResource]
     list_display = (
         "name",
-        "service",
+        "get_services",
         "city",
         "postal_code",
         "working_hours",
         "description",
     )
     search_fields = ("name", "address", "city", "postal_code")
-    list_filter = ("service", "city")
+    list_filter = ("city",)
     inlines = [ServiceCenterPhoneInline]
+    filter_horizontal = ("services",)
     formfield_overrides = {
         models.GeometryField: {"widget": LocalOpenLayersWidget},
     }
+
+    @admin.display(description="خدمات")
+    def get_services(self, obj):
+        return ", ".join(obj.services.values_list("name", flat=True)) or "-"
 
 
 @admin.register(ContactMessage)
@@ -137,3 +145,31 @@ class BookmarkAdmin(ImportExportModelAdmin):
     list_display = ("user", "service", "created_at")
     search_fields = ("user__username", "service__name")
     list_filter = ("created_at",)
+
+
+@admin.register(InfoReport)
+class InfoReportAdmin(ImportExportModelAdmin):
+    """Admin configuration for the InfoReport model."""
+
+    resource_classes = [InfoReportResource]
+    list_display = (
+        "user",
+        "target_type",
+        "reason",
+        "is_resolved",
+        "resolved_by",
+        "created_at",
+    )
+    search_fields = ("user__username", "description", "admin_notes")
+    list_filter = ("is_resolved", "target_type", "reason")
+    readonly_fields = ("user", "target_type", "service", "service_center", "created_at")
+    actions = ["mark_resolved"]
+
+    @admin.action(description="انتخاب شده‌ها را بررسی شده علامت بزن")
+    def mark_resolved(self, request, queryset):
+        count = queryset.filter(is_resolved=False).update(
+            is_resolved=True,
+            resolved_at=timezone.now(),
+            resolved_by=request.user,
+        )
+        self.message_user(request, f"{count} گزارش بررسی شد.")

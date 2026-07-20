@@ -1569,6 +1569,198 @@ button.muted-link:disabled {
   outline-offset: 1px;
 }
 
+/* --- Detail Header Actions --- */
+.detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --- Report Button --- */
+.btn-report {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 8px;
+  border-radius: 8px;
+  transition: var(--btn-transition);
+  line-height: 1;
+  color: var(--text-secondary);
+}
+
+.btn-report:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.btn-report:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 1px;
+}
+
+/* --- Report Dialog --- */
+.report-dialog {
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  max-width: 520px;
+  width: 90%;
+  min-height: 400px;
+  margin: auto;
+  background: var(--bg-card);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.report-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.report-dialog-content {
+  padding: 28px;
+}
+
+.report-dialog-content h3 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.report-dialog-target {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.report-dialog-content p {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.report-form-group {
+  margin-bottom: 16px;
+}
+
+.report-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.report-form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  appearance: auto;
+  cursor: pointer;
+}
+
+.report-form-group select:focus {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.1);
+}
+
+.report-form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.report-form-group textarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 95, 122, 0.1);
+}
+
+.report-error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.report-dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.btn-report-submit {
+  padding: 8px 24px;
+  background: var(--color-danger);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  text-align: center;
+  transition: var(--btn-transition);
+}
+
+.btn-report-submit:hover {
+  background: #b71c1c;
+}
+
+.btn-report-cancel {
+  padding: 8px 24px;
+  background: var(--bg-light);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  text-align: center;
+  transition: var(--btn-transition);
+}
+
+.btn-report-cancel:hover {
+  background: var(--border-light);
+}
+
+/* --- Report Toast --- */
+.report-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--color-success);
+  color: var(--text-on-accent);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.report-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 .info-card {
   background: var(--bg-card);
   border-radius: 24px;
@@ -2664,6 +2856,22 @@ button.muted-link:disabled {
 
 [data-theme="dark"] .delete-modal {
   background: var(--bg-card);
+}
+
+[data-theme="dark"] .report-dialog {
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .report-form-group select {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-input);
+}
+
+[data-theme="dark"] .report-form-group textarea {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-input);
 }
 
 [data-theme="dark"] .login-prompt {
