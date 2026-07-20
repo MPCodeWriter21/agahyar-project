@@ -13,6 +13,7 @@ from .models import (
     InfoReport,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 
@@ -78,6 +79,7 @@ class ServiceCenterResource(resources.ModelResource):
             "working_hours",
             "postal_code",
             "coordinate",
+            "services",
         )
         export_order = (
             "id",
@@ -88,7 +90,15 @@ class ServiceCenterResource(resources.ModelResource):
             "working_hours",
             "postal_code",
             "coordinate",
+            "services",
         )
+
+
+class ServiceCenterPhoneResource(resources.ModelResource):
+    class Meta:
+        model = ServiceCenterPhone
+        import_id_fields = ("id",)
+        fields = ("id", "center", "phone", "label", "order")
 
 
 class ContactMessageResource(resources.ModelResource):

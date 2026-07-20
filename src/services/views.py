@@ -5,12 +5,14 @@ bookmarks, ratings, profile, FAQ, contact, nearby centers,
 and SEO endpoints, with rate limiting on sensitive views.
 """
 
+import csv
+import io
 import json
 import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings as django_settings
 from django.contrib import messages
@@ -18,6 +20,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.gis.geos import Point
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, F, Q, QuerySet
 from django.db.models.functions import TruncWeek
@@ -52,6 +55,7 @@ from .models import (
     PhoneVerification,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 from .otp import generate_otp, hash_otp, verify_otp
@@ -2018,3 +2022,245 @@ def neshan_search(request: HttpRequest) -> JsonResponse:
             {"error": "Could not reach the Neshan search API."},
             status=502,
         )
+
+
+EXPORTABLE_MODELS = [
+    Service,
+    ServiceCenter,
+    ServiceCenterPhone,
+    FAQ,
+    UserProfile,
+    ContactMessage,
+    Comment,
+    CenterRating,
+    Bookmark,
+    InfoReport,
+    PhoneVerification,
+]
+
+IMPORT_ORDER = [
+    Service,
+    FAQ,
+    UserProfile,
+    ContactMessage,
+    ServiceCenter,
+    ServiceCenterPhone,
+    Comment,
+    CenterRating,
+    Bookmark,
+    InfoReport,
+    PhoneVerification,
+]
+
+
+class _ExportEncoder(json.JSONEncoder):
+    """Handle datetime and other non-serializable types."""
+
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        if isinstance(o, Point):
+            return f"{o.y},{o.x}"
+        return super().default(o)
+
+
+def _model_to_dict(obj):
+    """Convert a model instance to a flat dictionary."""
+    data = {}
+    for field in obj._meta.get_fields():
+        if field.many_to_many and not field.auto_created:
+            data[field.attname] = list(
+                getattr(obj, field.attname).values_list("pk", flat=True)
+            )
+        elif hasattr(field, "attname"):
+            value = getattr(obj, field.attname, None)
+            if isinstance(value, Point):
+                value = f"{value.y},{value.x}"
+            data[field.attname] = value
+    if hasattr(obj, "pk"):
+        data["pk"] = obj.pk
+    return data
+
+
+@staff_member_required
+def admin_data_transfer(request: HttpRequest) -> HttpResponse:
+    """Admin page for bulk export/import of selected models.
+
+    Export: pick models and format, download a JSON/CSV file.
+    Import: upload a JSON file produced by export, optionally dry-run.
+    """
+    model_choices = []
+    for model in EXPORTABLE_MODELS:
+        label = model._meta.label
+        model_choices.append(
+            {
+                "value": label,
+                "label": model._meta.verbose_name.title(),
+                "count": model.objects.count(),
+            }
+        )
+
+    context = {
+        "model_choices": model_choices,
+        "title": "Bulk Data Export / Import",
+    }
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "export":
+            selected_labels = request.POST.getlist("models")
+            fmt = request.POST.get("format", "json")
+
+            selected_models = [
+                m for m in EXPORTABLE_MODELS if m._meta.label in selected_labels
+            ]
+            if not selected_models:
+                context["error"] = "No models selected."
+                return render(request, "services/admin_data_transfer.html", context)
+
+            if fmt == "json":
+                result = []
+                for model in selected_models:
+                    label = model._meta.label
+                    for obj in model.objects.all():
+                        record = _model_to_dict(obj)
+                        record["_model"] = label
+                        result.append(record)
+                content = json.dumps(
+                    result, ensure_ascii=False, indent=2, cls=_ExportEncoder
+                )
+                content_type = "application/json"
+                ext = "json"
+            else:
+                rows = []
+                for model in selected_models:
+                    label = model._meta.label
+                    for obj in model.objects.all():
+                        row = _model_to_dict(obj)
+                        row["_model"] = label
+                        rows.append(row)
+                if not rows:
+                    context["error"] = "No data to export."
+                    return render(request, "services/admin_data_transfer.html", context)
+                all_keys = []
+                seen = set()
+                for row in rows:
+                    for key in row:
+                        if key not in seen:
+                            all_keys.append(key)
+                            seen.add(key)
+                buf = io.StringIO()
+                writer = csv.DictWriter(buf, fieldnames=all_keys)
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(row)
+                content = buf.getvalue()
+                content_type = "text/csv"
+                ext = "csv"
+
+            response = HttpResponse(content, content_type=content_type)
+            filename = f"agahyar_export.{ext}"
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+
+        elif action == "import":
+            upload_file = request.FILES.get("import_file")
+            dry_run = request.POST.get("dry_run") == "on"
+
+            if not upload_file:
+                context["error"] = "No file uploaded."
+                return render(request, "services/admin_data_transfer.html", context)
+
+            try:
+                raw = upload_file.read().decode("utf-8")
+                data = json.loads(raw)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                context["error"] = f"Invalid JSON file: {exc}"
+                return render(request, "services/admin_data_transfer.html", context)
+
+            if not isinstance(data, list):
+                context["error"] = "Expected a JSON array of records."
+                return render(request, "services/admin_data_transfer.html", context)
+
+            model_map = {m._meta.label: m for m in IMPORT_ORDER}
+            order_map = {m._meta.label: i for i, m in enumerate(IMPORT_ORDER)}
+            data.sort(
+                key=lambda r: order_map.get(r.get("_model", ""), len(IMPORT_ORDER))
+            )
+
+            created = 0
+            updated = 0
+            skipped = 0
+            errors = []
+            m2m_pending = []
+
+            for record in data:
+                model_label = record.get("_model")
+                if not model_label or model_label not in model_map:
+                    skipped += 1
+                    continue
+
+                model = model_map[model_label]
+                fields = {k: v for k, v in record.items() if k != "_model"}
+                pk = fields.pop("pk", None)
+
+                m2m_fields = {}
+                for field in model._meta.get_fields():
+                    if field.many_to_many and not field.auto_created:
+                        attname = field.attname
+                        if attname in fields:
+                            m2m_fields[attname] = fields.pop(attname)
+
+                if "coordinate" in fields and isinstance(fields["coordinate"], str):
+                    try:
+                        lat, lng = fields["coordinate"].split(",")
+                        fields["coordinate"] = Point(float(lng), float(lat), srid=4326)
+                    except (ValueError, AttributeError):
+                        fields["coordinate"] = None
+
+                if dry_run:
+                    created += 1
+                    continue
+
+                try:
+                    obj, is_new = model.objects.update_or_create(pk=pk, defaults=fields)
+                    if is_new:
+                        created += 1
+                    else:
+                        updated += 1
+                    if m2m_fields:
+                        m2m_pending.append((obj, m2m_fields, model_label))
+                except Exception as exc:
+                    errors.append(f"{model_label} pk={pk}: {exc}")
+                    skipped += 1
+
+            if not dry_run:
+                for obj, m2m_fields, model_label in m2m_pending:
+                    for attname, pk_list in m2m_fields.items():
+                        if not isinstance(pk_list, list):
+                            continue
+                        try:
+                            related_field = getattr(obj, attname)
+                            related_model = related_field.model
+                            valid_pks = related_model.objects.filter(
+                                pk__in=pk_list
+                            ).values_list("pk", flat=True)
+                            related_field.set(valid_pks)
+                        except Exception as exc:
+                            errors.append(
+                                f"M2M {model_label} pk={obj.pk} {attname}: {exc}"
+                            )
+                            skipped += 1
+
+            verb = "Previewed" if dry_run else "Imported"
+            context["import_result"] = {
+                "verb": verb,
+                "created": created,
+                "updated": updated,
+                "skipped": skipped,
+                "errors": errors,
+            }
+            return render(request, "services/admin_data_transfer.html", context)
+
+    return render(request, "services/admin_data_transfer.html", context)

@@ -18,6 +18,7 @@ from services.models import (
     CenterRating,
     Comment,
     ContactMessage,
+    InfoReport,
     Service,
     ServiceCenter,
     ServiceCenterPhone,
@@ -64,6 +65,13 @@ def sample_data():
     message = ContactMessage.objects.create(
         name="Test User", email="test@example.com", message="Hello!"
     )
+    InfoReport.objects.create(
+        user=user,
+        target_type="service",
+        service=service,
+        reason="incorrect_info",
+        description="Test report",
+    )
     return {
         "user": user,
         "profile": profile,
@@ -83,10 +91,12 @@ class TestExportData:
         call_command("export_data", "--format", "json")
         captured = capsys.readouterr()
         data = json.loads(captured.out)
-        assert len(data) == 8
+        assert len(data) >= 10
         models = {r["_model"] for r in data}
         assert "services.Service" in models
         assert "services.FAQ" in models
+        assert "services.ServiceCenterPhone" in models
+        assert "services.InfoReport" in models
 
     def test_export_json_to_file(self, sample_data, tmp_path):
         out_file = str(tmp_path / "export.json")
@@ -94,7 +104,28 @@ class TestExportData:
         assert os.path.exists(out_file)
         with open(out_file, encoding="utf-8") as f:
             data = json.load(f)
-        assert len(data) == 8
+        assert len(data) >= 10
+
+    def test_export_includes_m2m_services(self, sample_data, capsys):
+        call_command("export_data", "--format", "json")
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        center_records = [r for r in data if r["_model"] == "services.ServiceCenter"]
+        assert len(center_records) == 1
+        center_data = center_records[0]
+        assert "services" in center_data
+        assert isinstance(center_data["services"], list)
+        assert len(center_data["services"]) == 1
+
+    def test_export_includes_center_phones(self, sample_data, capsys):
+        call_command("export_data", "--format", "json")
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        phone_records = [
+            r for r in data if r["_model"] == "services.ServiceCenterPhone"
+        ]
+        assert len(phone_records) == 1
+        assert phone_records[0]["phone"] == "02112345678"
 
     def test_export_csv_to_file(self, sample_data, tmp_path):
         out_file = str(tmp_path / "export.csv")
@@ -114,6 +145,8 @@ class TestImportData:
 
         Comment.objects.all().delete()
         CenterRating.objects.all().delete()
+        InfoReport.objects.all().delete()
+        ServiceCenterPhone.objects.all().delete()
         Service.objects.all().delete()
         FAQ.objects.all().delete()
         assert Service.objects.count() == 0
@@ -121,6 +154,42 @@ class TestImportData:
         call_command("import_data", export_file)
         assert Service.objects.count() == 1
         assert FAQ.objects.count() == 1
+        assert ServiceCenterPhone.objects.count() == 1
+        assert InfoReport.objects.count() == 1
+
+    def test_import_restores_m2m_services(self, sample_data, tmp_path):
+        export_file = str(tmp_path / "export.json")
+        call_command("export_data", "--format", "json", "--output", export_file)
+
+        Comment.objects.all().delete()
+        CenterRating.objects.all().delete()
+        InfoReport.objects.all().delete()
+        Service.objects.all().delete()
+        assert Service.objects.count() == 0
+
+        call_command("import_data", export_file)
+        center = ServiceCenter.objects.first()
+        assert center is not None
+        assert center.services.count() == 1
+
+    def test_import_handles_fk_ordering(self, sample_data, tmp_path):
+        export_file = str(tmp_path / "export.json")
+        call_command("export_data", "--format", "json", "--output", export_file)
+
+        Comment.objects.all().delete()
+        CenterRating.objects.all().delete()
+        InfoReport.objects.all().delete()
+        ServiceCenterPhone.objects.all().delete()
+        ServiceCenter.objects.all().delete()
+        Service.objects.all().delete()
+        FAQ.objects.all().delete()
+        UserProfile.objects.all().delete()
+
+        call_command("import_data", export_file)
+        assert ServiceCenterPhone.objects.count() == 1
+        assert Comment.objects.count() == 1
+        assert CenterRating.objects.count() == 1
+        assert InfoReport.objects.count() == 1
 
     def test_import_dry_run(self, sample_data, tmp_path, capsys):
         export_file = str(tmp_path / "export.json")
@@ -128,7 +197,10 @@ class TestImportData:
 
         Comment.objects.all().delete()
         CenterRating.objects.all().delete()
+        InfoReport.objects.all().delete()
+        ServiceCenterPhone.objects.all().delete()
         Service.objects.all().delete()
+        FAQ.objects.all().delete()
         assert Service.objects.count() == 0
 
         call_command("import_data", export_file, "--dry-run")

@@ -29,6 +29,7 @@ from .resources import (
     ContactMessageResource,
     FAQResource,
     InfoReportResource,
+    ServiceCenterPhoneResource,
     ServiceCenterResource,
     ServiceResource,
     UserProfileResource,
@@ -72,6 +73,16 @@ class ServiceCenterPhoneInline(admin.TabularInline):
     model = ServiceCenterPhone
     extra = 1
     fields = ("phone", "label", "order")
+
+
+@admin.register(ServiceCenterPhone)
+class ServiceCenterPhoneAdmin(ImportExportModelAdmin):
+    """Admin configuration for ServiceCenterPhone with import/export."""
+
+    resource_classes = [ServiceCenterPhoneResource]
+    list_display = ("center", "phone", "label", "order")
+    search_fields = ("center__name", "phone")
+    list_filter = ("label",)
 
 
 @admin.register(ServiceCenter)

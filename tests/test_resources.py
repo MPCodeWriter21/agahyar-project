@@ -14,6 +14,7 @@ from services.models import (
     ContactMessage,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 from services.resources import (
@@ -23,6 +24,7 @@ from services.resources import (
     ContactMessageResource,
     FAQResource,
     PointWidget,
+    ServiceCenterPhoneResource,
     ServiceCenterResource,
     ServiceResource,
     UserProfileResource,
@@ -74,6 +76,46 @@ class TestResourceExport:
         dataset = ServiceCenterResource().export()
         assert len(dataset) == 1
         assert dataset[0][1] == "مرکز صادرات"
+
+    def test_service_center_resource_export_includes_services_m2m(self):
+        svc1 = Service.objects.create(
+            name="svc-m2m-1", organization="org", documents="d", steps="s"
+        )
+        svc2 = Service.objects.create(
+            name="svc-m2m-2", organization="org", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(
+            name="M2M Center", address="addr", city="Tehran"
+        )
+        c.services.add(svc1, svc2)
+        dataset = ServiceCenterResource().export()
+        assert len(dataset) == 1
+        headers = dataset.headers
+        assert "services" in headers
+        services_idx = headers.index("services")
+        exported_services = dataset[0][services_idx]
+        exported_pks = [int(pk) for pk in str(exported_services).split(",")]
+        assert svc1.pk in exported_pks
+        assert svc2.pk in exported_pks
+
+    def test_service_center_phone_resource_export(self):
+        svc = Service.objects.create(
+            name="phone-svc", organization="org", documents="d", steps="s"
+        )
+        center = ServiceCenter.objects.create(
+            name="Phone Center", address="addr", city="Tehran"
+        )
+        center.services.add(svc)
+        ServiceCenterPhone.objects.create(
+            center=center, phone="02112345678", label="main", order=0
+        )
+        ServiceCenterPhone.objects.create(
+            center=center, phone="02187654321", label="fax", order=1
+        )
+        dataset = ServiceCenterPhoneResource().export()
+        assert len(dataset) == 2
+        assert dataset[0][2] == "02112345678"
+        assert dataset[1][2] == "02187654321"
 
     def test_user_profile_resource_export(self):
         user = User.objects.create_user("export-user")
@@ -172,6 +214,55 @@ class TestResourceImport:
         assert center.name == "مرکز وارداتی"
         assert center.coordinate is not None
         assert center.coordinate.x == 51.3890
+
+    def test_service_center_resource_import_with_services_m2m(self):
+        svc1 = Service.objects.create(
+            name="import-svc-1", organization="org", documents="d", steps="s"
+        )
+        svc2 = Service.objects.create(
+            name="import-svc-2", organization="org", documents="d", steps="s"
+        )
+        dataset = tablib.Dataset(
+            headers=[
+                "id",
+                "name",
+                "address",
+                "city",
+                "coordinate",
+                "services",
+            ],
+        )
+        dataset.append(
+            [
+                1,
+                "M2M Import Center",
+                "addr",
+                "Tehran",
+                "",
+                f"{svc1.pk},{svc2.pk}",
+            ]
+        )
+        result = ServiceCenterResource().import_data(dataset, dry_run=False)
+        assert not result.has_errors(), result.row_errors()
+        center = ServiceCenter.objects.get(id=1)
+        assert center.services.count() == 2
+        assert svc1 in center.services.all()
+        assert svc2 in center.services.all()
+
+    def test_service_center_phone_resource_import(self):
+        center = ServiceCenter.objects.create(
+            name="Phone Import Center", address="addr", city="Tehran"
+        )
+        dataset = tablib.Dataset(
+            headers=["id", "center", "phone", "label", "order"],
+        )
+        dataset.append([1, center.id, "02112345678", "main", 0])
+        dataset.append([2, center.id, "02187654321", "fax", 1])
+        ServiceCenterPhoneResource().import_data(dataset, dry_run=False)
+        assert ServiceCenterPhone.objects.filter(center=center).count() == 2
+        phone = ServiceCenterPhone.objects.get(id=1)
+        assert phone.phone == "02112345678"
+        assert phone.label == "main"
 
     def test_user_profile_resource_import(self):
         user = User.objects.create_user("import-user")

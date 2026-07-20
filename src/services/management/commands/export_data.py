@@ -22,21 +22,25 @@ from services.models import (
     CenterRating,
     Comment,
     ContactMessage,
+    InfoReport,
     PhoneVerification,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 
 EXPORTABLE_MODELS = [
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     FAQ,
     UserProfile,
     ContactMessage,
     Comment,
     CenterRating,
     Bookmark,
+    InfoReport,
     PhoneVerification,
 ]
 
