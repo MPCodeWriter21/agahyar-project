@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.0] - 2026-07-21
+
+### Added
+
+- **AJAX bookmark toggle**: Bookmark/unbookmark buttons on the home, services,
+  search, dashboard, bookmarks, and service detail pages now use a delegated
+  click handler that sends a POST via `fetch` in the background. The page no
+  longer reloads when toggling a bookmark. On the bookmarks page, the card
+  fades out and is removed from the DOM.
+- **Tag list widget for admin**: A new `TagListWidget` for managing
+  pipe/comma-separated list fields (documents, steps, keywords) in the admin
+  panel. Supports add, remove, and drag-and-drop reorder with per-field
+  configurable separator.
+- **OTP security hardening**: Per-OTP brute-force counter
+  (`PhoneVerification.failed_attempts`) blocks after 5 wrong attempts with an
+  `otp/max-attempts` error. OTP expiry increased from 5 to 20 minutes
+  (env-overridable via `OTP_EXPIRE_MINUTES`). Pending registration token TTL
+  increased from 5 to 60 minutes. Session cookie age increased from 1 hour to
+  6 hours.
+- **OTP SMS delivery notice**: All OTP pages now advise users to wait up to 5
+  minutes for SMS delivery due to potential carrier delays.
+
 ## [1.4.0] - 2026-07-21
 
 ### Added
