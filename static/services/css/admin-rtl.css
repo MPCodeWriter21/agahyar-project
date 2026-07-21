@@ -322,3 +322,99 @@ a:hover {
   outline: none;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
 }
+
+/* ========== Tag List Widget ========== */
+
+.tag-list-widget {
+  border: 1px solid var(--hairline-color, #ccc);
+  border-radius: 4px;
+  padding: 8px;
+  background: var(--darkened-bg, #fff);
+}
+
+.tag-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tag-list-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--hairline-color, #eee);
+  border-radius: 3px;
+  background: var(--body-bg, #fff);
+  transition: opacity 0.2s;
+}
+
+.tag-list-item.dragging {
+  opacity: 0.4;
+}
+
+.tag-list-item.drag-over {
+  border-top: 2px solid var(--primary);
+}
+
+.tag-list-drag-handle {
+  cursor: grab;
+  color: var(--body-quiet-color, #999);
+  font-size: 1rem;
+  user-select: none;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.tag-list-drag-handle:hover {
+  color: var(--body-loud-color, #333);
+}
+
+.tag-list-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--hairline-color, #ccc);
+  border-radius: 3px;
+  font-size: 0.9rem;
+  font-family: Vazirmatn, inherit;
+  direction: rtl;
+}
+
+.tag-list-input:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.tag-list-remove-btn {
+  background: none;
+  border: none;
+  color: var(--body-quiet-color, #999);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.tag-list-remove-btn:hover {
+  color: #c62828;
+}
+
+.tag-list-add-btn {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  background: none;
+  border: 1px dashed var(--hairline-color, #ccc);
+  border-radius: 4px;
+  color: var(--primary);
+  font-size: 0.9rem;
+  font-family: Vazirmatn, inherit;
+  cursor: pointer;
+}
+
+.tag-list-add-btn:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border-color: var(--primary);
+}

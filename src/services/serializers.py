@@ -19,10 +19,11 @@ from .validators import iranian_phone_number_validator
 
 
 class ServiceSerializer(serializers.ModelSerializer):
-    """Serializer for :class:`Service` with computed document/step lists."""
+    """Serializer for :class:`Service` with computed document/step/keyword lists."""
 
     documents_list = serializers.SerializerMethodField()
     steps_list = serializers.SerializerMethodField()
+    keywords_list = serializers.SerializerMethodField()
     centers_count = serializers.IntegerField(read_only=True, default=None)
 
     class Meta:
@@ -40,6 +41,7 @@ class ServiceSerializer(serializers.ModelSerializer):
             "duration",
             "more_info_url",
             "keywords",
+            "keywords_list",
             "centers_count",
         ]
 
@@ -48,6 +50,9 @@ class ServiceSerializer(serializers.ModelSerializer):
 
     def get_steps_list(self, obj: Service) -> list[str]:
         return obj.get_steps_list()
+
+    def get_keywords_list(self, obj: Service) -> list[str]:
+        return obj.get_keywords_list()
 
 
 class ServiceCenterPhoneSerializer(serializers.ModelSerializer):

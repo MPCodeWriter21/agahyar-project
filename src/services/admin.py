@@ -10,6 +10,7 @@ from django.contrib.gis.db import models
 from django.utils import timezone
 from import_export.admin import ImportExportModelAdmin
 
+from .forms import ServiceAdminForm
 from .models import (
     FAQ,
     Bookmark,
@@ -42,9 +43,27 @@ class ServiceAdmin(ImportExportModelAdmin):
     """Admin configuration for the Service model."""
 
     resource_classes = [ServiceResource]
+    form = ServiceAdminForm
     list_display = ("name", "organization", "cost", "duration")
     search_fields = ("name", "keywords", "organization")
     list_filter = ("organization",)
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "organization",
+                    "organization_address",
+                    "cost",
+                    "duration",
+                    "more_info_url",
+                )
+            },
+        ),
+        ("مدارک و مراحل", {"fields": ("documents", "steps")}),
+        ("کلمات کلیدی", {"fields": ("keywords",)}),
+    )
 
 
 @admin.register(UserProfile)

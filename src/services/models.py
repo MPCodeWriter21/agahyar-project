@@ -26,8 +26,8 @@ class Service(models.Model):
     organization_address = models.CharField(
         "آدرس سازمان", max_length=300, blank=True, null=True
     )
-    documents = models.TextField("مدارک مورد نیاز (با | جدا شود)")
-    steps = models.TextField("مراحل انجام (با | جدا شود)")
+    documents = models.TextField("مدارک مورد نیاز")
+    steps = models.TextField("مراحل انجام")
     cost = models.CharField("هزینه تقریبی", max_length=100, blank=True)
     duration = models.CharField("مدت زمان", max_length=100, blank=True)
     more_info_url = models.URLField("لینک اطلاعات بیشتر", blank=True, null=True)
@@ -42,11 +42,27 @@ class Service(models.Model):
 
     def get_documents_list(self) -> list:
         """Return documents as a list split by ``|``."""
-        return self.documents.split("|") if self.documents else []
+        return (
+            [d.strip() for d in self.documents.split("|") if d.strip()]
+            if self.documents
+            else []
+        )
 
     def get_steps_list(self) -> list:
         """Return steps as a list split by ``|``."""
-        return self.steps.split("|") if self.steps else []
+        return (
+            [s.strip() for s in self.steps.split("|") if s.strip()]
+            if self.steps
+            else []
+        )
+
+    def get_keywords_list(self) -> list:
+        """Return keywords as a list split by ``,``."""
+        return (
+            [k.strip() for k in self.keywords.split(",") if k.strip()]
+            if self.keywords
+            else []
+        )
 
 
 class UserProfile(models.Model):
