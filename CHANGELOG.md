@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.5.1] - 2026-07-22
+
+### Fixed
+
+- **Duplicate bookmark requests on service detail page**: Removed a duplicate
+  `main.js` load in `service_detail.html` that caused the delegated bookmark
+  click handler to fire twice per click, undoing the toggle.
+- **OTP expiry tests**: Increased backdate from 10 to 30 minutes to match
+  the new 20-minute `OTP_EXPIRE_MINUTES`.
+
 ## [1.5.0] - 2026-07-21
 
 ### Added
