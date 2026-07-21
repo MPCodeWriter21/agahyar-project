@@ -1,6 +1,6 @@
 # City selector: search, top-20 by center count, lazy loading
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 - TAGS: frontend, backend, ux
 - DUE: 2026-07-25

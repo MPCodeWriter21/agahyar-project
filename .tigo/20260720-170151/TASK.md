@@ -1,6 +1,6 @@
 # Fix admin export/import: full data transfer with related models
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 50
 - TAGS: backend, admin, data
 - DUE: 2026-07-25
