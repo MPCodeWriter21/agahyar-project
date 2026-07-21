@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.4.0] - 2026-07-21
+
+### Added
+
+- **City selector with search and lazy loading**: A searchable city dropdown
+  backed by a new `/api/cities/` endpoint. Cities are ranked by service center
+  count (top 20 shown by default), with AJAX search and infinite scroll for
+  additional results. The `RegisterForm` and `ProfileForm` validate that the
+  submitted city exists in the database.
+- **Admin bulk data export/import**: A new admin page at `admin/data-transfer/`
+  for exporting and importing all project data (services, centers, ratings,
+  comments, etc.) as JSON. Supports dry-run mode, foreign key ordering, and
+  M2M relationship handling. `ServiceCenterResource` now exports M2M services;
+  a new `ServiceCenterPhoneResource` is available for phone number data.
+- **Favicon with rounded hexagon design**: Added a custom favicon (teal
+  `#1a5f7a` rounded hexagon with Persian letter "Alef") for the main site and
+  a darker variant (`#0f3d52`) for the admin panel. A reusable generator
+  script is at `scripts/generate_favicons.py`.
+- **GitHub repository link**: Footer and about page now link to the GitHub
+  repository with a Font Awesome icon.
+
+### Changed
+
+- **City dropdown overflows collapsible sections**: Changed `.collapsible-content`
+  from `overflow: hidden` to `overflow: visible` so that the city selector
+  dropdown can extend beyond the collapsed edit section.
+- **Favicon generator is cross-platform**: The font path in
+  `scripts/generate_favicons.py` now searches multiple OS-specific locations
+  instead of hardcoding a Windows path. Pillow is declared as an optional
+  dependency under `[project.optional-dependencies].scripts`.
+
+### Fixed
+
+- **OTP/registration test suite**: Added an `ensure_test_cities` pytest fixture
+  that creates `ServiceCenter` records for cities used in tests. This fixes 28
+  pre-existing test failures caused by `clean_city()` rejecting cities not
+  present in the database.
+
 ## [1.3.0] - 2026-07-19
 
 ### Added
