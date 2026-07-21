@@ -38,6 +38,9 @@ dev = [
 prod = [
   "gunicorn>=23",
 ]
+scripts = [
+  "Pillow>=12",
+]
 [tool.uv.build-backend]
 module-name = ["agahyar_project", "services"]
 module-root = "src"

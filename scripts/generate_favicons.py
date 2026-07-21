@@ -5,18 +5,37 @@ Main: #1a5f7a (teal)
 Admin: #0f3d52 (darker teal)
 
 Usage:
-    uv run scripts/generate_favicons.py
+    uv run --extra scripts scripts/generate_favicons.py
 """
 
+import math
+import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 SIZE = 512
-FONT = "C:/Windows/Fonts/Vazirmatn-Bold.ttf"
-LETTER = "آ"
-ROUNDED_RECT_RADIUS = 80
+LETTER = "\u0622"
+
+
+def _find_font() -> str:
+    candidates = [
+        "C:/Windows/Fonts/Vazirmatn-Bold.ttf",
+        "/usr/share/fonts/truetype/vazirmatn/Vazirmatn-Bold.ttf",
+        "/usr/share/fonts/vazirmatn-ttf/Vazirmatn-Bold.ttf",
+        str(Path.home() / ".fonts" / "Vazirmatn-Bold.ttf"),
+    ]
+    for path in candidates:
+        if Path(path).exists():
+            return path
+    print("Error: Vazirmatn-Bold.ttf not found. Searched:", file=sys.stderr)
+    for c in candidates:
+        print(f"  {c}", file=sys.stderr)
+    sys.exit(1)
+
+
+FONT = _find_font()
 HEXAGON_CORNER_RADIUS = 40
 HEXAGON_SCALE = 0.88
 CROP_PAD = 10
@@ -52,8 +71,6 @@ def make_hexagon_mask(size: int, corner_radius: int) -> Image.Image:
 
     pts = []
     for i in range(6):
-        import math
-
         angle = math.radians(60 * i - 30)
         pts.append((cx + r * math.cos(angle), cy + r * math.sin(angle)))
 
