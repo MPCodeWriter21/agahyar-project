@@ -77,6 +77,7 @@ class TestShowUsersView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestRegisterView:
     def test_get_returns_form(self):
         client = Client()
@@ -883,6 +884,7 @@ class TestLogoutView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestProfileView:
     def test_requires_login(self):
         client = Client()
@@ -1092,6 +1094,7 @@ class TestProfileView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestProfilePhoneVerification:
     """Tests for OTP verification when changing phone number in profile."""
 
@@ -2081,6 +2084,7 @@ class TestPrintableView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestVerifyOTPView:
     FIXED_OTP = "123456"
 
@@ -2199,6 +2203,7 @@ class TestVerifyOTPView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestResendOTPView:
     @override_settings(DISABLE_SMS=True)
     def test_resend_otp_creates_new_verification(self):
@@ -2299,6 +2304,7 @@ class TestResendOTPView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestResendOTPApi:
     @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
     def test_returns_json_success(self):
