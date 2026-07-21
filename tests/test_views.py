@@ -2201,6 +2201,39 @@ class TestVerifyOTPView:
         assert response.status_code == 200
         assert not User.objects.filter(username="otpuser").exists()
 
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_increments_failed_attempts(self):
+        client = Client()
+        self._setup_pending_registration(client)
+        client.post("/verify-otp/", {"otp_code": "999999"})
+        verification = PhoneVerification.objects.filter(phone="09121234567").first()
+        assert verification.failed_attempts == 1
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_blocks_after_max_attempts(self):
+        client = Client()
+        self._setup_pending_registration(client)
+        verification = PhoneVerification.objects.filter(phone="09121234567").first()
+        verification.failed_attempts = PhoneVerification.MAX_FAILED_ATTEMPTS
+        verification.save(update_fields=["failed_attempts"])
+        response = client.post("/verify-otp/", {"otp_code": "999999"})
+        assert response.status_code == 200
+        assert not User.objects.filter(username="otpuser").exists()
+        assert PhoneVerification.objects.filter(
+            phone="09121234567", failed_attempts=PhoneVerification.MAX_FAILED_ATTEMPTS
+        ).exists()
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_success_resets_failed_attempts(self):
+        client = Client()
+        otp = self._setup_pending_registration(client)
+        verification = PhoneVerification.objects.filter(phone="09121234567").first()
+        verification.failed_attempts = 2
+        verification.save(update_fields=["failed_attempts"])
+        client.post("/verify-otp/", {"otp_code": otp})
+        verification.refresh_from_db()
+        assert verification.is_used is True
+
 
 @pytest.mark.django_db
 @pytest.mark.usefixtures("ensure_test_cities")

@@ -1977,6 +1977,31 @@ class RegisterAPITest(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(User.objects.filter(username="newuser").exists())
 
+    def test_verify_otp_increments_failed_attempts(self):
+        with (
+            override_settings(DISABLE_SMS=True),
+            patch("services.auth_api.generate_otp", return_value=self.FIXED_OTP),
+        ):
+            reg_resp = self._send_otp()
+        token = reg_resp.data["pending_token"]
+        self._verify_otp(token, code="999999")
+        verification = PhoneVerification.objects.filter(phone="09123456789").first()
+        self.assertEqual(verification.failed_attempts, 1)
+
+    def test_verify_otp_blocks_after_max_attempts(self):
+        with (
+            override_settings(DISABLE_SMS=True),
+            patch("services.auth_api.generate_otp", return_value=self.FIXED_OTP),
+        ):
+            reg_resp = self._send_otp()
+        token = reg_resp.data["pending_token"]
+        verification = PhoneVerification.objects.filter(phone="09123456789").first()
+        verification.failed_attempts = PhoneVerification.MAX_FAILED_ATTEMPTS
+        verification.save(update_fields=["failed_attempts"])
+        resp = self._verify_otp(token, code="999999")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(User.objects.filter(username="newuser").exists())
+
     def test_verify_otp_invalid_token_rejected(self):
         resp = self._verify_otp("garbage-token", code=self.FIXED_OTP)
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)

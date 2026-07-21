@@ -182,8 +182,16 @@ def verify_otp_view(request: HttpRequest) -> HttpResponse:
                     {"form": form, "phone": phone, "cooldown": cooldown},
                 )
 
+            if verification.failed_attempts >= PhoneVerification.MAX_FAILED_ATTEMPTS:
+                messages.error(request, get_error_message("otp/max-attempts"))
+                return render(
+                    request,
+                    "services/auth/verify_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
             otp_max_age = timedelta(
-                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 20)
             )
             if timezone.now() - verification.created_at > otp_max_age:
                 messages.error(request, get_error_message("otp/expired"))
@@ -194,6 +202,8 @@ def verify_otp_view(request: HttpRequest) -> HttpResponse:
                 )
 
             if not verify_otp(verification.otp_code, otp_code):
+                verification.failed_attempts += 1
+                verification.save(update_fields=["failed_attempts"])
                 messages.error(request, get_error_message("otp/invalid"))
                 return render(
                     request,
@@ -388,8 +398,16 @@ def verify_profile_otp_view(request: HttpRequest) -> HttpResponse:
                     {"form": form, "phone": phone, "cooldown": cooldown},
                 )
 
+            if verification.failed_attempts >= PhoneVerification.MAX_FAILED_ATTEMPTS:
+                messages.error(request, get_error_message("otp/max-attempts"))
+                return render(
+                    request,
+                    "services/auth/verify_profile_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
             otp_max_age = timedelta(
-                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 20)
             )
             if timezone.now() - verification.created_at > otp_max_age:
                 messages.error(request, get_error_message("otp/expired"))
@@ -400,6 +418,8 @@ def verify_profile_otp_view(request: HttpRequest) -> HttpResponse:
                 )
 
             if not verify_otp(verification.otp_code, otp_code):
+                verification.failed_attempts += 1
+                verification.save(update_fields=["failed_attempts"])
                 messages.error(request, get_error_message("otp/invalid"))
                 return render(
                     request,
@@ -638,8 +658,16 @@ def verify_password_reset_otp_view(request: HttpRequest) -> HttpResponse:
                     {"form": form, "phone": phone, "cooldown": cooldown},
                 )
 
+            if verification.failed_attempts >= PhoneVerification.MAX_FAILED_ATTEMPTS:
+                messages.error(request, get_error_message("otp/max-attempts"))
+                return render(
+                    request,
+                    "services/auth/verify_password_reset_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
             otp_max_age = timedelta(
-                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 20)
             )
             if timezone.now() - verification.created_at > otp_max_age:
                 messages.error(request, get_error_message("otp/expired"))
@@ -650,6 +678,8 @@ def verify_password_reset_otp_view(request: HttpRequest) -> HttpResponse:
                 )
 
             if not verify_otp(verification.otp_code, otp_code):
+                verification.failed_attempts += 1
+                verification.save(update_fields=["failed_attempts"])
                 messages.error(request, get_error_message("otp/invalid"))
                 return render(
                     request,

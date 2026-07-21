@@ -89,6 +89,8 @@ class UserProfile(models.Model):
 class PhoneVerification(models.Model):
     """Stores OTP codes for phone number verification during registration."""
 
+    MAX_FAILED_ATTEMPTS = 5
+
     phone = models.CharField(
         "شماره تماس",
         max_length=11,
@@ -98,6 +100,9 @@ class PhoneVerification(models.Model):
     otp_code = models.CharField("کد OTP", max_length=128)
     created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
     is_used = models.BooleanField("استفاده شده", default=False, db_index=True)
+    failed_attempts = models.PositiveSmallIntegerField(
+        "تعداد تلاش‌های ناموفق", default=0
+    )
 
     class Meta:
         verbose_name = "احراز هویت شماره"

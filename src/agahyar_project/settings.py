@@ -173,7 +173,7 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Session & Cookie security
-SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=3600, cast=int)
+SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=21600, cast=int)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
@@ -230,7 +230,7 @@ LOGIN_REDIRECT_URL = "home"
 SMS_IR_API_KEY = config("SMS_IR_API_KEY", default="")
 SMS_IR_OTP_TEMPLATE_ID = config("SMS_IR_OTP_TEMPLATE_ID", default=0, cast=int)
 DISABLE_SMS = config("DISABLE_SMS", default=False, cast=bool)
-OTP_EXPIRE_MINUTES = config("OTP_EXPIRE_MINUTES", default=5, cast=int)
+OTP_EXPIRE_MINUTES = config("OTP_EXPIRE_MINUTES", default=20, cast=int)
 OTP_RESEND_COOLDOWN_SECONDS = config(
     "OTP_RESEND_COOLDOWN_SECONDS", default=60, cast=int
 )
