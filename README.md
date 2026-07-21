@@ -28,6 +28,8 @@ place.
 
 - 🔍 **Smart Search** – Find services by name, organization, or city, making it quick and easy to locate the exact government service you need.
 
+- 🏙️ **City Selector** – Searchable city dropdown with lazy loading from an API, ranking cities by service center count for faster access.
+
 - 📄 **Service Details** – View complete information for every service, including required documents, application steps, estimated cost, and processing duration before visiting an office.
 
 - 📍 **Nearest Centers** – Discover the closest service center based on the user's city and neighborhood, with direct Google Maps links for easy navigation.
@@ -49,6 +51,8 @@ place.
 - 📱 **Fully Responsive** – Optimized for mobile phones, tablets, laptops, and desktop devices with a consistent user experience.
 
 - ⚙️ **Admin Panel** – Manage services, FAQs, and service centers efficiently through the Django administration panel.
+
+- 📦 **Bulk Data Export/Import** – Export and import all data (services, centers, ratings, comments, etc.) via the admin panel with JSON format, dry-run mode, and M2M relationship handling.
 
 ---
 
@@ -185,11 +189,13 @@ Agahyar is currently in an active development stage.
 - User authentication
 - SMS-based phone verification (OTP)
 - Smart service search
+- City selector with search and lazy loading
 - Service details
 - Service center locator
 - Bookmarks
 - Ratings and comments
 - Admin management
+- Bulk data export/import
 - Responsive interface
 - Dark/Light mode
 - Security hardening
