@@ -1297,7 +1297,8 @@ def toggle_bookmark(request: HttpRequest, service_id: int) -> HttpResponse:
     """Toggle bookmark on a service.
 
     GET: redirects to service detail.
-    POST: toggles bookmark for the given service.
+    POST (AJAX): toggles bookmark and returns JSON.
+    POST (regular): toggles bookmark and redirects to service detail.
     """
 
     if request.method != "POST":
@@ -1309,10 +1310,17 @@ def toggle_bookmark(request: HttpRequest, service_id: int) -> HttpResponse:
     )
     if not created:
         bookmark.delete()
-        messages.success(request, get_error_message("bookmark/removed"))
+        bookmarked = False
+        msg = get_error_message("bookmark/removed")
     else:
-        messages.success(request, get_error_message("bookmark/added"))
+        bookmarked = True
+        msg = get_error_message("bookmark/added")
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    if is_ajax:
+        return JsonResponse({"bookmarked": bookmarked, "message": msg})
+
+    messages.success(request, msg)
     return redirect("service_detail", service_id=service_id)
 
 

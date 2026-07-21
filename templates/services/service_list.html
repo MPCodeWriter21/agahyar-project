@@ -11,16 +11,13 @@
         <div class="service-card-header">
           <h3>{{ service.name }}</h3>
           {% if user.is_authenticated %}
-            <form method="post"
-                  action="{% url 'toggle_bookmark' service.id %}"
-                  class="bookmark-icon-form">
-              {% csrf_token %}
-              <button type="submit"
-                      class="btn-bookmark-icon"
-                      title="{% if service.id in bookmarked_ids %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
-                <i class="{% if service.id in bookmarked_ids %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
-              </button>
-            </form>
+            <button type="button"
+                    class="btn-bookmark-icon"
+                    data-service-id="{{ service.id }}"
+                    data-bookmarked="{% if service.id in bookmarked_ids %}true{% else %}false{% endif %}"
+                    title="{% if service.id in bookmarked_ids %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
+              <i class="{% if service.id in bookmarked_ids %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
+            </button>
           {% endif %}
         </div>
         <span class="org-badge">{{ service.organization }}</span>

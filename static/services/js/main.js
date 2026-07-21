@@ -30,6 +30,74 @@ document.addEventListener("DOMContentLoaded", function () {
   updateThemeButton();
 });
 
+document.addEventListener("click", function (e) {
+  var btn = e.target.closest(".btn-bookmark-icon");
+  if (!btn) {
+    return;
+  }
+  var serviceId = btn.getAttribute("data-service-id");
+  if (!serviceId) return;
+  var csrfToken = getCsrfToken();
+  if (!csrfToken) return;
+
+  btn.disabled = true;
+  fetch("/bookmark/" + serviceId + "/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrfToken,
+      "X-Requested-With": "XMLHttpRequest",
+    },
+  })
+    .then(function (response) {
+      if (response.status === 401) {
+        window.location.href = "/auth/login/";
+        return;
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      if (!data) return;
+      btn.setAttribute("data-bookmarked", data.bookmarked ? "true" : "false");
+      var icon = btn.querySelector("i");
+      if (data.bookmarked) {
+        icon.classList.replace("far", "fas");
+      } else {
+        icon.classList.replace("fas", "far");
+      }
+      btn.title = data.bookmarked
+        ? "\u062D\u0630\u0641 \u0627\u0632 \u0646\u0634\u0627\u0646\u06A9\u200C\u0647\u0627"
+        : "\u0627\u0641\u0632\u0648\u062F\u0646 \u0628\u0647 \u0646\u0634\u0627\u0646\u06A9\u200C\u0647\u0627";
+      if (
+        !data.bookmarked &&
+        btn.closest(".service-card") &&
+        window.location.pathname.indexOf("/bookmarks/") !== -1
+      ) {
+        var card = btn.closest(".service-card");
+        if (card) {
+          card.style.transition = "opacity 0.3s";
+          card.style.opacity = "0";
+          setTimeout(function () {
+            card.remove();
+            var grid = document.querySelector(".services-grid");
+            if (grid && grid.children.length === 0) {
+              var empty =
+                '<div class="no-results">' +
+                "<h3>\u0646\u0634\u0627\u0646\u06A9\u06CC \u0648\u062C\u0648\u062F \u0646\u062F\u0627\u0631\u062F</h3>" +
+                "<p>\u0634\u0645\u0627 \u0647\u0646\u0648\u0632 \u0647\u06CC\u0686 \u062E\u062F\u0645\u062A\u06CC \u0631\u0627 \u0646\u0634\u0627\u0646\u06A9 \u0646\u06A9\u0631\u062F\u0647\u200C\u0627\u06CC\u062F.</p>" +
+                '<a href="/services/" class="btn-back">\u0645\u0634\u0627\u0647\u062F\u0647 \u062E\u062F\u0645\u0627\u062A</a>' +
+                "</div>";
+              grid.insertAdjacentHTML("afterend", empty);
+            }
+          }, 300);
+        }
+      }
+      btn.disabled = false;
+    })
+    .catch(function () {
+      btn.disabled = false;
+    });
+});
+
 function toggleTheme() {
   var current = document.documentElement.getAttribute("data-theme");
   var next = current === "dark" ? "light" : "dark";

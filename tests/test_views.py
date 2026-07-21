@@ -1513,6 +1513,50 @@ class TestBookmarkView:
         assert response.status_code == 200
         assert response.context["is_bookmarked"] is True
 
+    def test_ajax_toggle_adds_bookmark(self):
+        user = User.objects.create_user("bmax", password="pass12345")
+        service = Service.objects.create(
+            name="bmax-svc", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="bmax", password="pass12345")
+        response = client.post(
+            f"/bookmark/{service.id}/",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["bookmarked"] is True
+        assert Bookmark.objects.filter(user=user, service=service).exists()
+
+    def test_ajax_toggle_removes_bookmark(self):
+        user = User.objects.create_user("bmax2", password="pass12345")
+        service = Service.objects.create(
+            name="bmax2-svc", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        client = Client()
+        client.login(username="bmax2", password="pass12345")
+        response = client.post(
+            f"/bookmark/{service.id}/",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["bookmarked"] is False
+        assert not Bookmark.objects.filter(user=user, service=service).exists()
+
+    def test_ajax_toggle_requires_login(self):
+        service = Service.objects.create(
+            name="bmax3", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        response = client.post(
+            f"/bookmark/{service.id}/",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert response.status_code == 302
+
 
 @pytest.mark.django_db
 class TestSubmitComment:

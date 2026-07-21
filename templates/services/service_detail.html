@@ -13,16 +13,13 @@
       <h1>{{ service.name }}</h1>
       <div class="detail-header-actions">
         {% if user.is_authenticated %}
-          <form method="post"
-                action="{% url 'toggle_bookmark' service.id %}"
-                class="bookmark-icon-form">
-            {% csrf_token %}
-            <button type="submit"
-                    class="btn-bookmark-icon"
-                    title="{% if is_bookmarked %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
-              <i class="{% if is_bookmarked %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
-            </button>
-          </form>
+          <button type="button"
+                  class="btn-bookmark-icon"
+                  data-service-id="{{ service.id }}"
+                  data-bookmarked="{% if is_bookmarked %}true{% else %}false{% endif %}"
+                  title="{% if is_bookmarked %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
+            <i class="{% if is_bookmarked %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
+          </button>
         {% endif %}
         <button type="button"
                 class="btn-report"
