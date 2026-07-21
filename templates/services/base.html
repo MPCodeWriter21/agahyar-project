@@ -6,35 +6,35 @@
         (function() {
             var t = localStorage.getItem("theme");
             if (t) {
-                document.documentElement.setAttribute("data-theme", t)
+                document.documentElement.setAttribute("data-theme", t);
             }
-        })()
+        })();
     </script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
     <meta name="description"
-          content="{% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - آگاه‌یار{% endblock %}">
+          content="{% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - آگاه‌یار{% endblock %}" />
     <meta name="keywords"
-          content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی{% endblock %}">
+          content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی{% endblock %}" />
     <link rel="canonical"
-          href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+          href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}" />
     <meta property="og:title"
-          content="{% block og_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
+          content="{% block og_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}" />
     <meta property="og:description"
-          content="{% block og_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
-    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
-    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+          content="{% block og_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}" />
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}" />
+    <meta property="og:url" content="{{ request.build_absolute_uri }}" />
     <meta name="twitter:card"
-          content="{% block twitter_card %}summary{% endblock %}">
+          content="{% block twitter_card %}summary{% endblock %}" />
     <meta name="twitter:title"
-          content="{% block twitter_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
+          content="{% block twitter_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}" />
     <meta name="twitter:description"
-          content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
+          content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}" />
     <link rel="stylesheet"
-          href="{% static 'libs/fontawesome/css/fontawesome-all.min.css' %}">
-    <link rel="stylesheet" href="{% static 'libs/toastify/toastify.css' %}">
-    <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
+          href="{% static 'libs/fontawesome/css/fontawesome-all.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'libs/toastify/toastify.css' %}" />
+    <link rel="stylesheet" href="{% static 'services/css/style.css' %}" />
     <script defer src="{% static 'services/js/error-translate.js' %}"></script>
     <script defer src="{% static 'services/js/custom-select.js' %}"></script>
     <script defer src="{% static 'services/js/main.js' %}"></script>
@@ -79,7 +79,7 @@
           <h4>آگاه‌یار</h4>
           <p>
             سامانه اطلاع‌رسانی مردمی
-            <br>
+            <br />
             خدمات دولتی
           </p>
         </div>
@@ -98,6 +98,13 @@
       </div>
       <div class="footer-bottom">
         <p>© ۱۴۰۴-۱۴۰۵ - تیم آگاه‌ران | پروژه درس مدیریت پروژه فناوری اطلاعات</p>
+        <a href="https://github.com/Fatemehmohammadganji/agahyar-project"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="footer-github-link"
+           aria-label="GitHub repository">
+          <i class="fab fa-github"></i>
+        </a>
       </div>
     </footer>
     <script src="{% static 'libs/toastify/toastify.js' %}"></script>

@@ -265,6 +265,10 @@ body {
 }
 
 .footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   text-align: center;
   padding-top: 30px;
   border-top: 1px solid var(--text-primary);
@@ -2294,6 +2298,20 @@ button.muted-link:disabled {
   font-size: 1rem;
   margin: 0;
   text-align: justify;
+}
+
+/* --- GitHub Links --- */
+.footer-github-link {
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  transition:
+    color 0.2s,
+    transform 0.2s;
+}
+
+.footer-github-link:hover {
+  color: var(--color-accent);
+  transform: scale(1.2);
 }
 
 /* --- LTR Input Fields in RTL Layout --- */
