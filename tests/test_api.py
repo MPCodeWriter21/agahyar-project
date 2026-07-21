@@ -833,7 +833,7 @@ class ChangePhoneAPITest(TestCase):
         token = req_resp.data["pending_token"]
 
         verification = PhoneVerification.objects.filter(phone="09987654321").first()
-        verification.created_at = timezone.now() - timedelta(minutes=10)
+        verification.created_at = timezone.now() - timedelta(minutes=30)
         verification.save(update_fields=["created_at"])
 
         resp = self._verify_phone_change(token)
@@ -2059,7 +2059,7 @@ class RegisterAPITest(TestCase):
 
         # Backdate the verification to simulate expiry
         verification = PhoneVerification.objects.filter(phone="09123456789").first()
-        verification.created_at = timezone.now() - timedelta(minutes=10)
+        verification.created_at = timezone.now() - timedelta(minutes=30)
         verification.save(update_fields=["created_at"])
 
         resp = self._verify_otp(token)
