@@ -484,6 +484,68 @@ class TestServiceDetailView:
         assert response.status_code == 200
         assert response.context["user_city"] == "شیراز"
 
+    def test_empty_cost_and_duration_hidden(self):
+        """VULN: empty cost/duration must not render empty meta-grid."""
+        service = Service.objects.create(
+            name="no-meta",
+            organization="org",
+            documents="d",
+            steps="s",
+            cost="",
+            duration="",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "meta-grid" not in content
+        assert "هزینه تقریبی" not in content
+        assert "مدت زمان تقریبی" not in content
+
+    def test_cost_only_rendered_when_set(self):
+        service = Service.objects.create(
+            name="cost-only",
+            organization="org",
+            documents="d",
+            steps="s",
+            cost="50,000 تومان",
+            duration="",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "meta-grid" in content
+        assert "50,000 تومان" in content
+        assert "مدت زمان تقریبی" not in content
+
+    def test_duration_only_rendered_when_set(self):
+        service = Service.objects.create(
+            name="dur-only",
+            organization="org",
+            documents="d",
+            steps="s",
+            cost="",
+            duration="3 روز",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "meta-grid" in content
+        assert "3 روز" in content
+        assert "هزینه تقریبی" not in content
+
+    def test_empty_documents_and_steps_hidden(self):
+        service = Service.objects.create(
+            name="no-docs",
+            organization="org",
+            documents="",
+            steps="",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "مدارک مورد نیاز" not in content
+        assert "مراحل انجام" not in content
+
 
 @pytest.mark.django_db
 class TestFAQView:

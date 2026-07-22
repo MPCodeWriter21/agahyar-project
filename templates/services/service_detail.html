@@ -42,34 +42,44 @@
     {% endif %}
     <button onclick="window.print()" class="btn-print">چاپ</button>
   </div>
-  <div class="info-card">
-    <h3>مدارک مورد نیاز</h3>
-    <ul class="doc-list">
-      {% for doc in documents %}
-        <li>{{ doc }}</li>
-      {% endfor %}
-    </ul>
-  </div>
-  <div class="info-card">
-    <h3>مراحل انجام (گام به گام)</h3>
-    <ol class="step-list">
-      {% for step in steps %}
-        <li>{{ step }}</li>
-      {% endfor %}
-    </ol>
-  </div>
-  <div class="meta-grid">
-    <div class="meta-item">
-      <strong>هزینه تقریبی</strong>
-      <br>
-      {{ service.cost }}
+  {% if documents %}
+    <div class="info-card">
+      <h3>مدارک مورد نیاز</h3>
+      <ul class="doc-list">
+        {% for doc in documents %}
+          <li>{{ doc }}</li>
+        {% endfor %}
+      </ul>
     </div>
-    <div class="meta-item">
-      <strong>مدت زمان تقریبی</strong>
-      <br>
-      {{ service.duration }}
+  {% endif %}
+  {% if steps %}
+    <div class="info-card">
+      <h3>مراحل انجام (گام به گام)</h3>
+      <ol class="step-list">
+        {% for step in steps %}
+          <li>{{ step }}</li>
+        {% endfor %}
+      </ol>
     </div>
-  </div>
+  {% endif %}
+  {% if service.cost or service.duration %}
+    <div class="meta-grid">
+      {% if service.cost %}
+        <div class="meta-item">
+          <strong>هزینه تقریبی</strong>
+          <br>
+          {{ service.cost }}
+        </div>
+      {% endif %}
+      {% if service.duration %}
+        <div class="meta-item">
+          <strong>مدت زمان تقریبی</strong>
+          <br>
+          {{ service.duration }}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
   <div class="info-card">
     <h3>مراکز ارائه خدمت</h3>
     {% if initial_centers %}

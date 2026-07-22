@@ -1,6 +1,6 @@
 # Do not show empty fields!
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: UI, frontend
 
