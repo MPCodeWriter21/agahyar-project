@@ -1,8 +1,9 @@
 {% extends 'services/base.html' %}
 {% load static jalali_tags %}
 {% block title %}{{ center.name }} | آگاه‌یار{% endblock %}
-{% block meta_description %}اطلاعات مرکز {{ center.name }} - سامانه آگاه‌یار{% endblock %}
-{% block og_title %}آگاه‌یار | {{ center.name }}{% endblock %}
+{% block meta_description %}{{ center.name }} — آدرس، ساعات کاری، شماره تلفن و خدمات قابل ارائه{% endblock %}
+{% block meta_keywords %}{{ center.name }}, مرکز دولتی, آگاه‌یار{% endblock %}
+{% block og_title %}{{ center.name }} | آگاه‌یار{% endblock %}
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
 {% endblock %}

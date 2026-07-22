@@ -26,25 +26,25 @@
           sizes="180x180"
           href="{% static 'services/img/apple-touch-icon.png' %}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
+    <title>{% block title %}آگاه‌یار{% endblock %}</title>
     <meta name="description"
-          content="{% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - آگاه‌یار{% endblock %}" />
+          content="{% block meta_description %}آگاه‌یار، راهنمای هوشمند خدمات دولتی ایران — اطلاعات دقیق مراکز دولتی، شرایط دریافت خدمات، و پیگیری درخواست‌ها{% endblock %}" />
     <meta name="keywords"
-          content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی{% endblock %}" />
+          content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی, مراکز دولتی, راهنمای خدمات{% endblock %}" />
     <link rel="canonical"
           href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}" />
     <meta property="og:title"
-          content="{% block og_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}" />
+          content="{% block og_title %}آگاه‌یار — راهنمای هوشمند خدمات دولتی{% endblock %}" />
     <meta property="og:description"
-          content="{% block og_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}" />
+          content="{% block og_description %}اطلاعات دقیق مراکز دولتی، شرایط دریافت خدمات، و پیگیری درخواست‌ها{% endblock %}" />
     <meta property="og:type" content="{% block og_type %}website{% endblock %}" />
     <meta property="og:url" content="{{ request.build_absolute_uri }}" />
     <meta name="twitter:card"
           content="{% block twitter_card %}summary{% endblock %}" />
     <meta name="twitter:title"
-          content="{% block twitter_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}" />
+          content="{% block twitter_title %}آگاه‌یار — راهنمای هوشمند خدمات دولتی{% endblock %}" />
     <meta name="twitter:description"
-          content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}" />
+          content="{% block twitter_description %}اطلاعات دقیق مراکز دولتی، شرایط دریافت خدمات، و پیگیری درخواست‌ها{% endblock %}" />
     <link rel="stylesheet"
           href="{% static 'libs/fontawesome/css/fontawesome-all.min.css' %}" />
     <link rel="stylesheet" href="{% static 'libs/toastify/toastify.css' %}" />

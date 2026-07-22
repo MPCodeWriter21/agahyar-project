@@ -1,9 +1,9 @@
 {% extends 'services/base.html' %}
 {% load static jalali_tags %}
-{% block title %}جزئیات {{ service.name }} | آگاه‌یار{% endblock %}
-{% block meta_description %}مدارک، مراحل، هزینه و مدت زمان مورد نیاز برای {{ service.name }} - سامانه آگاه‌یار{% endblock %}
-{% block meta_keywords %}{{ service.name }}, {{ service.organization }}, خدمات دولتی{% endblock %}
-{% block og_title %}آگاه‌یار | {{ service.name }}{% endblock %}
+{% block title %}{{ service.name }} | آگاه‌یار{% endblock %}
+{% block meta_description %}{{ service.name }} — مدارک، مراحل، هزینه و شرایط دریافت{% endblock %}
+{% block meta_keywords %}{{ service.name }}, خدمات دولتی, آگاه‌یار{% endblock %}
+{% block og_title %}{{ service.name }} | آگاه‌یار{% endblock %}
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
 {% endblock %}
