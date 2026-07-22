@@ -293,15 +293,12 @@ def resend_otp_view(request: HttpRequest) -> HttpResponse:
     return redirect("verify_otp")
 
 
-@ratelimit(key="ip", rate="2/m", method="POST", block=False)
+@ratelimit(key="ip", rate="2/m", method="POST", block=True)
 def resend_otp_api(request: HttpRequest) -> JsonResponse:
     """API endpoint for resending OTP codes via AJAX.
 
     POST: validates cooldown, generates a new OTP, sends it, and returns JSON
     with the remaining cooldown for the next resend.
-
-    Rate limiting is checked but does not block -- the response body reports
-    the error so the frontend can display it gracefully.
     """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -328,13 +325,6 @@ def resend_otp_api(request: HttpRequest) -> JsonResponse:
                 "error": get_error_message("otp/cooldown", seconds=str(remaining)),
                 "cooldown": remaining,
             },
-            status=429,
-        )
-
-    was_limited = getattr(request, "view_limited", False)
-    if was_limited:
-        return JsonResponse(
-            {"error": get_error_message("otp/too-many-resends")},
             status=429,
         )
 
@@ -455,7 +445,7 @@ def verify_profile_otp_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@ratelimit(key="ip", rate="2/m", method="POST", block=False)
+@ratelimit(key="ip", rate="2/m", method="POST", block=True)
 def resend_profile_otp_api(request: HttpRequest) -> JsonResponse:
     """API endpoint for resending OTP during profile phone change.
 
@@ -480,13 +470,6 @@ def resend_profile_otp_api(request: HttpRequest) -> JsonResponse:
                 "error": get_error_message("otp/cooldown", seconds=str(remaining)),
                 "cooldown": remaining,
             },
-            status=429,
-        )
-
-    was_limited = getattr(request, "view_limited", False)
-    if was_limited:
-        return JsonResponse(
-            {"error": get_error_message("otp/too-many-resends")},
             status=429,
         )
 
@@ -729,13 +712,6 @@ def resend_password_reset_otp_api(request: HttpRequest) -> JsonResponse:
                 "error": get_error_message("otp/cooldown", seconds=str(remaining)),
                 "cooldown": remaining,
             },
-            status=429,
-        )
-
-    was_limited = getattr(request, "view_limited", False)
-    if was_limited:
-        return JsonResponse(
-            {"error": get_error_message("otp/too-many-resends")},
             status=429,
         )
 

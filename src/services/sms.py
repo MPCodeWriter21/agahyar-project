@@ -9,18 +9,38 @@ from http import HTTPStatus
 
 import httpx
 from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.sms.ir/v1/"
 
+# Per-phone SMS rate limit: max sends within the window before blocking.
+_PHONE_RATE_LIMIT = 5
+_PHONE_RATE_WINDOW = 600  # 10 minutes in seconds
+_PHONE_RATE_CACHE_PREFIX = "sms-phone-rate:"
+
 
 class SMSAPIError(Exception):
-    """Raised when an SMS.ir API request fails."""
+    """Raised when the sms.ir API request fails."""
 
     def __init__(self, message: str, status_code: int = -1) -> None:
         super().__init__(message)
         self.status_code = status_code
+
+
+def check_phone_rate_limit(phone: str) -> int:
+    """Return remaining allowed SMS sends for *phone*, or -1 if exhausted.
+
+    Uses an atomic counter in Django cache.  Each call increments the
+    counter; the first call in a window also sets the TTL.
+    """
+    key = f"{_PHONE_RATE_CACHE_PREFIX}{phone}"
+    count = cache.get(key, 0)
+    if count >= _PHONE_RATE_LIMIT:
+        return -1
+    cache.set(key, count + 1, timeout=_PHONE_RATE_WINDOW)
+    return _PHONE_RATE_LIMIT - count - 1
 
 
 class SMSClient:
@@ -63,10 +83,14 @@ class SMSClient:
     def send_otp(self, mobile_number: str, otp_code: str) -> dict:
         """Send an OTP code via a pre-configured template.
 
+        Enforces a per-phone rate limit before calling the SMS API.
+        Raises ``SMSAPIError`` with status 429 if the phone has
+        exceeded the allowed number of sends within the rate window.
+
         :param mobile_number: 11-digit Iranian mobile number.
         :param otp_code: The plain-text OTP to embed in the message.
         :returns: The parsed API response data.
-        :raises SMSAPIError: If the API call fails.
+        :raises SMSAPIError: If the API call fails or rate limit is exceeded.
         """
         if self._disabled:
             logger.info(
@@ -77,6 +101,14 @@ class SMSClient:
                 "message": "SMS disabled",
                 "data": {"messageId": 0, "cost": 0},
             }
+
+        remaining = check_phone_rate_limit(mobile_number)
+        if remaining < 0:
+            logger.warning("Per-phone SMS rate limit exceeded for %s", mobile_number)
+            raise SMSAPIError(
+                message="Too many SMS requests for this phone number",
+                status_code=429,
+            )
 
         data = {
             "mobile": mobile_number,

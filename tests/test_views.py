@@ -3039,3 +3039,76 @@ class TestCitiesApi:
         data = json.loads(resp.content)
         assert data["cities"] == []
         assert data["has_next"] is False
+
+
+@pytest.mark.django_db
+class TestPhoneSmsRateLimit:
+    """VULN-08/09: Per-phone SMS rate limiting prevents cost amplification."""
+
+    def setup_method(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def test_check_phone_rate_limit_allows_within_limit(self):
+        from services.sms import check_phone_rate_limit
+
+        remaining = check_phone_rate_limit("09120000001")
+        assert remaining >= 0
+
+    def test_check_phone_rate_limit_exhausts_after_limit(self):
+        from services.sms import _PHONE_RATE_LIMIT, check_phone_rate_limit
+
+        phone = "09120000002"
+        for _ in range(_PHONE_RATE_LIMIT):
+            check_phone_rate_limit(phone)
+        remaining = check_phone_rate_limit(phone)
+        assert remaining == -1
+
+    def test_different_phones_have_independent_limits(self):
+        from services.sms import _PHONE_RATE_LIMIT, check_phone_rate_limit
+
+        for _ in range(_PHONE_RATE_LIMIT):
+            check_phone_rate_limit("09120000010")
+        assert check_phone_rate_limit("09120000010") == -1
+        assert check_phone_rate_limit("09120000011") >= 0
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_resend_otp_api_blocked_by_phone_rate_limit(self):
+        from services.sms import _PHONE_RATE_LIMIT
+
+        client = Client()
+        data = {
+            "username": "ratelimit1",
+            "first_name": "Ali",
+            "last_name": "Test",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "Vanak",
+            "phone": "09123000001",
+        }
+        client.post("/register/", data)
+        for _ in range(_PHONE_RATE_LIMIT + 1):
+            client.post("/api/resend-otp/", content_type="application/json")
+        count = PhoneVerification.objects.filter(phone="09123000001").count()
+        assert count <= _PHONE_RATE_LIMIT + 1
+
+    def test_sms_send_raises_on_phone_rate_limit(self):
+        """VULN-08/09: SMSClient.send_otp blocks when phone limit is exceeded."""
+        from unittest.mock import patch
+
+        from services.sms import _PHONE_RATE_LIMIT, SMSAPIError, SMSClient
+
+        client_obj = SMSClient()
+        client_obj._disabled = False
+        phone = "09123000099"
+        with patch.object(client_obj, "_post", return_value={"status": 1}):
+            for _ in range(_PHONE_RATE_LIMIT):
+                client_obj.send_otp(phone, "123456")
+            import pytest
+
+            with pytest.raises(SMSAPIError) as exc_info:
+                client_obj.send_otp(phone, "123456")
+            assert exc_info.value.status_code == 429
