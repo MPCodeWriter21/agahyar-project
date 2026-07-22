@@ -9,7 +9,7 @@
     {% if comment.is_deleted %}
       <span class="comment-user comment-deleted-label">نظر حذف شده</span>
     {% else %}
-      <span class="comment-user">{{ comment.user.first_name|default:comment.user.username }}</span>
+      <span class="comment-user">{% if comment.user.first_name %}{{ comment.user.first_name }} {{ comment.user.last_name }}{% else %}{{ comment.user.username }}{% endif %}</span>
     {% endif %}
     <span class="comment-date">
       {{ comment.created_at|jalali }}
