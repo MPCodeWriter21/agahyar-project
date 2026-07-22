@@ -48,7 +48,7 @@
         searchInput = document.createElement("input");
         searchInput.type = "text";
         searchInput.className = "custom-select-search-input";
-        searchInput.placeholder = "\u062C\u0633\u062A\u062C\u0648...";
+        searchInput.placeholder = "جستجو...";
         searchInput.setAttribute("role", "searchbox");
 
         searchContainer.appendChild(searchInput);
@@ -57,8 +57,7 @@
         if (!searchOnly) {
           loadMoreBtn = document.createElement("div");
           loadMoreBtn.className = "custom-select-load-more";
-          loadMoreBtn.textContent =
-            "\u0646\u0645\u0627\u06CC\u0634 \u0628\u06CC\u0634\u062A\u0631";
+          loadMoreBtn.textContent = "نمایش بیشتر";
           loadMoreBtn.setAttribute("role", "button");
         }
       }
