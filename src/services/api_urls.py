@@ -4,7 +4,9 @@ Routes all API endpoints under ``/api/v1/`` and wires up the
 drf-spectacular OpenAPI schema and Swagger UI.
 """
 
+from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import include, path
+from django.utils.decorators import method_decorator
 from drf_spectacular.views import SpectacularAPIView
 from rest_framework.routers import DefaultRouter
 
@@ -34,13 +36,20 @@ router.register("faqs", FAQViewSet, basename="api-faq")
 router.register("comments", CommentViewSet, basename="api-comment")
 router.register("bookmarks", BookmarkViewSet, basename="api-bookmark")
 
+
+@method_decorator(staff_member_required, name="dispatch")
+class _StaffSchemaView(SpectacularAPIView):
+    """OpenAPI schema view restricted to staff."""
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class _StaffDocsView(SelfHostedSwaggerView):
+    """Swagger UI view restricted to staff."""
+
+
 urlpatterns = [
-    path("schema/", SpectacularAPIView.as_view(), name="api-schema"),
-    path(
-        "docs/",
-        SelfHostedSwaggerView.as_view(url_name="api-schema"),
-        name="api-docs",
-    ),
+    path("schema/", _StaffSchemaView.as_view(), name="api-schema"),
+    path("docs/", _StaffDocsView.as_view(url_name="api-schema"), name="api-docs"),
     path("", include(router.urls)),
     path(
         "ratings/",

@@ -195,9 +195,9 @@
         <h3>گزارش اطلاعات</h3>
         <p>برای ثبت گزارش باید وارد شوید.</p>
         <div class="report-dialog-actions">
-          <a href="{% url 'login' %}?next={{ request.path }}"
+          <a href="{% url 'login' %}?next={{ request.path|urlencode }}"
              class="btn-report-submit">ورود</a>
-          <a href="{% url 'register' %}?next={{ request.path }}"
+          <a href="{% url 'register' %}?next={{ request.path|urlencode }}"
              class="btn-report-cancel">ثبت‌نام</a>
         </div>
       {% endif %}

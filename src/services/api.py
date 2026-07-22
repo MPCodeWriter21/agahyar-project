@@ -14,6 +14,7 @@ from drf_spectacular.views import SpectacularSwaggerView
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -54,6 +55,7 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Service.objects.all().order_by("name")
     serializer_class = ServiceSerializer
+    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "organization", "keywords"]
     ordering_fields = ["name", "organization"]
@@ -78,6 +80,7 @@ class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
         .order_by("name")
     )
     serializer_class = ServiceCenterSerializer
+    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "address", "city"]
     ordering_fields = ["name", "city", "avg_rating"]
@@ -98,6 +101,7 @@ class FAQViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = FAQ.objects.all().order_by("order")
     serializer_class = FAQSerializer
+    permission_classes = [AllowAny]
     pagination_class = None
     filter_backends = [filters.SearchFilter]
     search_fields = ["question", "answer", "category"]

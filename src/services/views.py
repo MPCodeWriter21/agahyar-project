@@ -1146,10 +1146,9 @@ def nearby_centers_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+@staff_member_required
 def show_users(request: HttpRequest) -> HttpResponse:
-    """List all users with their profile data."""
-    if not request.user.is_authenticated:
-        return redirect("login")
+    """List all users with their profile data (staff only)."""
     users: QuerySet = User.objects.select_related("profile").all().order_by("id")
     return render(
         request,
@@ -2135,7 +2134,6 @@ EXPORTABLE_MODELS = [
     CenterRating,
     Bookmark,
     InfoReport,
-    PhoneVerification,
 ]
 
 IMPORT_ORDER = [

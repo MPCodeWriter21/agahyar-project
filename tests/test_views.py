@@ -57,9 +57,23 @@ class TestShowUsersView:
         response = client.get("/users/")
         assert response.status_code == 302
 
+    def test_non_staff_user_denied(self):
+        User.objects.create_user("regular", password="pass12345")
+        client = Client()
+        client.login(username="regular", password="pass12345")
+        response = client.get("/users/")
+        assert response.status_code in (302, 403)
+
+    def test_staff_user_can_access(self):
+        User.objects.create_user("admin1", password="pass12345", is_staff=True)
+        client = Client()
+        client.login(username="admin1", password="pass12345")
+        response = client.get("/users/")
+        assert response.status_code == 200
+
     def test_shows_users_with_profiles(self):
-        user = User.objects.create_user("viewer", password="pass12345")
-        UserProfile.objects.create(user=user, city="tehran", phone="09121234567")
+        staff = User.objects.create_user("viewer", password="pass12345", is_staff=True)
+        UserProfile.objects.create(user=staff, city="tehran", phone="09121234567")
         client = Client()
         client.login(username="viewer", password="pass12345")
         response = client.get("/users/")
@@ -67,7 +81,7 @@ class TestShowUsersView:
         assert "viewer" in str(response.content)
 
     def test_handles_users_without_profile(self):
-        User.objects.create_user("noprofile", password="pass12345")
+        User.objects.create_user("noprofile", password="pass12345", is_staff=True)
         client = Client()
         client.login(username="noprofile", password="pass12345")
         response = client.get("/users/")

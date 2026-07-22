@@ -23,7 +23,6 @@ from services.models import (
     Comment,
     ContactMessage,
     InfoReport,
-    PhoneVerification,
     Service,
     ServiceCenter,
     ServiceCenterPhone,
@@ -41,7 +40,6 @@ EXPORTABLE_MODELS = [
     CenterRating,
     Bookmark,
     InfoReport,
-    PhoneVerification,
 ]
 
 

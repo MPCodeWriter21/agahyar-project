@@ -1877,18 +1877,57 @@ class SchemaViewTest(TestCase):
     """Tests for the API schema and docs endpoints."""
 
     def setUp(self):
-        self.client = APIClient()
+        from django.test import Client
 
-    def test_api_schema(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="regular", password="pass123")
+        self.staff = User.objects.create_user(
+            username="staff", password="pass123", is_staff=True
+        )
+
+    def test_api_schema_unauthenticated(self):
+        resp = self.client.get("/api/v1/schema/")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_302_FOUND, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_api_schema_non_staff_denied(self):
+        self.client.login(username="regular", password="pass123")
+        resp = self.client.get("/api/v1/schema/")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_302_FOUND, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_api_schema_staff_allowed(self):
+        self.client.login(username="staff", password="pass123")
         resp = self.client.get("/api/v1/schema/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
-    def test_api_docs(self):
+    def test_api_docs_unauthenticated(self):
+        resp = self.client.get("/api/v1/docs/")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_302_FOUND, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_api_docs_non_staff_denied(self):
+        self.client.login(username="regular", password="pass123")
+        resp = self.client.get("/api/v1/docs/")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_302_FOUND, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_api_docs_staff_allowed(self):
+        self.client.login(username="staff", password="pass123")
         resp = self.client.get("/api/v1/docs/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     def test_api_docs_self_hosted_assets(self):
         """Swagger UI must reference self-hosted static files, not CDN."""
+        self.client.login(username="staff", password="pass123")
         resp = self.client.get("/api/v1/docs/")
         content = resp.content.decode()
         self.assertIn("libs/swagger-ui/swagger-ui-bundle.js", content)
@@ -1896,9 +1935,10 @@ class SchemaViewTest(TestCase):
         self.assertNotIn("cdn.jsdelivr.net", content)
 
     def test_api_root(self):
+        self.client.login(username="staff", password="pass123")
         resp = self.client.get("/api/v1/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertIn("services", resp.data)
+        self.assertIn(b"services", resp.content)
 
     def test_nonexistent_api_path(self):
         resp = self.client.get("/api/v1/nonexistent/")
