@@ -67,17 +67,27 @@
         </div>
       {% endfor %}
       {% if page_obj.paginator.num_pages > 1 %}
-        <div class="pagination">
+        <nav class="pagination" aria-label="صفحه‌بندی">
           {% if page_obj.has_previous %}
-            <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page=1">&laquo; اول</a>
+            <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page=1"
+               title="اولین صفحه">&laquo;</a>
             <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.previous_page_number }}">قبلی</a>
           {% endif %}
-          <span>صفحه {{ page_obj.number|fa }} از {{ page_obj.paginator.num_pages|fa }}</span>
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="page-current">{{ num|fa }}</span>
+            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+              <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ num }}">{{ num|fa }}</a>
+            {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+              <span class="page-ellipsis">...</span>
+            {% endif %}
+          {% endfor %}
           {% if page_obj.has_next %}
             <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.next_page_number }}">بعدی</a>
-            <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.paginator.num_pages }}">آخر &raquo;</a>
+            <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.paginator.num_pages }}"
+               title="آخرین صفحه">&raquo;</a>
           {% endif %}
-        </div>
+        </nav>
       {% endif %}
     {% endif %}
   {% else %}
