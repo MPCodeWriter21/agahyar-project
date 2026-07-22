@@ -1,6 +1,6 @@
 # Remove the usages of `alert`
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 65
 - TAGS: UI, UX, alert, frontend
 

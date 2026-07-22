@@ -1803,7 +1803,7 @@ button.muted-link:disabled {
 }
 
 /* --- Report Toast --- */
-.report-toast {
+.app-toast {
   position: fixed;
   bottom: 24px;
   left: 50%;
@@ -1820,7 +1820,11 @@ button.muted-link:disabled {
   pointer-events: none;
 }
 
-.report-toast.show {
+.app-toast--error {
+  background: var(--color-danger);
+}
+
+.app-toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }

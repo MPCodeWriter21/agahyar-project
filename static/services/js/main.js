@@ -57,7 +57,7 @@ document.addEventListener("click", function (e) {
         if (!response.ok) {
           reactionBtn.disabled = false;
           return response.json().then(function (err) {
-            if (err.detail) alert(err.detail);
+            if (err.detail) showToast(err.detail, "error");
           });
         }
         return response.json();
@@ -646,10 +646,11 @@ function submitReport() {
     });
 }
 
-function showReportSuccess(message) {
+function showToast(message, variant) {
   var toast = document.createElement("div");
-  toast.className = "report-toast";
-  toast.textContent = message || "گزارش شما ثبت شد.";
+  toast.className =
+    "app-toast" + (variant === "error" ? " app-toast--error" : "");
+  toast.textContent = message;
   document.body.appendChild(toast);
   setTimeout(function () {
     toast.classList.add("show");
@@ -660,4 +661,8 @@ function showReportSuccess(message) {
       toast.remove();
     }, 300);
   }, 3000);
+}
+
+function showReportSuccess(message) {
+  showToast(message || "گزارش شما ثبت شد.");
 }
