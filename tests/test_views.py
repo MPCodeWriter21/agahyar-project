@@ -2567,6 +2567,12 @@ class TestVersion:
 
 
 class TestAdminStats:
+    @pytest.fixture(autouse=True)
+    def _clear_stats_cache(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
     @pytest.mark.django_db
     def test_anonymous_redirects_to_login(self):
         client = Client()
@@ -3112,3 +3118,146 @@ class TestPhoneSmsRateLimit:
             with pytest.raises(SMSAPIError) as exc_info:
                 client_obj.send_otp(phone, "123456")
             assert exc_info.value.status_code == 429
+
+
+@pytest.mark.django_db
+class TestAdminDataTransferLimits:
+    """VULN-12 / VULN-16: file-size and record-count limits on admin import."""
+
+    @pytest.fixture(autouse=True)
+    def _setup_staff(self):
+        self.user = User.objects.create_user(
+            "importer", password="pass12345", is_staff=True
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+        self.url = "/admin/data-transfer/"
+
+    def test_import_rejects_oversized_file(self):
+        """VULN-12: files >10 MB are rejected before reading."""
+        from unittest.mock import MagicMock
+
+        big_content = b"x" * (10 * 1024 * 1024 + 1)
+        upload_file = MagicMock()
+        upload_file.read.return_value = big_content
+        upload_file.size = len(big_content)
+        upload_file.name = "big.json"
+        upload_file.content_type = "application/json"
+
+        response = self.client.post(
+            self.url, {"action": "import", "import_file": upload_file}
+        )
+        assert response.status_code == 200
+        assert (
+            response.context["error"]
+            == "File is too large. Maximum allowed size is 10 MB."
+        )
+
+    def test_import_rejects_too_many_records(self):
+        """VULN-12: imports with >10 000 records are rejected."""
+        from unittest.mock import MagicMock
+
+        records = [
+            {"_model": "services.FAQ", "question": f"Q{i}"} for i in range(10001)
+        ]
+        content = json.dumps(records).encode("utf-8")
+
+        upload_file = MagicMock()
+        upload_file.read.return_value = content
+        upload_file.size = len(content)
+        upload_file.name = "many.json"
+        upload_file.content_type = "application/json"
+
+        response = self.client.post(
+            self.url, {"action": "import", "import_file": upload_file}
+        )
+        assert response.status_code == 200
+        assert "10,001 records" in response.context["error"]
+
+    def test_import_allows_valid_file(self):
+        """A small, valid import file is accepted."""
+        from unittest.mock import MagicMock
+
+        records = [{"_model": "services.FAQ", "question": "Q1", "answer": "A1"}]
+        content = json.dumps(records).encode("utf-8")
+
+        upload_file = MagicMock()
+        upload_file.read.return_value = content
+        upload_file.size = len(content)
+        upload_file.name = "ok.json"
+        upload_file.content_type = "application/json"
+
+        response = self.client.post(
+            self.url, {"action": "import", "import_file": upload_file, "dry_run": "on"}
+        )
+        assert response.status_code == 200
+        result = response.context.get("import_result")
+        assert result is not None
+        assert result["verb"] == "Previewed"
+
+
+class TestAdminStatsCaching:
+    """VULN-15: admin stats should be cached for 5 minutes."""
+
+    @pytest.mark.django_db
+    def test_stats_are_cached(self):
+        from django.core.cache import cache
+
+        User.objects.create_user("statsadmin", password="pass12345", is_staff=True)
+
+        # Clear cache before login so session isn't wiped
+        cache.clear()
+        client = Client()
+        client.login(username="statsadmin", password="pass12345")
+
+        resp1 = client.get("/admin/stats/")
+        assert resp1.status_code == 200
+        overview1 = resp1.context["overview"]
+
+        # Second request should come from cache with identical data
+        resp2 = client.get("/admin/stats/")
+        overview2 = resp2.context["overview"]
+        assert overview1 == overview2
+
+    @pytest.mark.django_db
+    def test_cache_key_set_after_request(self):
+        """Cache key should exist after first request."""
+        from django.core.cache import cache
+
+        User.objects.create_user("statsadmin2", password="pass12345", is_staff=True)
+
+        cache.clear()
+        client = Client()
+        client.login(username="statsadmin2", password="pass12345")
+
+        client.get("/admin/stats/")
+        assert cache.get("admin_stats_data") is not None
+
+
+class TestCommentDepthLimit:
+    """VULN-17: comment template should not recurse beyond depth 5."""
+
+    @pytest.mark.django_db
+    def test_comment_template_has_depth_check(self):
+        """The comment partial should contain a depth < 5 guard."""
+        from pathlib import Path
+
+        tpl = (
+            Path(__file__).resolve().parent.parent
+            / "templates"
+            / "services"
+            / "partials"
+            / "comment.html"
+        )
+        content = tpl.read_text()
+        assert "depth < 5" in content
+
+
+class TestDataUploadMaxMemorySize:
+    """VULN-16: DATA_UPLOAD_MAX_MEMORY_SIZE should be set in settings."""
+
+    def test_setting_exists(self):
+        from django.conf import settings
+
+        assert hasattr(settings, "DATA_UPLOAD_MAX_MEMORY_SIZE")
+        assert settings.DATA_UPLOAD_MAX_MEMORY_SIZE == 10 * 1024 * 1024

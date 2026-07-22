@@ -21,6 +21,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, F, Q, QuerySet
 from django.db.models.functions import TruncWeek
@@ -989,16 +990,17 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
         r for c in comment_page_obj for r in c.replies.all()
     ]
     for c in all_comments:
-        likes = sum(1 for rx in c.reactions.all() if rx.value == CommentReaction.LIKE)
-        dislikes = sum(
-            1 for rx in c.reactions.all() if rx.value == CommentReaction.DISLIKE
-        )
+        likes = 0
+        dislikes = 0
         user_rx = None
-        if request.user.is_authenticated:
-            for rx in c.reactions.all():
-                if rx.user_id == request.user.id:
-                    user_rx = rx.value
-                    break
+        user_id = request.user.id if request.user.is_authenticated else None
+        for rx in c.reactions.all():
+            if rx.value == CommentReaction.LIKE:
+                likes += 1
+            elif rx.value == CommentReaction.DISLIKE:
+                dislikes += 1
+            if user_rx is None and user_id and rx.user_id == user_id:
+                user_rx = rx.value
         comment_reaction_data[c.id] = (likes, dislikes, user_rx)
 
     comment_form = None
@@ -1486,16 +1488,17 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
         r for c in comment_page_obj for r in c.replies.all()
     ]
     for c in all_comments:
-        likes = sum(1 for rx in c.reactions.all() if rx.value == CommentReaction.LIKE)
-        dislikes = sum(
-            1 for rx in c.reactions.all() if rx.value == CommentReaction.DISLIKE
-        )
+        likes = 0
+        dislikes = 0
         user_rx = None
-        if request.user.is_authenticated:
-            for rx in c.reactions.all():
-                if rx.user_id == request.user.id:
-                    user_rx = rx.value
-                    break
+        user_id = request.user.id if request.user.is_authenticated else None
+        for rx in c.reactions.all():
+            if rx.value == CommentReaction.LIKE:
+                likes += 1
+            elif rx.value == CommentReaction.DISLIKE:
+                dislikes += 1
+            if user_rx is None and user_id and rx.user_id == user_id:
+                user_rx = rx.value
         comment_reaction_data[c.id] = (likes, dislikes, user_rx)
 
     center_locations = get_center_locations(ServiceCenter.objects.filter(id=center.id))
@@ -1931,10 +1934,10 @@ def sitemap_xml(request: HttpRequest) -> HttpResponse:
             else site_url + reverse(name, args=[arg])
         )
         urls += f"<url><loc>{url}</loc><priority>{priority}</priority></url>\n"
-    for service in Service.objects.all():
+    for service in Service.objects.all().iterator():
         url = site_url + reverse("service_detail", args=[service.id])
         urls += f"<url><loc>{url}</loc><priority>0.6</priority></url>\n"
-    for center in ServiceCenter.objects.all():
+    for center in ServiceCenter.objects.all().iterator():
         url = site_url + reverse("center_detail", args=[center.id])
         urls += f"<url><loc>{url}</loc><priority>0.5</priority></url>\n"
     xml = (
@@ -1951,7 +1954,17 @@ def admin_stats(request: HttpRequest) -> HttpResponse:
 
     Displays model counts, recent activity, popular services,
     top-rated centers, and weekly trend charts.
+
+    The expensive aggregate queries are cached for 5 minutes to
+    avoid repeated full-table scans on every page load.
     """
+    STATS_CACHE_KEY = "admin_stats_data"
+    STATS_CACHE_TTL = 300  # 5 minutes
+
+    cached = cache.get(STATS_CACHE_KEY)
+    if cached is not None:
+        return render(request, "services/admin_stats.html", cached)
+
     now = timezone.now()
     twelve_weeks_ago = now - timedelta(weeks=12)
 
@@ -2033,21 +2046,21 @@ def admin_stats(request: HttpRequest) -> HttpResponse:
         [{"name": s.name, "count": s.comment_count} for s in popular_services]
     )
 
-    return render(
-        request,
-        "services/admin_stats.html",
-        {
-            "overview": overview,
-            "recent_users": recent_users,
-            "recent_comments": recent_comments,
-            "popular_services": popular_services,
-            "top_centers": top_centers,
-            "chart_reg": chart_reg,
-            "chart_comments": chart_comments,
-            "chart_ratings": chart_ratings,
-            "chart_services": chart_services,
-        },
-    )
+    context = {
+        "overview": overview,
+        "recent_users": recent_users,
+        "recent_comments": recent_comments,
+        "popular_services": popular_services,
+        "top_centers": top_centers,
+        "chart_reg": chart_reg,
+        "chart_comments": chart_comments,
+        "chart_ratings": chart_ratings,
+        "chart_services": chart_services,
+    }
+
+    cache.set(STATS_CACHE_KEY, context, STATS_CACHE_TTL)
+
+    return render(request, "services/admin_stats.html", context)
 
 
 NESHAN_SEARCH_URL = "https://api.neshan.org/v1/search"
@@ -2246,6 +2259,11 @@ def admin_data_transfer(request: HttpRequest) -> HttpResponse:
                 context["error"] = "No file uploaded."
                 return render(request, "services/admin_data_transfer.html", context)
 
+            max_import_size = 10 * 1024 * 1024  # 10 MB
+            if upload_file.size > max_import_size:
+                context["error"] = "File is too large. Maximum allowed size is 10 MB."
+                return render(request, "services/admin_data_transfer.html", context)
+
             try:
                 raw = upload_file.read().decode("utf-8")
                 data = json.loads(raw)
@@ -2255,6 +2273,14 @@ def admin_data_transfer(request: HttpRequest) -> HttpResponse:
 
             if not isinstance(data, list):
                 context["error"] = "Expected a JSON array of records."
+                return render(request, "services/admin_data_transfer.html", context)
+
+            max_import_records = 10000
+            if len(data) > max_import_records:
+                context["error"] = (
+                    f"File contains {len(data):,} records. "
+                    f"Maximum allowed is {max_import_records:,}."
+                )
                 return render(request, "services/admin_data_transfer.html", context)
 
             model_map = {m._meta.label: m for m in IMPORT_ORDER}

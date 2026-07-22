@@ -350,6 +350,11 @@ if SENTRY_DSN:
         environment="production" if not DEBUG else "development",
     )
 
+# Limit in-memory upload handling to 10 MB (files larger than this are
+# streamed to disk by Django, and the admin import view enforces the
+# same cap before reading).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

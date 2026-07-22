@@ -129,7 +129,7 @@
     {% endif %}
   {% endif %}
   {% with reply_count=comment.replies.all|length %}
-    {% if reply_count > 0 %}
+    {% if reply_count > 0 and depth < 5 %}
       <button type="button"
               class="btn-toggle-replies"
               onclick="toggleReplies({{ comment.id }}, this)">
