@@ -4,6 +4,77 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.0] - 2026-07-22
+
+### Added
+
+- **Comment reactions**: Like/dislike buttons on comments for both services
+  and service centers. A new `CommentReaction` model tracks user reactions
+  with unique constraints. The API exposes a `/react/` endpoint; the
+  frontend updates counts in-place and highlights the user's active
+  reaction.
+- **Self-hosted Matomo analytics**: Added `docker-compose.matomo.yml` with
+  Matomo 5 and MySQL 8.0 behind Traefik. Tracking snippet in `base.html`
+  is conditionally rendered when `MATOMO_URL` and `MATOMO_SITE_ID` are set.
+  A context processor supplies the values to templates.
+- **Service description field**: New optional `description` TextField on the
+  `Service` model. Rendered on the service detail page between the header
+  and documents sections, hidden when empty. Supports multi-paragraph text.
+- **Per-phone SMS rate limiting**: Cache-based limiter in `sms.py` blocks
+  SMS sends to a single phone number after 5 messages per 10-minute window.
+  Enforced inside `SMSClient.send_otp()` so all SMS paths are protected.
+  The `resend_otp_api` and `resend_profile_otp_api` views now use
+  `block=True` on the `@ratelimit` decorator.
+
+### Changed
+
+- **Service detail page hides empty fields**: Cost, duration, documents,
+  and steps sections are now wrapped in `{% if %}` guards and are not
+  rendered when the field is empty.
+- **Pagination redesign**: Replaced prev/next-only pagination with numbered
+  page buttons, ellipsis for distant pages, and a styled active-page
+  indicator. Both `service_list.html` and `search.html` use semantic
+  `<nav>` elements with `aria-label`.
+- **Comment full name**: Comments now display the user's full name
+  (first + last) instead of just the first name.
+- **Alert replaced with toast notifications**: The native `alert()` call in
+  the reaction error handler is replaced with a slide-up toast component
+  (`showToast`). The existing `showReportSuccess` function now uses the
+  same generic toast.
+- **JS Unicode escapes decoded**: All escaped Persian/Arabic text in
+  JavaScript files is now readable UTF-8. A garbled message in the
+  geolocation error handler was corrected.
+- **Admin data transfer import hardened**: Upload files larger than 10 MB
+  or containing more than 10,000 records are rejected before reading into
+  memory. `DATA_UPLOAD_MAX_MEMORY_SIZE` is set to 10 MB in settings.
+- **Admin stats cached**: The admin dashboard view now caches aggregate
+  queries for 5 minutes to avoid repeated full-table scans.
+- **Sitemap memory-efficient**: Service and center querysets in the sitemap
+  view now use `.iterator()` to avoid loading all objects into memory.
+- **Comment reaction aggregation optimized**: The reaction counting loop
+  in `service_detail` and `center_detail` now iterates through the prefetch
+  cache once per comment instead of calling `.reactions.all()` three times.
+
+### Fixed
+
+- **Duplicate reaction requests on center detail page**: Removed a duplicate
+  `main.js` include in `center_detail.html` that caused the delegated
+  reaction click handler to fire twice, toggling the reaction back off.
+- **SEO page titles**: Removed duplicated brand name from page titles.
+  Base template now provides the default `<title>` with child templates
+  supplying only the page-specific part.
+- **Secrets management**: `SECRET_KEY` is required when `DEBUG=False`.
+  System checks (`security.W001`/`W002`) validate security headers in
+  production. Profiling middleware is gated on `DEBUG=True` and restricted
+  to staff.
+- **Access control**: `/users/` endpoint restricted to staff. API
+  schema/docs views restricted to staff. Default DRF permission changed to
+  `IsAuthenticated`. `PhoneVerification` removed from exportable models.
+  Open redirect in password reset fixed with `|urlencode`.
+- **Comment reaction frontend**: JS now checks `response.ok` before
+  updating the UI. Reaction buttons on own comments are disabled in the
+  template.
+
 ## [1.5.1] - 2026-07-22
 
 ### Fixed

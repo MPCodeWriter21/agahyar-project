@@ -226,7 +226,7 @@ monitors and load balancers.  It verifies database connectivity and
 returns a simple JSON response:
 
 ```json
-{"status": "ok", "version": "1.5.1", "database": "ok"}
+{"status": "ok", "version": "1.6.0", "database": "ok"}
 ```
 
 Returns HTTP 200 when healthy, 503 when degraded.
