@@ -31,6 +31,58 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 document.addEventListener("click", function (e) {
+  var reactionBtn = e.target.closest(".btn-reaction:not(.disabled)");
+  if (reactionBtn) {
+    var commentId = reactionBtn.getAttribute("data-comment-id");
+    var value = parseInt(reactionBtn.getAttribute("data-value"), 10);
+    if (!commentId) return;
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) return;
+
+    reactionBtn.disabled = true;
+    fetch("/api/v1/comments/" + commentId + "/react/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify({ value: value }),
+    })
+      .then(function (response) {
+        if (response.status === 401) {
+          window.location.href = "/auth/login/";
+          return;
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data) return;
+        var likesEl = document.getElementById("likes-count-" + commentId);
+        var dislikesEl = document.getElementById("dislikes-count-" + commentId);
+        if (likesEl) likesEl.textContent = toPersianDigits(data.likes);
+        if (dislikesEl) dislikesEl.textContent = toPersianDigits(data.dislikes);
+
+        var parent = reactionBtn.closest(".comment-reactions");
+        if (parent) {
+          parent.querySelectorAll(".btn-reaction").forEach(function (btn) {
+            btn.classList.remove("active");
+          });
+        }
+        if (data.user_reaction) {
+          var activeBtn = parent
+            ? parent.querySelector('[data-value="' + data.user_reaction + '"]')
+            : null;
+          if (activeBtn) activeBtn.classList.add("active");
+        }
+        reactionBtn.disabled = false;
+      })
+      .catch(function () {
+        reactionBtn.disabled = false;
+      });
+    return;
+  }
+
   var btn = e.target.closest(".btn-bookmark-icon");
   if (!btn) {
     return;

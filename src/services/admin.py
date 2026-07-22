@@ -16,6 +16,7 @@ from .models import (
     Bookmark,
     CenterRating,
     Comment,
+    CommentReaction,
     ContactMessage,
     InfoReport,
     Service,
@@ -155,6 +156,15 @@ class CommentAdmin(ImportExportModelAdmin):
     )
     search_fields = ("user__username", "text")
     list_filter = ("created_at", "edited_at")
+
+
+@admin.register(CommentReaction)
+class CommentReactionAdmin(admin.ModelAdmin):
+    """Admin configuration for the CommentReaction model."""
+
+    list_display = ("user", "comment", "value", "created_at")
+    search_fields = ("user__username", "comment__text")
+    list_filter = ("value", "created_at")
 
 
 @admin.register(CenterRating)

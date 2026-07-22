@@ -996,13 +996,34 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
     top_level_comments = (
         Comment.objects.filter(service=service, parent__isnull=True)
         .select_related("user", "deleted_by")
-        .prefetch_related("replies__user", "replies__deleted_by")
+        .prefetch_related(
+            "replies__user", "replies__deleted_by", "reactions", "replies__reactions"
+        )
     )
 
     comment_page = int(request.GET.get("comment_page", 1))
     comment_paginator = Paginator(top_level_comments, COMMENTS_PER_PAGE)
     comment_page_obj = comment_paginator.get_page(comment_page)
     has_more_comments = comment_page_obj.has_next()
+
+    from .models import CommentReaction
+
+    comment_reaction_data = {}
+    all_comments = list(comment_page_obj) + [
+        r for c in comment_page_obj for r in c.replies.all()
+    ]
+    for c in all_comments:
+        likes = sum(1 for rx in c.reactions.all() if rx.value == CommentReaction.LIKE)
+        dislikes = sum(
+            1 for rx in c.reactions.all() if rx.value == CommentReaction.DISLIKE
+        )
+        user_rx = None
+        if request.user.is_authenticated:
+            for rx in c.reactions.all():
+                if rx.user_id == request.user.id:
+                    user_rx = rx.value
+                    break
+        comment_reaction_data[c.id] = (likes, dislikes, user_rx)
 
     comment_form = None
     if request.user.is_authenticated:
@@ -1027,6 +1048,7 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "has_more_comments": has_more_comments,
             "comment_page": comment_page,
             "comment_form": comment_form,
+            "comment_reaction_data": comment_reaction_data,
             "breadcrumbs": [
                 {"label": "خانه", "url": "/"},
                 {"label": "خدمات", "url": "/services/"},
@@ -1472,13 +1494,34 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
     top_level_comments = (
         Comment.objects.filter(service_center=center, parent__isnull=True)
         .select_related("user", "deleted_by")
-        .prefetch_related("replies__user", "replies__deleted_by")
+        .prefetch_related(
+            "replies__user", "replies__deleted_by", "reactions", "replies__reactions"
+        )
     )
 
     comment_page = int(request.GET.get("comment_page", 1))
     comment_paginator = Paginator(top_level_comments, COMMENTS_PER_PAGE)
     comment_page_obj = comment_paginator.get_page(comment_page)
     has_more_comments = comment_page_obj.has_next()
+
+    from .models import CommentReaction
+
+    comment_reaction_data = {}
+    all_comments = list(comment_page_obj) + [
+        r for c in comment_page_obj for r in c.replies.all()
+    ]
+    for c in all_comments:
+        likes = sum(1 for rx in c.reactions.all() if rx.value == CommentReaction.LIKE)
+        dislikes = sum(
+            1 for rx in c.reactions.all() if rx.value == CommentReaction.DISLIKE
+        )
+        user_rx = None
+        if request.user.is_authenticated:
+            for rx in c.reactions.all():
+                if rx.user_id == request.user.id:
+                    user_rx = rx.value
+                    break
+        comment_reaction_data[c.id] = (likes, dislikes, user_rx)
 
     center_locations = get_center_locations(ServiceCenter.objects.filter(id=center.id))
 
@@ -1503,6 +1546,7 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
             "comment_page": comment_page,
             "comment_form": comment_form,
             "rating_form": rating_form,
+            "comment_reaction_data": comment_reaction_data,
             "breadcrumbs": [
                 {"label": "خانه", "url": "/"},
                 {"label": "خدمات", "url": "/services/"},
@@ -1790,17 +1834,35 @@ def load_comments(
     else:
         return JsonResponse({"error": "invalid target"}, status=400)
 
-    qs = qs.select_related("user").prefetch_related("replies__user")
+    qs = qs.select_related("user").prefetch_related(
+        "replies__user", "reactions", "replies__reactions"
+    )
 
     paginator = Paginator(qs, COMMENTS_PER_PAGE)
     page_obj = paginator.get_page(page)
 
+    from .models import CommentReaction
+
     html_parts = []
     for comment in page_obj:
+        likes_count = comment.reactions.filter(value=CommentReaction.LIKE).count()
+        dislikes_count = comment.reactions.filter(value=CommentReaction.DISLIKE).count()
+        user_reaction = None
+        if request.user.is_authenticated:
+            reaction = comment.reactions.filter(user=request.user).first()
+            user_reaction = reaction.value if reaction else None
+        comment_reaction_data = {
+            comment.id: (likes_count, dislikes_count, user_reaction),
+        }
         html_parts.append(
             render_to_string(
                 "services/partials/comment.html",
-                {"comment": comment, "depth": 0, "user": request.user},
+                {
+                    "comment": comment,
+                    "depth": 0,
+                    "user": request.user,
+                    "comment_reaction_data": comment_reaction_data,
+                },
                 request=request,
             )
         )

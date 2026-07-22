@@ -18,6 +18,7 @@ from services.models import (
     Bookmark,
     CenterRating,
     Comment,
+    CommentReaction,
     PhoneVerification,
     Service,
     ServiceCenter,
@@ -1742,6 +1743,134 @@ class BookmarkAPITest(TestCase):
             f"{self.url}{bm.id}/", {"service_id": self.service.id}, format="json"
         )
         self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+class CommentReactionAPITest(TestCase):
+    """Tests for the /api/v1/comments/{id}/react/ endpoint."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="reactor", password="testpass123")
+        self.other_user = User.objects.create_user(
+            username="other", password="testpass123"
+        )
+        self.third_user = User.objects.create_user(
+            username="third", password="testpass123"
+        )
+        self.service = Service.objects.create(
+            name="خدمت", organization="سازمان", documents="م", steps="م"
+        )
+        self.comment = Comment.objects.create(
+            user=self.other_user, service=self.service, text="نظر تستی"
+        )
+        self.url = f"/api/v1/comments/{self.comment.id}/react/"
+
+    def test_like_requires_auth(self):
+        resp = self.client.post(self.url, {"value": 1}, format="json")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_like_adds_reaction(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(self.url, {"value": 1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 1)
+        self.assertEqual(resp.data["dislikes"], 0)
+        self.assertEqual(resp.data["user_reaction"], 1)
+        self.assertTrue(
+            CommentReaction.objects.filter(
+                user=self.user, comment=self.comment, value=1
+            ).exists()
+        )
+
+    def test_dislike_adds_reaction(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(self.url, {"value": -1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 0)
+        self.assertEqual(resp.data["dislikes"], 1)
+        self.assertEqual(resp.data["user_reaction"], -1)
+
+    def test_toggle_same_value_removes(self):
+        """Posting the same value again should remove the reaction."""
+        self.client.force_authenticate(user=self.user)
+        self.client.post(self.url, {"value": 1}, format="json")
+        resp = self.client.post(self.url, {"value": 1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 0)
+        self.assertIsNone(resp.data["user_reaction"])
+        self.assertFalse(
+            CommentReaction.objects.filter(
+                user=self.user, comment=self.comment
+            ).exists()
+        )
+
+    def test_switch_like_to_dislike(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(self.url, {"value": 1}, format="json")
+        resp = self.client.post(self.url, {"value": -1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 0)
+        self.assertEqual(resp.data["dislikes"], 1)
+        self.assertEqual(resp.data["user_reaction"], -1)
+        self.assertFalse(
+            CommentReaction.objects.filter(
+                user=self.user, comment=self.comment, value=1
+            ).exists()
+        )
+        self.assertTrue(
+            CommentReaction.objects.filter(
+                user=self.user, comment=self.comment, value=-1
+            ).exists()
+        )
+
+    def test_invalid_value_returns_400(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(self.url, {"value": 5}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reaction_on_nonexistent_comment(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(
+            "/api/v1/comments/99999/react/",
+            {"value": 1},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_multiple_users_reactions(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(self.url, {"value": 1}, format="json")
+
+        self.client.force_authenticate(user=self.third_user)
+        resp = self.client.post(self.url, {"value": -1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 1)
+        self.assertEqual(resp.data["dislikes"], 1)
+
+    def test_cannot_react_to_own_comment(self):
+        own_comment = Comment.objects.create(
+            user=self.user, service=self.service, text="خودم"
+        )
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(
+            f"/api/v1/comments/{own_comment.id}/react/",
+            {"value": 1},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_comment_serializer_includes_reaction_counts(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(self.url, {"value": 1}, format="json")
+
+        resp = self.client.get(f"/api/v1/comments/{self.comment.id}/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes_count"], 1)
+        self.assertEqual(resp.data["dislikes_count"], 0)
+        self.assertEqual(resp.data["user_reaction"], 1)
 
 
 class SchemaViewTest(TestCase):

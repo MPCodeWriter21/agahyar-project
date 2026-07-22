@@ -59,6 +59,12 @@ ERROR_CODES: dict[str, str] = {
     "comment/edit-expired": "ویرایش نظر فقط تا ۲۴ ساعت پس از ارسال مجاز است.",
     "comment/cannot-reply-deleted": "امکان پاسخ به نظر حذف شده وجود ندارد.",
     "comment/cannot-edit-deleted": "امکان ویرایش نظر حذف شده وجود ندارد.",
+    # ---- Comment reactions ----
+    "reaction/added": "واکنش شما ثبت شد.",
+    "reaction/removed": "واکنش شما حذف شد.",
+    "reaction/login-required": "برای واکنش به نظر باید وارد شوید.",
+    "reaction/not-found": "نظر مورد نظر یافت نشد.",
+    "reaction/invalid-value": "مقدار واکنش نامعتبر است.",
     # ---- Center rating ----
     "center-rating/added": "امتیاز شما با موفقیت ثبت شد.",
     "center-rating/updated": "امتیاز شما با موفقیت به‌روزرسانی شد.",

@@ -314,6 +314,34 @@ class Comment(models.Model):
         return self.user_id == user.id or user.is_staff
 
 
+class CommentReaction(models.Model):
+    """A like (+1) or dislike (-1) on a comment by a user."""
+
+    LIKE = 1
+    DISLIKE = -1
+    VALUE_CHOICES = [(LIKE, "Like"), (DISLIKE, "Dislike")]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="comment_reactions"
+    )
+    comment = models.ForeignKey(
+        Comment, on_delete=models.CASCADE, related_name="reactions"
+    )
+    value = models.SmallIntegerField("امتیاز", choices=VALUE_CHOICES)
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
+    updated_at = models.DateTimeField("آخرین ویرایش", auto_now=True)
+
+    class Meta:
+        verbose_name = "واکنش نظر"
+        verbose_name_plural = "واکنش‌های نظرات"
+        unique_together = ("user", "comment")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        label = "لایک" if self.value == self.LIKE == 1 else "دیس‌لایک"
+        return f"{self.user.username} - {label} - Comment#{self.comment_id}"
+
+
 class CenterRating(models.Model):
     """A user star rating for a service center."""
 

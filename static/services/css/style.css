@@ -1276,6 +1276,54 @@ button.muted-link:disabled {
   outline-offset: 1px;
 }
 
+.comment-reactions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.btn-reaction {
+  background: none;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--btn-transition);
+}
+
+.btn-reaction:hover:not(.disabled):not(.active) {
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.btn-reaction.active.btn-like {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: rgba(26, 95, 122, 0.08);
+}
+
+.btn-reaction.active.btn-dislike {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.btn-reaction.disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.reaction-count {
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+
 .comment-edit-form {
   margin-top: 8px;
   padding: 10px;

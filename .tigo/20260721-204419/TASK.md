@@ -1,6 +1,6 @@
 # Reactions on comments
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 65
 - TAGS: UX, feature, comments, enhancement
 
