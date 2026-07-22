@@ -1,0 +1,76 @@
+# Matomo Analytics
+#
+# Self-hosted Matomo analytics that runs alongside the main Agahyar stack.
+# Uses MySQL as the database backend (Matomo's recommended setup).
+#
+# Usage:
+#   docker compose -f docker-compose.matomo.yml up -d
+#
+# Prerequisites:
+#   1. Ensure the traefik-network exists (docker network create traefik-network).
+#   2. Copy matomo/.env.example to matomo/.env and edit it.
+#   3. Add MATOMO_URL and MATOMO_SITE_ID to the main .env file.
+#
+# After first launch:
+#   1. Open https://analytics.${DOMAIN} and complete the Matomo setup wizard.
+#   2. Copy the generated JavaScript tracking code from
+#      Administration > Websites > Tracking Code.
+#   3. Set MATOMO_URL and MATOMO_SITE_ID in the main .env file.
+
+services:
+  # ---- Matomo ----
+  matomo:
+    image: matomo:5
+    restart: unless-stopped
+    environment:
+      - MATOMO_DATABASE_HOST=matomo-db
+      - MATOMO_DATABASE_ADAPTER=mysql
+      - MATOMO_DATABASE_TABLES_PREFIX=matomo_
+      - MATOMO_DATABASE_USERNAME=matomo
+      - MATOMO_DATABASE_PASSWORD=${MATOMO_DB_PASSWORD}
+      - MATOMO_DATABASE_DBNAME=matomo
+      - TZ=Asia/Tehran
+    volumes:
+      - matomo_data:/var/www/html
+    networks:
+      - traefik-network
+      - matomo-network
+    depends_on:
+      matomo-db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.matomo.rule=Host(`analytics.${DOMAIN}`)"
+      - "traefik.http.routers.matomo.entrypoints=websecure"
+      - "traefik.http.routers.matomo.tls=true"
+      - "traefik.http.routers.matomo.tls.certResolver=letsencrypt"
+      - "traefik.http.services.matomo.loadbalancer.server.port=80"
+
+  # ---- MySQL (Matomo backend) ----
+  matomo-db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MATOMO_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: matomo
+      MYSQL_USER: matomo
+      MYSQL_PASSWORD: ${MATOMO_DB_PASSWORD}
+    volumes:
+      - matomo_mysql_data:/var/lib/mysql
+    networks:
+      - matomo-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MATOMO_DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  traefik-network:
+    external: true
+  matomo-network:
+    driver: bridge
+
+volumes:
+  matomo_data:
+  matomo_mysql_data:

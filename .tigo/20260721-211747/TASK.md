@@ -1,6 +1,6 @@
 # Analytics
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 75
 - TAGS: docker, matomo, feature, analytics, enhancement
 

@@ -100,6 +100,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "agahyar_project.context_processors.matomo_context",
             ],
         },
     },
@@ -361,3 +362,9 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.5.1",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+# Matomo Analytics (self-hosted)
+# Set MATOMO_URL and MATOMO_SITE_ID in your .env file to enable tracking.
+# Leave empty or unset to disable analytics.
+MATOMO_URL = config("MATOMO_URL", default="")
+MATOMO_SITE_ID = config("MATOMO_SITE_ID", default="")
