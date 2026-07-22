@@ -23,14 +23,22 @@ BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config(
-    "SECRET_KEY",
-    default="django-insecure-aexfiq%67fwpzkt8^#j#@==qq4p8dpqfw+ux)%h9v#-598*nvh",
-)
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=True, cast=bool)
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# In DEBUG mode an insecure fallback is allowed for convenience.
+_INSECURE_KEY = "django-insecure-aexfiq%67fwpzkt8^#j#@==qq4p8dpqfw+ux)%h9v#-598*nvh"
+SECRET_KEY = config(
+    "SECRET_KEY",
+    default=_INSECURE_KEY if DEBUG else "",
+)
+if not DEBUG and not SECRET_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be set in the environment when DEBUG=False."
+    )
 
 DOMAIN = config("DOMAIN", default="localhost")
 _allowed_default = f"localhost,127.0.0.1,{DOMAIN},www.{DOMAIN}"
@@ -85,7 +93,8 @@ MIDDLEWARE = [
     "agahyar_project.middleware.SessionRefreshMiddleware",
 ]
 
-if config("ENABLE_PROFILING", default=False, cast=bool):
+# VULN-21: Profiling middleware is only allowed in DEBUG mode.
+if DEBUG and config("ENABLE_PROFILING", default=False, cast=bool):
     MIDDLEWARE.append("agahyar_project.middleware.ProfilingMiddleware")
 
 ROOT_URLCONF = "agahyar_project.urls"
@@ -368,3 +377,6 @@ SPECTACULAR_SETTINGS = {
 # Leave empty or unset to disable analytics.
 MATOMO_URL = config("MATOMO_URL", default="")
 MATOMO_SITE_ID = config("MATOMO_SITE_ID", default="")
+
+# Register project-level security checks (VULN-18, VULN-20)
+import agahyar_project.checks  # noqa: E402, F401

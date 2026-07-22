@@ -57,8 +57,10 @@ class ProfilingMiddleware(MiddlewareMixin):
 
         response["X-Profile-Queries"] = str(query_count)
 
-        if request.GET.get("profile") == "1" and "text/html" in response.get(
-            "Content-Type", ""
+        if (
+            request.GET.get("profile") == "1"
+            and getattr(request.user, "is_staff", False)
+            and "text/html" in response.get("Content-Type", "")
         ):
             rows = self._build_table_rows(profiler, query_count)
             block = self._build_html_block(rows)
