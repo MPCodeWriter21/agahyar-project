@@ -62,7 +62,7 @@ class ServiceAdmin(ImportExportModelAdmin):
                 )
             },
         ),
-        ("مدارک و مراحل", {"fields": ("documents", "steps")}),
+        ("مدارک و مراحل", {"fields": ("documents", "steps", "description")}),
         ("کلمات کلیدی", {"fields": ("keywords",)}),
     )
 

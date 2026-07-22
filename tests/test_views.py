@@ -546,6 +546,47 @@ class TestServiceDetailView:
         assert "مدارک مورد نیاز" not in content
         assert "مراحل انجام" not in content
 
+    def test_description_rendered_when_set(self):
+        service = Service.objects.create(
+            name="desc-svc",
+            organization="org",
+            documents="d",
+            steps="s",
+            description="This is a detailed description of the service.",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "توضیحات" in content
+        assert "This is a detailed description of the service." in content
+
+    def test_description_hidden_when_empty(self):
+        service = Service.objects.create(
+            name="no-desc",
+            organization="org",
+            documents="d",
+            steps="s",
+            description="",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "توضیحات" not in content
+
+    def test_description_supports_paragraphs(self):
+        service = Service.objects.create(
+            name="para-svc",
+            organization="org",
+            documents="d",
+            steps="s",
+            description="First paragraph.\n\nSecond paragraph.",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "First paragraph." in content
+        assert "Second paragraph." in content
+
 
 @pytest.mark.django_db
 class TestFAQView:

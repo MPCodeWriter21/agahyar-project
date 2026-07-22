@@ -28,6 +28,7 @@ class Service(models.Model):
     )
     documents = models.TextField("مدارک مورد نیاز")
     steps = models.TextField("مراحل انجام")
+    description = models.TextField("توضیحات", blank=True)
     cost = models.CharField("هزینه تقریبی", max_length=100, blank=True)
     duration = models.CharField("مدت زمان", max_length=100, blank=True)
     more_info_url = models.URLField("لینک اطلاعات بیشتر", blank=True, null=True)

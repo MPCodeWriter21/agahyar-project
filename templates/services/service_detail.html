@@ -42,6 +42,12 @@
     {% endif %}
     <button onclick="window.print()" class="btn-print">چاپ</button>
   </div>
+  {% if service.description %}
+    <div class="info-card">
+      <h3>توضیحات</h3>
+      <div class="service-description">{{ service.description|linebreaksbr }}</div>
+    </div>
+  {% endif %}
   {% if documents %}
     <div class="info-card">
       <h3>مدارک مورد نیاز</h3>
