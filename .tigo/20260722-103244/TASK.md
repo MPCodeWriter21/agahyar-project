@@ -1,6 +1,6 @@
 # Fix the frontend bug with reacting to own comment
 
-- STATUS: OPEN
+- STATUS: CLOSED
 - PRIORITY: 70
 - TAGS: UI, bug, comments, reactions
 

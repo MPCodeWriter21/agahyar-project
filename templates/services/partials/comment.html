@@ -43,26 +43,37 @@
   {% else %}
     <div class="comment-text" id="comment-text-{{ comment.id }}">{{ comment.text|linebreaksbr }}</div>
     {% if user.is_authenticated %}
-      <div class="comment-reactions">
-        <button type="button"
-                class="btn-reaction btn-like {% if user_rx == 1 %}active{% endif %}"
-                data-comment-id="{{ comment.id }}"
-                data-value="1"
-                onclick="toggleReaction({{ comment.id }}, 1, this)"
-                title="لایک">
-          <i class="fas fa-thumbs-up"></i>
-          <span class="reaction-count" id="likes-count-{{ comment.id }}">{{ likes_count|fa }}</span>
-        </button>
-        <button type="button"
-                class="btn-reaction btn-dislike {% if user_rx == -1 %}active{% endif %}"
-                data-comment-id="{{ comment.id }}"
-                data-value="-1"
-                onclick="toggleReaction({{ comment.id }}, -1, this)"
-                title="دیس‌لایک">
-          <i class="fas fa-thumbs-down"></i>
-          <span class="reaction-count" id="dislikes-count-{{ comment.id }}">{{ dislikes_count|fa }}</span>
-        </button>
-      </div>
+      {% if comment.user == user %}
+        <div class="comment-reactions">
+          <span class="btn-reaction btn-like disabled" title="لایک">
+            <i class="fas fa-thumbs-up"></i>
+            <span class="reaction-count" id="likes-count-{{ comment.id }}">{{ likes_count|fa }}</span>
+          </span>
+          <span class="btn-reaction btn-dislike disabled" title="دیس‌لایک">
+            <i class="fas fa-thumbs-down"></i>
+            <span class="reaction-count" id="dislikes-count-{{ comment.id }}">{{ dislikes_count|fa }}</span>
+          </span>
+        </div>
+      {% else %}
+        <div class="comment-reactions">
+          <button type="button"
+                  class="btn-reaction btn-like {% if user_rx == 1 %}active{% endif %}"
+                  data-comment-id="{{ comment.id }}"
+                  data-value="1"
+                  title="لایک">
+            <i class="fas fa-thumbs-up"></i>
+            <span class="reaction-count" id="likes-count-{{ comment.id }}">{{ likes_count|fa }}</span>
+          </button>
+          <button type="button"
+                  class="btn-reaction btn-dislike {% if user_rx == -1 %}active{% endif %}"
+                  data-comment-id="{{ comment.id }}"
+                  data-value="-1"
+                  title="دیس‌لایک">
+            <i class="fas fa-thumbs-down"></i>
+            <span class="reaction-count" id="dislikes-count-{{ comment.id }}">{{ dislikes_count|fa }}</span>
+          </button>
+        </div>
+      {% endif %}
     {% else %}
       <div class="comment-reactions">
         <span class="btn-reaction btn-like disabled" title="لایک">

@@ -54,6 +54,12 @@ document.addEventListener("click", function (e) {
           window.location.href = "/auth/login/";
           return;
         }
+        if (!response.ok) {
+          reactionBtn.disabled = false;
+          return response.json().then(function (err) {
+            if (err.detail) alert(err.detail);
+          });
+        }
         return response.json();
       })
       .then(function (data) {
