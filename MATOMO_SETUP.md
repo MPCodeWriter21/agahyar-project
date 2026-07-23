@@ -84,14 +84,9 @@ empty or unset, no tracking code is rendered.
 
 ## Docker network setup
 
-The Matomo containers connect to two networks:
-
-- `matomo-network` (internal) -- connects Matomo and MySQL to each other.
-- `traefik-network` (external) -- connects Matomo to Traefik for HTTPS routing.
-
-If you run the Agahyar web container on a different network, you may need
-to add `matomo-network` to the web service's `networks` list so that
-the Django application can reach Matomo if needed.
+All Matomo containers connect to `traefik-network` (external), which is
+shared with the main Agahyar stack and Traefik. Both Matomo and MySQL
+communicate over this single network.
 
 ## Backup
 
