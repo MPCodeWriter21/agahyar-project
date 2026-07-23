@@ -16,10 +16,13 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
     """Add Content-Security-Policy and other security headers."""
 
     def process_response(self, request, response: HttpResponse) -> HttpResponse:
+        from django.conf import settings as django_settings
+
+        domain = getattr(django_settings, "DOMAIN", "localhost")
         response["Content-Security-Policy"] = (
-            "default-src 'self'; "
+            f"default-src 'self' *.{domain}; "
+            f"script-src 'self' 'unsafe-inline' *.{domain}; "
             "style-src 'self' 'unsafe-inline'; "
-            "script-src 'self' 'unsafe-inline'; "
             "font-src 'self'; "
             "img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; "
             "frame-ancestors 'none'; "
