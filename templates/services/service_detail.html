@@ -234,17 +234,18 @@
   <script src="{% static 'libs/leaflet/leaflet.js' %}"></script>
   {% if initial_centers %}
     <script>
-        (function() {
+        document.addEventListener("DOMContentLoaded", function() {
             var dataEl = document.getElementById("center-locations-data");
             var cityEl = document.getElementById("city-center-data");
             var centerData = cityEl ? JSON.parse(cityEl.textContent) : {
                 lat: 35.6892,
                 lng: 51.3890
             };
-            window.serviceMap = L.map("service-map");
+            window.serviceMap = L.map("service-map", {
+                attributionControl: false
+            });
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                maxZoom: 18,
-                attribution: "&copy; OpenStreetMap contributors"
+                maxZoom: 18
             }).addTo(window.serviceMap);
             window.serviceMarkers = [];
             var locations = dataEl ? JSON.parse(dataEl.textContent) : [];
@@ -267,7 +268,7 @@
             } else {
                 window.serviceMap.setView([centerData.lat, centerData.lng], 13);
             }
-        })();
+        });
     </script>
   {% endif %}
 {% endblock %}

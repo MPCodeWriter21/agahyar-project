@@ -213,14 +213,15 @@
   <script src="{% static 'libs/leaflet/leaflet.js' %}"></script>
   {% if center_locations %}
     <script>
-        (function() {
+        document.addEventListener("DOMContentLoaded", function() {
             var dataEl = document.getElementById("center-locations-data");
             if (!dataEl) return;
             var locations = JSON.parse(dataEl.textContent);
-            var map = L.map("service-map");
+            var map = L.map("service-map", {
+                attributionControl: false
+            });
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                maxZoom: 18,
-                attribution: "&copy; OpenStreetMap contributors"
+                maxZoom: 18
             }).addTo(map);
             var bounds = L.latLngBounds();
             locations.forEach(function(loc) {
@@ -236,7 +237,7 @@
                     padding: [30, 30]
                 });
             }
-        })();
+        });
     </script>
   {% endif %}
   <script>
