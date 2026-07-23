@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.1] - 2026-07-23
+
+### Fixed
+
+- Removed Leaflet OpenStreetMap attribution text from maps
+- Fixed maps not loading on page load (ReferenceError from `toPersianDigits` called before `main.js` defer script executed)
+- Removed unnecessary `matomo-network` to fix intermittent 504 Gateway Timeout on Matomo dashboard
+- Added `*.DOMAIN` to CSP `script-src` directive to allow Matomo analytics
+
 ## [1.6.0] - 2026-07-22
 
 ### Added
