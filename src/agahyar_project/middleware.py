@@ -16,10 +16,13 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
     """Add Content-Security-Policy and other security headers."""
 
     def process_response(self, request, response: HttpResponse) -> HttpResponse:
+        from django.conf import settings as django_settings
+
+        domain = getattr(django_settings, "DOMAIN", "localhost")
         response["Content-Security-Policy"] = (
-            "default-src 'self'; "
+            f"default-src 'self' *.{domain}; "
+            f"script-src 'self' 'unsafe-inline' *.{domain}; "
             "style-src 'self' 'unsafe-inline'; "
-            "script-src 'self' 'unsafe-inline'; "
             "font-src 'self'; "
             "img-src 'self' data: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; "
             "frame-ancestors 'none'; "
@@ -57,8 +60,10 @@ class ProfilingMiddleware(MiddlewareMixin):
 
         response["X-Profile-Queries"] = str(query_count)
 
-        if request.GET.get("profile") == "1" and "text/html" in response.get(
-            "Content-Type", ""
+        if (
+            request.GET.get("profile") == "1"
+            and getattr(request.user, "is_staff", False)
+            and "text/html" in response.get("Content-Type", "")
         ):
             rows = self._build_table_rows(profiler, query_count)
             block = self._build_html_block(rows)

@@ -1,9 +1,9 @@
-"""Tests for the custom OpenLayers admin widget."""
+"""Tests for the custom admin widgets (OpenLayers map and tag list)."""
 
 import pytest
 from django.test import Client
 
-from services.widgets import LocalOpenLayersWidget
+from services.widgets import LocalOpenLayersWidget, TagListWidget
 
 
 class TestLocalOpenLayersWidget:
@@ -149,3 +149,118 @@ class TestServiceCenterAdminMapWidget:
         response = client.get("/admin/services/servicecenter/add/")
         content = response.content.decode()
         assert "phones-TOTAL_FORMS" in content
+
+
+class TestTagListWidget:
+    """Verify the TagListWidget renders and parses correctly."""
+
+    def test_render_empty(self):
+        w = TagListWidget(separator="|")
+        html = w.render("documents", "", {"id": "id_documents"})
+        assert 'type="hidden"' in html
+        assert 'name="documents"' in html
+        assert 'value=""' in html
+        assert "tag-list-add-btn" in html
+
+    def test_render_single_item(self):
+        w = TagListWidget(separator="|")
+        html = w.render("documents", "doc1", {"id": "id_documents"})
+        assert 'value="doc1"' in html
+        assert html.count('class="tag-list-item"') == 1
+
+    def test_render_multiple_items(self):
+        w = TagListWidget(separator="|")
+        html = w.render("documents", "doc1|doc2|doc3", {"id": "id_documents"})
+        assert html.count('class="tag-list-item"') == 3
+        assert 'value="doc1"' in html
+        assert 'value="doc2"' in html
+        assert 'value="doc3"' in html
+
+    def test_render_pipe_separator_data_attr(self):
+        w = TagListWidget(separator="|")
+        html = w.render("documents", "a|b", {"id": "id_documents"})
+        assert 'data-separator="|"' in html
+
+    def test_render_comma_separator_data_attr(self):
+        w = TagListWidget(separator=",")
+        html = w.render("keywords", "kw1,kw2", {"id": "id_keywords"})
+        assert 'data-separator=","' in html
+
+    def test_render_escapes_html(self):
+        w = TagListWidget(separator="|")
+        html = w.render(
+            "documents", 'a<script>alert("x")</script>', {"id": "id_documents"}
+        )
+        assert "<script>" not in html
+        assert "&lt;script&gt;" in html
+
+    def test_value_from_datadict(self):
+        w = TagListWidget(separator="|")
+        data = {"documents": "a|b|c"}
+        assert w.value_from_datadict(data, {}, "documents") == "a|b|c"
+
+    def test_value_from_datadict_missing(self):
+        w = TagListWidget(separator="|")
+        assert w.value_from_datadict({}, {}, "documents") == ""
+
+    def test_media_includes_js(self):
+        w = TagListWidget(separator="|")
+        assert "services/js/admin-taglist-widget.js" in w.media._js
+
+    def test_media_includes_css(self):
+        w = TagListWidget(separator="|")
+        assert "services/css/admin-rtl.css" in w.media._css.get("all", [])
+
+    def test_media_no_cdn(self):
+        w = TagListWidget(separator="|")
+        all_urls = " ".join(w.media._css.get("all", [])) + " " + " ".join(w.media._js)
+        assert "cdn" not in all_urls.lower()
+
+
+@pytest.mark.django_db
+class TestServiceAdminTagListWidget:
+    """Verify the Service admin page renders the tag list widget."""
+
+    def _login(self, username="admin_tl"):
+        from django.contrib.auth.models import User
+
+        User.objects.create_superuser(username, f"{username}@test.com", "admin12345")
+        client = Client()
+        assert client.login(username=username, password="admin12345")
+        return client
+
+    def test_admin_add_page_has_taglist_widget(self):
+        client = self._login()
+        response = client.get("/admin/services/service/add/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "tag-list-widget" in content
+
+    def test_admin_add_page_has_no_cdn(self):
+        client = self._login("admin_tl2")
+        response = client.get("/admin/services/service/add/")
+        content = response.content.decode()
+        assert "cdn.jsdelivr.net" not in content
+
+    def test_admin_change_page_has_taglist_widget(self):
+        from services.models import Service
+
+        client = self._login("admin_tl3")
+        svc = Service.objects.create(
+            name="tl-test",
+            organization="org",
+            documents="d1|d2",
+            steps="s1|s2",
+            keywords="k1, k2",
+        )
+        response = client.get(f"/admin/services/service/{svc.id}/change/")
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "tag-list-widget" in content
+        assert "tag-list-item" in content
+
+    def test_admin_add_page_has_taglist_js(self):
+        client = self._login("admin_tl4")
+        response = client.get("/admin/services/service/add/")
+        content = response.content.decode()
+        assert "admin-taglist-widget.js" in content

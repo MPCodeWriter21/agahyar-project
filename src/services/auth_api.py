@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 PENDING_TOKEN_CACHE_PREFIX = "api-register:"  # nosec B105
 PHONE_CHANGE_CACHE_PREFIX = "api-phone-change:"
-PENDING_TOKEN_MAX_AGE = timedelta(minutes=5)
+PENDING_TOKEN_MAX_AGE = timedelta(minutes=60)
 
 
 def _create_pending_token(data: dict) -> str:
@@ -189,8 +189,14 @@ def verify_otp_view(request: Request) -> Response:
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if verification.failed_attempts >= PhoneVerification.MAX_FAILED_ATTEMPTS:
+            return Response(
+                {"detail": get_error_message("otp/max-attempts")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         otp_max_age = timedelta(
-            minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+            minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 20)
         )
         if timezone.now() - verification.created_at > otp_max_age:
             return Response(
@@ -199,6 +205,8 @@ def verify_otp_view(request: Request) -> Response:
             )
 
         if not verify_otp(verification.otp_code, data["otp_code"]):
+            verification.failed_attempts += 1
+            verification.save(update_fields=["failed_attempts"])
             return Response(
                 {"detail": get_error_message("otp/invalid")},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -428,8 +436,14 @@ def change_phone_verify_view(request: Request) -> Response:
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if verification.failed_attempts >= PhoneVerification.MAX_FAILED_ATTEMPTS:
+            return Response(
+                {"detail": get_error_message("otp/max-attempts")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         otp_max_age = timedelta(
-            minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+            minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 20)
         )
         if timezone.now() - verification.created_at > otp_max_age:
             return Response(
@@ -438,6 +452,8 @@ def change_phone_verify_view(request: Request) -> Response:
             )
 
         if not verify_otp(verification.otp_code, data["otp_code"]):
+            verification.failed_attempts += 1
+            verification.save(update_fields=["failed_attempts"])
             return Response(
                 {"detail": get_error_message("otp/invalid")},
                 status=status.HTTP_400_BAD_REQUEST,

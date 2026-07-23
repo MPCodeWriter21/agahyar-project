@@ -1,6 +1,6 @@
 [project]
 name = "agahyar"
-version = "1.3.0"
+version = "1.6.1"
 description = "Smart Citizen Information System for Government Services"
 requires-python = ">=3.12"
 classifiers = [
@@ -37,6 +37,9 @@ dev = [
 ]
 prod = [
   "gunicorn>=23",
+]
+scripts = [
+  "Pillow>=12",
 ]
 [tool.uv.build-backend]
 module-name = ["agahyar_project", "services"]

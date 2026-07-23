@@ -10,11 +10,13 @@ from django.contrib.gis.db import models
 from django.utils import timezone
 from import_export.admin import ImportExportModelAdmin
 
+from .forms import ServiceAdminForm
 from .models import (
     FAQ,
     Bookmark,
     CenterRating,
     Comment,
+    CommentReaction,
     ContactMessage,
     InfoReport,
     Service,
@@ -29,6 +31,7 @@ from .resources import (
     ContactMessageResource,
     FAQResource,
     InfoReportResource,
+    ServiceCenterPhoneResource,
     ServiceCenterResource,
     ServiceResource,
     UserProfileResource,
@@ -41,9 +44,27 @@ class ServiceAdmin(ImportExportModelAdmin):
     """Admin configuration for the Service model."""
 
     resource_classes = [ServiceResource]
+    form = ServiceAdminForm
     list_display = ("name", "organization", "cost", "duration")
     search_fields = ("name", "keywords", "organization")
     list_filter = ("organization",)
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "organization",
+                    "organization_address",
+                    "cost",
+                    "duration",
+                    "more_info_url",
+                )
+            },
+        ),
+        ("مدارک و مراحل", {"fields": ("documents", "steps", "description")}),
+        ("کلمات کلیدی", {"fields": ("keywords",)}),
+    )
 
 
 @admin.register(UserProfile)
@@ -72,6 +93,16 @@ class ServiceCenterPhoneInline(admin.TabularInline):
     model = ServiceCenterPhone
     extra = 1
     fields = ("phone", "label", "order")
+
+
+@admin.register(ServiceCenterPhone)
+class ServiceCenterPhoneAdmin(ImportExportModelAdmin):
+    """Admin configuration for ServiceCenterPhone with import/export."""
+
+    resource_classes = [ServiceCenterPhoneResource]
+    list_display = ("center", "phone", "label", "order")
+    search_fields = ("center__name", "phone")
+    list_filter = ("label",)
 
 
 @admin.register(ServiceCenter)
@@ -125,6 +156,15 @@ class CommentAdmin(ImportExportModelAdmin):
     )
     search_fields = ("user__username", "text")
     list_filter = ("created_at", "edited_at")
+
+
+@admin.register(CommentReaction)
+class CommentReactionAdmin(admin.ModelAdmin):
+    """Admin configuration for the CommentReaction model."""
+
+    list_display = ("user", "comment", "value", "created_at")
+    search_fields = ("user__username", "comment__text")
+    list_filter = ("value", "created_at")
 
 
 @admin.register(CenterRating)

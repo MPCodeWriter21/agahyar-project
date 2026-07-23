@@ -265,6 +265,10 @@ body {
 }
 
 .footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   text-align: center;
   padding-top: 30px;
   border-top: 1px solid var(--text-primary);
@@ -408,18 +412,72 @@ body {
 
 /* --- Pagination --- */
 .pagination {
-  text-align: center;
-  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 32px;
+  padding: 8px 0;
+}
+
+.pagination a,
+.pagination .page-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--btn-radius);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--btn-transition);
 }
 
 .pagination a {
-  margin: 0 4px;
+  background: var(--bg-card);
   color: var(--color-accent);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
 }
 
-.pagination span {
+.pagination a:hover {
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 95, 122, 0.2);
+}
+
+.pagination a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.pagination .page-current {
+  background: var(--color-accent);
+  color: var(--text-on-accent);
+  border: 1px solid var(--color-accent);
+  cursor: default;
+}
+
+.pagination .page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.pagination .page-info {
   margin: 0 8px;
   color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 /* --- Auth Containers --- */
@@ -500,6 +558,18 @@ button.muted-link:disabled {
 .otp-description {
   color: var(--text-secondary);
   text-align: center;
+  margin-bottom: 24px;
+  line-height: 1.8;
+}
+
+.otp-notice {
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
   margin-bottom: 24px;
   line-height: 1.8;
 }
@@ -1260,6 +1330,54 @@ button.muted-link:disabled {
   outline-offset: 1px;
 }
 
+.comment-reactions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.btn-reaction {
+  background: none;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--btn-transition);
+}
+
+.btn-reaction:hover:not(.disabled):not(.active) {
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.btn-reaction.active.btn-like {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: rgba(26, 95, 122, 0.08);
+}
+
+.btn-reaction.active.btn-dislike {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.btn-reaction.disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.reaction-count {
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+
 .comment-edit-form {
   margin-top: 8px;
   padding: 10px;
@@ -1739,7 +1857,7 @@ button.muted-link:disabled {
 }
 
 /* --- Report Toast --- */
-.report-toast {
+.app-toast {
   position: fixed;
   bottom: 24px;
   left: 50%;
@@ -1756,7 +1874,11 @@ button.muted-link:disabled {
   pointer-events: none;
 }
 
-.report-toast.show {
+.app-toast--error {
+  background: var(--color-danger);
+}
+
+.app-toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
@@ -2296,6 +2418,20 @@ button.muted-link:disabled {
   text-align: justify;
 }
 
+/* --- GitHub Links --- */
+.footer-github-link {
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  transition:
+    color 0.2s,
+    transform 0.2s;
+}
+
+.footer-github-link:hover {
+  color: var(--color-accent);
+  transform: scale(1.2);
+}
+
 /* --- LTR Input Fields in RTL Layout --- */
 .ltr-input {
   direction: ltr;
@@ -2387,7 +2523,7 @@ button.muted-link:disabled {
 
 .collapsible-content {
   max-height: 800px;
-  overflow: hidden;
+  overflow: visible;
   transition:
     max-height 0.4s ease,
     opacity 0.3s ease;
@@ -2720,6 +2856,16 @@ button.muted-link:disabled {
   }
   .footer-section h4 {
     margin-bottom: 8px;
+  }
+  .pagination {
+    gap: 4px;
+  }
+  .pagination a,
+  .pagination .page-current {
+    min-width: 36px;
+    height: 36px;
+    font-size: 0.82rem;
+    padding: 0 8px;
   }
 }
 
@@ -3138,6 +3284,72 @@ button.muted-link:disabled {
 
 [data-theme="dark"] .custom-select-dropdown {
   scrollbar-color: var(--border-input) transparent;
+}
+
+/* Search input inside custom select dropdown */
+.custom-select-search {
+  position: sticky;
+  top: 0;
+  padding: 8px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  z-index: 1;
+}
+
+.custom-select-search-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: var(--bg-light);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.custom-select-search-input:focus {
+  border-color: var(--color-accent);
+}
+
+[data-theme="dark"] .custom-select-search {
+  background: var(--bg-card);
+  border-bottom-color: var(--border-input);
+}
+
+[data-theme="dark"] .custom-select-search-input {
+  background: var(--bg-light);
+  color: var(--text-primary);
+  border-color: var(--border-input);
+}
+
+[data-theme="dark"] .custom-select-search-input:focus {
+  border-color: var(--color-accent);
+}
+
+/* Load more button inside custom select dropdown */
+.custom-select-load-more {
+  padding: 10px 16px;
+  text-align: center;
+  color: var(--color-accent);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-top: 1px solid var(--border-light);
+}
+
+.custom-select-load-more:hover {
+  background: var(--bg-light);
+}
+
+[data-theme="dark"] .custom-select-load-more {
+  border-top-color: var(--border-input);
+}
+
+[data-theme="dark"] .custom-select-load-more:hover {
+  background: var(--bg-light);
 }
 
 /* --- Print Styles --- */

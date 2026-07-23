@@ -6,41 +6,56 @@
         (function() {
             var t = localStorage.getItem("theme");
             if (t) {
-                document.documentElement.setAttribute("data-theme", t)
+                document.documentElement.setAttribute("data-theme", t);
             }
-        })()
+        })();
     </script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>آگاه‌یار | {% block title %}خدمات دولتی هوشمند{% endblock %}</title>
+    <meta charset="UTF-8" />
+    <link rel="icon"
+          type="image/x-icon"
+          href="{% static 'services/img/favicon.ico' %}" />
+    <link rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="{% static 'services/img/favicon-32x32.png' %}" />
+    <link rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="{% static 'services/img/favicon-16x16.png' %}" />
+    <link rel="apple-touch-icon"
+          sizes="180x180"
+          href="{% static 'services/img/apple-touch-icon.png' %}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}آگاه‌یار{% endblock %}</title>
     <meta name="description"
-          content="{% block meta_description %}سامانه راهنمای هوشمند خدمات دولتی - آگاه‌یار{% endblock %}">
+          content="{% block meta_description %}آگاه‌یار، راهنمای هوشمند خدمات دولتی ایران — اطلاعات دقیق مراکز دولتی، شرایط دریافت خدمات، و پیگیری درخواست‌ها{% endblock %}" />
     <meta name="keywords"
-          content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی{% endblock %}">
+          content="{% block meta_keywords %}خدمات دولتی, آگاه‌یار, سامانه اطلاع‌رسانی, مراکز دولتی, راهنمای خدمات{% endblock %}" />
     <link rel="canonical"
-          href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+          href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}" />
     <meta property="og:title"
-          content="{% block og_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
+          content="{% block og_title %}آگاه‌یار — راهنمای هوشمند خدمات دولتی{% endblock %}" />
     <meta property="og:description"
-          content="{% block og_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
-    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
-    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+          content="{% block og_description %}اطلاعات دقیق مراکز دولتی، شرایط دریافت خدمات، و پیگیری درخواست‌ها{% endblock %}" />
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}" />
+    <meta property="og:url" content="{{ request.build_absolute_uri }}" />
     <meta name="twitter:card"
-          content="{% block twitter_card %}summary{% endblock %}">
+          content="{% block twitter_card %}summary{% endblock %}" />
     <meta name="twitter:title"
-          content="{% block twitter_title %}آگاه‌یار | خدمات دولتی هوشمند{% endblock %}">
+          content="{% block twitter_title %}آگاه‌یار — راهنمای هوشمند خدمات دولتی{% endblock %}" />
     <meta name="twitter:description"
-          content="{% block twitter_description %}سامانه راهنمای هوشمند خدمات دولتی{% endblock %}">
+          content="{% block twitter_description %}اطلاعات دقیق مراکز دولتی، شرایط دریافت خدمات، و پیگیری درخواست‌ها{% endblock %}" />
     <link rel="stylesheet"
-          href="{% static 'libs/fontawesome/css/fontawesome-all.min.css' %}">
-    <link rel="stylesheet" href="{% static 'libs/toastify/toastify.css' %}">
-    <link rel="stylesheet" href="{% static 'services/css/style.css' %}">
+          href="{% static 'libs/fontawesome/css/fontawesome-all.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'libs/toastify/toastify.css' %}" />
+    <link rel="stylesheet" href="{% static 'services/css/style.css' %}" />
     <script defer src="{% static 'services/js/error-translate.js' %}"></script>
     <script defer src="{% static 'services/js/custom-select.js' %}"></script>
     <script defer src="{% static 'services/js/main.js' %}"></script>
     {% block extra_css %}{% endblock %}
   </head>
   <body>
+    <div style="display:none">{% csrf_token %}</div>
     <header class="header">
       <div class="header-container">
         <a class="logo" href="{% url 'home' %}">
@@ -79,7 +94,7 @@
           <h4>آگاه‌یار</h4>
           <p>
             سامانه اطلاع‌رسانی مردمی
-            <br>
+            <br />
             خدمات دولتی
           </p>
         </div>
@@ -98,6 +113,13 @@
       </div>
       <div class="footer-bottom">
         <p>© ۱۴۰۴-۱۴۰۵ - تیم آگاه‌ران | پروژه درس مدیریت پروژه فناوری اطلاعات</p>
+        <a href="https://github.com/Fatemehmohammadganji/agahyar-project"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="footer-github-link"
+           aria-label="GitHub repository">
+          <i class="fab fa-github"></i>
+        </a>
       </div>
     </footer>
     <script src="{% static 'libs/toastify/toastify.js' %}"></script>
@@ -144,5 +166,25 @@
     </script>
     {% block extra_js %}
     {% endblock %}
+    {% if MATOMO_URL and MATOMO_SITE_ID %}
+      <script>
+          var _paq = window._paq = window._paq || [];
+          _paq.push(["trackPageView"]);
+          _paq.push(["enableLinkTracking"]);
+          _paq.push(["setTrackerUrl", "{{ MATOMO_URL }}/matomo.php"]);
+          _paq.push(["setSiteId", "{{ MATOMO_SITE_ID }}"]);
+          (function() {
+              var u = "{{ MATOMO_URL }}/";
+              _paq.push(["setTrackerUrl", u + "matomo.php"]);
+              _paq.push(["setSiteId", "{{ MATOMO_SITE_ID }}"]);
+              var d = document,
+                  g = d.createElement("script"),
+                  s = d.getElementsByTagName("script")[0];
+              g.async = true;
+              g.src = u + "matomo.js";
+              s.parentNode.insertBefore(g, s);
+          })();
+      </script>
+    {% endif %}
   </body>
 </html>

@@ -90,6 +90,10 @@ Code conventions
 - Avoid non-trivial characters (e.g. em-dash `—`, curly quotes, non-ASCII
   punctuation) in source code files — stick to ASCII
 - Do not use emojis anywhere
+- Do NOT escape non-ASCII text (e.g. Persian/Farsi) in JavaScript files.
+  String literals in JS must use readable Unicode characters directly
+  (e.g. `"گزارش شما ثبت شد."`), not escaped sequences
+  (`"\u06AF\u0632\u0627\u0631\u0634 ..."`).
 - Stage files one by one with explicit paths (`git add file1 file2`); do NOT
   use `git add -A` or `git add .` to avoid committing unintended files
 

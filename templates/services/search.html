@@ -1,8 +1,8 @@
 {% extends 'services/base.html' %}
 {% load jalali_tags %}
 {% block title %}نتایج جستجو | آگاه‌یار{% endblock %}
-{% block meta_description %}نتایج جستجوی خدمات دولتی در سامانه آگاه‌یار{% endblock %}
-{% block meta_keywords %}جستجو, خدمات دولتی, آگاه‌یار{% endblock %}
+{% block meta_description %}نتایج جستجوی خدمات و مراکز دولتی — آگاه‌یار{% endblock %}
+{% block meta_keywords %}جستجو, خدمات دولتی, مراکز دولتی, آگاه‌یار{% endblock %}
 {% block content %}
   <div class="search-header">
     <form action="{% url 'search' %}" method="get">
@@ -20,7 +20,11 @@
             <option value="{{ org }}" {% if org_filter == org %}selected{% endif %}>{{ org }}</option>
           {% endfor %}
         </select>
-        <select name="city" onchange="this.form.submit()">
+        <select name="city"
+                data-searchable="true"
+                data-api-url="/api/cities/"
+                data-search-only="true"
+                onchange="this.form.submit()">
           <option value="">همه شهرها</option>
           {% for city in cities %}
             <option value="{{ city }}" {% if city_filter == city %}selected{% endif %}>{{ city }}</option>
@@ -41,16 +45,13 @@
         <div class="service-card">
           <div class="service-card-header">
             <h3>{{ service.name }}</h3>
-            <form method="post"
-                  action="{% url 'toggle_bookmark' service.id %}"
-                  class="bookmark-icon-form">
-              {% csrf_token %}
-              <button type="submit"
-                      class="btn-bookmark-icon"
-                      title="{% if service.id in bookmarked_ids %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
-                <i class="{% if service.id in bookmarked_ids %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
-              </button>
-            </form>
+            <button type="button"
+                    class="btn-bookmark-icon"
+                    data-service-id="{{ service.id }}"
+                    data-bookmarked="{% if service.id in bookmarked_ids %}true{% else %}false{% endif %}"
+                    title="{% if service.id in bookmarked_ids %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
+              <i class="{% if service.id in bookmarked_ids %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
+            </button>
           </div>
           <span class="org-badge">{{ service.organization }}</span>
           <div class="docs-preview">
@@ -66,17 +67,27 @@
         </div>
       {% endfor %}
       {% if page_obj.paginator.num_pages > 1 %}
-        <div class="pagination">
+        <nav class="pagination" aria-label="صفحه‌بندی">
           {% if page_obj.has_previous %}
-            <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page=1">&laquo; اول</a>
+            <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page=1"
+               title="اولین صفحه">&laquo;</a>
             <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.previous_page_number }}">قبلی</a>
           {% endif %}
-          <span>صفحه {{ page_obj.number|fa }} از {{ page_obj.paginator.num_pages|fa }}</span>
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <span class="page-current">{{ num|fa }}</span>
+            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+              <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ num }}">{{ num|fa }}</a>
+            {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
+              <span class="page-ellipsis">...</span>
+            {% endif %}
+          {% endfor %}
           {% if page_obj.has_next %}
             <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.next_page_number }}">بعدی</a>
-            <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.paginator.num_pages }}">آخر &raquo;</a>
+            <a href="?q={{ query }}&organization={{ org_filter }}&city={{ city_filter }}&page={{ page_obj.paginator.num_pages }}"
+               title="آخرین صفحه">&raquo;</a>
           {% endif %}
-        </div>
+        </nav>
       {% endif %}
     {% endif %}
   {% else %}

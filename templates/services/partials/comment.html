@@ -1,4 +1,7 @@
 {% load static jalali_tags comment_tags %}
+{% user_reaction_value comment_reaction_data comment as user_rx %}
+{% reaction_count comment_reaction_data comment "likes" as likes_count %}
+{% reaction_count comment_reaction_data comment "dislikes" as dislikes_count %}
 <div class="comment-item {% if comment.is_deleted %}is-deleted{% endif %} {% if depth > 0 %}comment-reply{% endif %}"
      style="margin-right: {{ depth }}px"
      id="comment-{{ comment.id }}">
@@ -6,7 +9,7 @@
     {% if comment.is_deleted %}
       <span class="comment-user comment-deleted-label">نظر حذف شده</span>
     {% else %}
-      <span class="comment-user">{{ comment.user.first_name|default:comment.user.username }}</span>
+      <span class="comment-user">{% if comment.user.first_name %}{{ comment.user.first_name }} {{ comment.user.last_name }}{% else %}{{ comment.user.username }}{% endif %}</span>
     {% endif %}
     <span class="comment-date">
       {{ comment.created_at|jalali }}
@@ -39,6 +42,50 @@
     <div class="comment-text comment-deleted-text">نظر حذف شده است.</div>
   {% else %}
     <div class="comment-text" id="comment-text-{{ comment.id }}">{{ comment.text|linebreaksbr }}</div>
+    {% if user.is_authenticated %}
+      {% if comment.user == user %}
+        <div class="comment-reactions">
+          <span class="btn-reaction btn-like disabled" title="لایک">
+            <i class="fas fa-thumbs-up"></i>
+            <span class="reaction-count" id="likes-count-{{ comment.id }}">{{ likes_count|fa }}</span>
+          </span>
+          <span class="btn-reaction btn-dislike disabled" title="دیس‌لایک">
+            <i class="fas fa-thumbs-down"></i>
+            <span class="reaction-count" id="dislikes-count-{{ comment.id }}">{{ dislikes_count|fa }}</span>
+          </span>
+        </div>
+      {% else %}
+        <div class="comment-reactions">
+          <button type="button"
+                  class="btn-reaction btn-like {% if user_rx == 1 %}active{% endif %}"
+                  data-comment-id="{{ comment.id }}"
+                  data-value="1"
+                  title="لایک">
+            <i class="fas fa-thumbs-up"></i>
+            <span class="reaction-count" id="likes-count-{{ comment.id }}">{{ likes_count|fa }}</span>
+          </button>
+          <button type="button"
+                  class="btn-reaction btn-dislike {% if user_rx == -1 %}active{% endif %}"
+                  data-comment-id="{{ comment.id }}"
+                  data-value="-1"
+                  title="دیس‌لایک">
+            <i class="fas fa-thumbs-down"></i>
+            <span class="reaction-count" id="dislikes-count-{{ comment.id }}">{{ dislikes_count|fa }}</span>
+          </button>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="comment-reactions">
+        <span class="btn-reaction btn-like disabled" title="لایک">
+          <i class="fas fa-thumbs-up"></i>
+          <span class="reaction-count">{{ likes_count|fa }}</span>
+        </span>
+        <span class="btn-reaction btn-dislike disabled" title="دیس‌لایک">
+          <i class="fas fa-thumbs-down"></i>
+          <span class="reaction-count">{{ dislikes_count|fa }}</span>
+        </span>
+      </div>
+    {% endif %}
     <div id="comment-edit-form-{{ comment.id }}"
          class="comment-edit-form"
          style="display:none">
@@ -82,7 +129,7 @@
     {% endif %}
   {% endif %}
   {% with reply_count=comment.replies.all|length %}
-    {% if reply_count > 0 %}
+    {% if reply_count > 0 and depth < 5 %}
       <button type="button"
               class="btn-toggle-replies"
               onclick="toggleReplies({{ comment.id }}, this)">
@@ -94,7 +141,7 @@
            class="comment-replies"
            style="display:none">
         {% for reply in comment.replies.all %}
-          {% include "services/partials/comment.html" with comment=reply depth=depth|add:"1" %}
+          {% include "services/partials/comment.html" with comment=reply depth=depth|add:"1" comment_reaction_data=comment_reaction_data %}
         {% endfor %}
       </div>
     {% endif %}

@@ -9,18 +9,18 @@ import pytest
 from django.contrib.auth.models import User
 from django.test import Client
 
-from services.forms import LoginForm, ProfileForm, RegisterForm, get_city_choices
+from services.forms import LoginForm, ProfileForm, RegisterForm, get_top_city_choices
 from services.models import Service, ServiceCenter, UserProfile
 
 
 class TestCityChoices:
     @pytest.mark.django_db
-    def test_city_choices_has_placeholder_first(self):
-        choices = get_city_choices()
+    def test_top_city_choices_has_placeholder_first(self):
+        choices = get_top_city_choices()
         assert choices[0] == ("", "شهر خود را انتخاب کنید")
 
     @pytest.mark.django_db
-    def test_city_choices_contains_db_cities(self):
+    def test_top_city_choices_contains_db_cities(self):
         svc = Service.objects.create(
             name="test", organization="o", documents="d", steps="s"
         )
@@ -29,12 +29,12 @@ class TestCityChoices:
             city="تهران",
         )
         c.services.add(svc)
-        choices = get_city_choices()
+        choices = get_top_city_choices()
         city_values = [c for c, _ in choices[1:]]
         assert "تهران" in city_values
 
     @pytest.mark.django_db
-    def test_city_choices_are_dynamic(self):
+    def test_top_city_choices_are_dynamic(self):
         svc = Service.objects.create(
             name="test2", organization="o", documents="d", steps="s"
         )
@@ -43,9 +43,35 @@ class TestCityChoices:
             city="اصفهان",
         )
         c.services.add(svc)
-        choices = get_city_choices()
+        choices = get_top_city_choices()
         city_values = [c for c, _ in choices[1:]]
         assert "اصفهان" in city_values
+
+    @pytest.mark.django_db
+    def test_top_city_choices_ordered_by_center_count(self):
+        svc = Service.objects.create(
+            name="test_order", organization="o", documents="d", steps="s"
+        )
+        for i in range(5):
+            c = ServiceCenter.objects.create(name=f"مرکز الف {i}", city="تهران")
+            c.services.add(svc)
+        c2 = ServiceCenter.objects.create(name="مرکز ب", city="اصفهان")
+        c2.services.add(svc)
+        choices = get_top_city_choices()
+        city_values = [c for c, _ in choices[1:]]
+        assert city_values[0] == "تهران"
+        assert city_values[1] == "اصفهان"
+
+    @pytest.mark.django_db
+    def test_top_city_choices_respects_limit(self):
+        svc = Service.objects.create(
+            name="test_limit", organization="o", documents="d", steps="s"
+        )
+        for i in range(25):
+            c = ServiceCenter.objects.create(name=f"مرکز {i}", city=f"شهر_{i}")
+            c.services.add(svc)
+        choices = get_top_city_choices(limit=5)
+        assert len(choices) == 6
 
     @pytest.mark.django_db
     def test_register_form_uses_dynamic_choices(self):
@@ -99,6 +125,11 @@ class TestRegisterForm:
 
     def test_duplicate_username_error_in_persian(self):
         User.objects.create_user("existinguser", password="pass12345")
+        svc = Service.objects.create(
+            name="test_dup", organization="o", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        c.services.add(svc)
         form = RegisterForm(
             data={
                 "username": "existinguser",
@@ -117,6 +148,11 @@ class TestRegisterForm:
         assert "قبلاً ثبت شده است" in form.errors["username"][0]
 
     def test_duplicate_email_raises_error(self):
+        svc = Service.objects.create(
+            name="test_dup_email", organization="o", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        c.services.add(svc)
         User.objects.create_user("user1", email="dup@test.com", password="pass12345")
         form = RegisterForm(
             data={
@@ -135,6 +171,11 @@ class TestRegisterForm:
         assert "email" in form.errors
 
     def test_duplicate_phone_raises_error(self):
+        svc = Service.objects.create(
+            name="test_dup_phone", organization="o", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        c.services.add(svc)
         user = User.objects.create_user("user1", password="pass12345")
         UserProfile.objects.create(user=user, city="تهران", phone="09121234567")
         form = RegisterForm(
@@ -189,10 +230,55 @@ class TestRegisterForm:
         assert "username" in form.errors
         assert "@" in form.errors["username"][0]
 
+    def test_clean_city_rejects_invalid_city(self):
+        form = RegisterForm(
+            data={
+                "username": "testuser",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "password1": "ComplexPass1!",
+                "password2": "ComplexPass1!",
+                "city": "شهر_ناموجود",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            }
+        )
+        assert not form.is_valid()
+        assert "city" in form.errors
+        assert "معتبر نیست" in form.errors["city"][0]
+
+    def test_clean_city_accepts_valid_city(self):
+        svc = Service.objects.create(
+            name="test_clean", organization="o", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        c.services.add(svc)
+        User.objects.create_user("testcleanuser", password="pass12345")
+        form = RegisterForm(
+            data={
+                "username": "testcleanuser_2",
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "password1": "ComplexPass1!",
+                "password2": "ComplexPass1!",
+                "city": "تهران",
+                "neighborhood": "ونک",
+                "phone": "09121234567",
+            }
+        )
+        assert form.is_valid(), form.errors
+
 
 @pytest.mark.django_db
 class TestProfileForm:
     def test_duplicate_phone_excludes_own_user(self):
+        svc = Service.objects.create(
+            name="test_pf", organization="o", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        c.services.add(svc)
         user = User.objects.create_user("user1", password="pass12345")
         UserProfile.objects.create(user=user, city="تهران", phone="09121234567")
         form = ProfileForm(
@@ -209,6 +295,11 @@ class TestProfileForm:
         assert form.is_valid(), form.errors
 
     def test_duplicate_phone_rejects_other_user(self):
+        svc = Service.objects.create(
+            name="test_pf2", organization="o", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        c.services.add(svc)
         user_a = User.objects.create_user("user_a", password="pass12345")
         UserProfile.objects.create(user=user_a, city="تهران", phone="09121234567")
         user_b = User.objects.create_user("user_b", password="pass12345")
@@ -226,6 +317,46 @@ class TestProfileForm:
         )
         assert not form.is_valid()
         assert "phone" in form.errors
+
+    def test_profile_form_includes_user_city_when_not_in_top20(self):
+        svc = Service.objects.create(
+            name="test_pf3", organization="o", documents="d", steps="s"
+        )
+        for i in range(25):
+            c = ServiceCenter.objects.create(name=f"مرکز {i}", city=f"شهر_{i}")
+            c.services.add(svc)
+        form = ProfileForm(user_city="شهر_نادر")
+        city_values = [v for v, _ in form.fields["city"].widget.choices[1:]]
+        assert "شهر_نادر" in city_values
+
+    def test_profile_form_excludes_duplicate_user_city(self):
+        svc = Service.objects.create(
+            name="test_pf4", organization="o", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        c.services.add(svc)
+        form = ProfileForm(user_city="تهران")
+        city_values = [v for v, _ in form.fields["city"].widget.choices[1:]]
+        assert city_values.count("تهران") == 1
+
+    def test_profile_form_clean_city_rejects_invalid(self):
+        svc = Service.objects.create(
+            name="test_pf5", organization="o", documents="d", steps="s"
+        )
+        c = ServiceCenter.objects.create(name="مرکز تست", city="تهران")
+        c.services.add(svc)
+        form = ProfileForm(
+            data={
+                "first_name": "علی",
+                "last_name": "محمدی",
+                "email": "",
+                "city": "شهر_ناموجود",
+                "neighborhood": "",
+                "phone": "09121234567",
+            }
+        )
+        assert not form.is_valid()
+        assert "city" in form.errors
 
 
 class TestLoginForm:

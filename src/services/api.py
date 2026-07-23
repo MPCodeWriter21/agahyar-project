@@ -8,15 +8,25 @@ must never reach the client.
 
 from django.db import IntegrityError
 from django.db.models import Avg, Count
+from django.shortcuts import get_object_or_404
 from django.templatetags.static import static
 from drf_spectacular.views import SpectacularSwaggerView
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from .models import FAQ, Bookmark, CenterRating, Comment, Service, ServiceCenter
+from .models import (
+    FAQ,
+    Bookmark,
+    CenterRating,
+    Comment,
+    CommentReaction,
+    Service,
+    ServiceCenter,
+)
 from .serializers import (
     BookmarkSerializer,
     CenterRatingSerializer,
@@ -45,6 +55,7 @@ class ServiceViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Service.objects.all().order_by("name")
     serializer_class = ServiceSerializer
+    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "organization", "keywords"]
     ordering_fields = ["name", "organization"]
@@ -69,6 +80,7 @@ class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
         .order_by("name")
     )
     serializer_class = ServiceCenterSerializer
+    permission_classes = [AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "address", "city"]
     ordering_fields = ["name", "city", "avg_rating"]
@@ -89,6 +101,7 @@ class FAQViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = FAQ.objects.all().order_by("order")
     serializer_class = FAQSerializer
+    permission_classes = [AllowAny]
     pagination_class = None
     filter_backends = [filters.SearchFilter]
     search_fields = ["question", "answer", "category"]
@@ -127,7 +140,12 @@ class CommentViewSet(viewsets.ModelViewSet):
         qs = (
             Comment.objects.filter(parent__isnull=True)
             .select_related("user", "deleted_by")
-            .prefetch_related("replies__user", "replies__deleted_by")
+            .prefetch_related(
+                "replies__user",
+                "replies__deleted_by",
+                "reactions",
+                "replies__reactions",
+            )
         )
         service_id = self.request.query_params.get("service")
         center_id = self.request.query_params.get("service_center")
@@ -164,6 +182,62 @@ class CommentViewSet(viewsets.ModelViewSet):
         comment.deleted_by = request.user
         comment.save(update_fields=["deleted_by", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
+    def react(self, request: Request, pk: int | None = None) -> Response:
+        """Toggle a like/dislike reaction on a comment.
+
+        POST ``/api/v1/comments/{id}/react/`` with ``{"value": 1}`` for like
+        or ``{"value": -1}`` for dislike.  Sending the same value again
+        removes the reaction (toggle).  Sending the opposite value switches.
+        """
+        comment = get_object_or_404(Comment, pk=pk)
+        if comment.is_deleted:
+            return Response(
+                {"detail": "امکان واکنش به نظر حذف شده وجود ندارد."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if comment.user == request.user:
+            return Response(
+                {"detail": "امکان واکنش به نظر خودتان وجود ندارد."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        value = request.data.get("value")
+        if value not in (CommentReaction.LIKE, CommentReaction.DISLIKE):
+            return Response(
+                {
+                    "detail": "مقدار واکنش نامعتبر است. مقدار ۱ (لایک) یا -۱ (دیس‌لایک) ارسال کنید."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        reaction, created = CommentReaction.objects.get_or_create(
+            user=request.user,
+            comment=comment,
+            defaults={"value": value},
+        )
+        if not created:
+            if reaction.value == value:
+                reaction.delete()
+                user_reaction = None
+            else:
+                reaction.value = value
+                reaction.save(update_fields=["value", "updated_at"])
+                user_reaction = value
+        else:
+            user_reaction = value
+        likes = comment.reactions.filter(value=CommentReaction.LIKE).count()
+        dislikes = comment.reactions.filter(value=CommentReaction.DISLIKE).count()
+        return Response(
+            {
+                "reacted": user_reaction is not None,
+                "value": user_reaction,
+                "likes": likes,
+                "dislikes": dislikes,
+                "user_reaction": user_reaction,
+            }
+        )
 
 
 class CenterRatingViewSet(viewsets.ViewSet):

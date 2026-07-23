@@ -18,6 +18,7 @@ from services.models import (
     Bookmark,
     CenterRating,
     Comment,
+    CommentReaction,
     PhoneVerification,
     Service,
     ServiceCenter,
@@ -833,7 +834,7 @@ class ChangePhoneAPITest(TestCase):
         token = req_resp.data["pending_token"]
 
         verification = PhoneVerification.objects.filter(phone="09987654321").first()
-        verification.created_at = timezone.now() - timedelta(minutes=10)
+        verification.created_at = timezone.now() - timedelta(minutes=30)
         verification.save(update_fields=["created_at"])
 
         resp = self._verify_phone_change(token)
@@ -1744,22 +1745,189 @@ class BookmarkAPITest(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
+class CommentReactionAPITest(TestCase):
+    """Tests for the /api/v1/comments/{id}/react/ endpoint."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="reactor", password="testpass123")
+        self.other_user = User.objects.create_user(
+            username="other", password="testpass123"
+        )
+        self.third_user = User.objects.create_user(
+            username="third", password="testpass123"
+        )
+        self.service = Service.objects.create(
+            name="خدمت", organization="سازمان", documents="م", steps="م"
+        )
+        self.comment = Comment.objects.create(
+            user=self.other_user, service=self.service, text="نظر تستی"
+        )
+        self.url = f"/api/v1/comments/{self.comment.id}/react/"
+
+    def test_like_requires_auth(self):
+        resp = self.client.post(self.url, {"value": 1}, format="json")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_like_adds_reaction(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(self.url, {"value": 1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 1)
+        self.assertEqual(resp.data["dislikes"], 0)
+        self.assertEqual(resp.data["user_reaction"], 1)
+        self.assertTrue(
+            CommentReaction.objects.filter(
+                user=self.user, comment=self.comment, value=1
+            ).exists()
+        )
+
+    def test_dislike_adds_reaction(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(self.url, {"value": -1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 0)
+        self.assertEqual(resp.data["dislikes"], 1)
+        self.assertEqual(resp.data["user_reaction"], -1)
+
+    def test_toggle_same_value_removes(self):
+        """Posting the same value again should remove the reaction."""
+        self.client.force_authenticate(user=self.user)
+        self.client.post(self.url, {"value": 1}, format="json")
+        resp = self.client.post(self.url, {"value": 1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 0)
+        self.assertIsNone(resp.data["user_reaction"])
+        self.assertFalse(
+            CommentReaction.objects.filter(
+                user=self.user, comment=self.comment
+            ).exists()
+        )
+
+    def test_switch_like_to_dislike(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(self.url, {"value": 1}, format="json")
+        resp = self.client.post(self.url, {"value": -1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 0)
+        self.assertEqual(resp.data["dislikes"], 1)
+        self.assertEqual(resp.data["user_reaction"], -1)
+        self.assertFalse(
+            CommentReaction.objects.filter(
+                user=self.user, comment=self.comment, value=1
+            ).exists()
+        )
+        self.assertTrue(
+            CommentReaction.objects.filter(
+                user=self.user, comment=self.comment, value=-1
+            ).exists()
+        )
+
+    def test_invalid_value_returns_400(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(self.url, {"value": 5}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reaction_on_nonexistent_comment(self):
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(
+            "/api/v1/comments/99999/react/",
+            {"value": 1},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_multiple_users_reactions(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(self.url, {"value": 1}, format="json")
+
+        self.client.force_authenticate(user=self.third_user)
+        resp = self.client.post(self.url, {"value": -1}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes"], 1)
+        self.assertEqual(resp.data["dislikes"], 1)
+
+    def test_cannot_react_to_own_comment(self):
+        own_comment = Comment.objects.create(
+            user=self.user, service=self.service, text="خودم"
+        )
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.post(
+            f"/api/v1/comments/{own_comment.id}/react/",
+            {"value": 1},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_comment_serializer_includes_reaction_counts(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(self.url, {"value": 1}, format="json")
+
+        resp = self.client.get(f"/api/v1/comments/{self.comment.id}/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["likes_count"], 1)
+        self.assertEqual(resp.data["dislikes_count"], 0)
+        self.assertEqual(resp.data["user_reaction"], 1)
+
+
 class SchemaViewTest(TestCase):
     """Tests for the API schema and docs endpoints."""
 
     def setUp(self):
-        self.client = APIClient()
+        from django.test import Client
 
-    def test_api_schema(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="regular", password="pass123")
+        self.staff = User.objects.create_user(
+            username="staff", password="pass123", is_staff=True
+        )
+
+    def test_api_schema_unauthenticated(self):
+        resp = self.client.get("/api/v1/schema/")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_302_FOUND, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_api_schema_non_staff_denied(self):
+        self.client.login(username="regular", password="pass123")
+        resp = self.client.get("/api/v1/schema/")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_302_FOUND, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_api_schema_staff_allowed(self):
+        self.client.login(username="staff", password="pass123")
         resp = self.client.get("/api/v1/schema/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
-    def test_api_docs(self):
+    def test_api_docs_unauthenticated(self):
+        resp = self.client.get("/api/v1/docs/")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_302_FOUND, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_api_docs_non_staff_denied(self):
+        self.client.login(username="regular", password="pass123")
+        resp = self.client.get("/api/v1/docs/")
+        self.assertIn(
+            resp.status_code,
+            [status.HTTP_302_FOUND, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_api_docs_staff_allowed(self):
+        self.client.login(username="staff", password="pass123")
         resp = self.client.get("/api/v1/docs/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
     def test_api_docs_self_hosted_assets(self):
         """Swagger UI must reference self-hosted static files, not CDN."""
+        self.client.login(username="staff", password="pass123")
         resp = self.client.get("/api/v1/docs/")
         content = resp.content.decode()
         self.assertIn("libs/swagger-ui/swagger-ui-bundle.js", content)
@@ -1767,9 +1935,10 @@ class SchemaViewTest(TestCase):
         self.assertNotIn("cdn.jsdelivr.net", content)
 
     def test_api_root(self):
+        self.client.login(username="staff", password="pass123")
         resp = self.client.get("/api/v1/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertIn("services", resp.data)
+        self.assertIn(b"services", resp.content)
 
     def test_nonexistent_api_path(self):
         resp = self.client.get("/api/v1/nonexistent/")
@@ -1977,6 +2146,31 @@ class RegisterAPITest(TestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(User.objects.filter(username="newuser").exists())
 
+    def test_verify_otp_increments_failed_attempts(self):
+        with (
+            override_settings(DISABLE_SMS=True),
+            patch("services.auth_api.generate_otp", return_value=self.FIXED_OTP),
+        ):
+            reg_resp = self._send_otp()
+        token = reg_resp.data["pending_token"]
+        self._verify_otp(token, code="999999")
+        verification = PhoneVerification.objects.filter(phone="09123456789").first()
+        self.assertEqual(verification.failed_attempts, 1)
+
+    def test_verify_otp_blocks_after_max_attempts(self):
+        with (
+            override_settings(DISABLE_SMS=True),
+            patch("services.auth_api.generate_otp", return_value=self.FIXED_OTP),
+        ):
+            reg_resp = self._send_otp()
+        token = reg_resp.data["pending_token"]
+        verification = PhoneVerification.objects.filter(phone="09123456789").first()
+        verification.failed_attempts = PhoneVerification.MAX_FAILED_ATTEMPTS
+        verification.save(update_fields=["failed_attempts"])
+        resp = self._verify_otp(token, code="999999")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(User.objects.filter(username="newuser").exists())
+
     def test_verify_otp_invalid_token_rejected(self):
         resp = self._verify_otp("garbage-token", code=self.FIXED_OTP)
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2034,7 +2228,7 @@ class RegisterAPITest(TestCase):
 
         # Backdate the verification to simulate expiry
         verification = PhoneVerification.objects.filter(phone="09123456789").first()
-        verification.created_at = timezone.now() - timedelta(minutes=10)
+        verification.created_at = timezone.now() - timedelta(minutes=30)
         verification.save(update_fields=["created_at"])
 
         resp = self._verify_otp(token)

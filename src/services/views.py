@@ -5,12 +5,14 @@ bookmarks, ratings, profile, FAQ, contact, nearby centers,
 and SEO endpoints, with rate limiting on sensitive views.
 """
 
+import csv
+import io
 import json
 import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings as django_settings
 from django.contrib import messages
@@ -18,6 +20,8 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.gis.geos import Point
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, F, Q, QuerySet
 from django.db.models.functions import TruncWeek
@@ -38,8 +42,8 @@ from .forms import (
     ProfileForm,
     RegisterForm,
     SetNewPasswordForm,
-    get_city_choices,
     get_default_city,
+    get_top_city_choices,
 )
 from .maps import get_center_locations, get_city_center
 from .models import (
@@ -52,6 +56,7 @@ from .models import (
     PhoneVerification,
     Service,
     ServiceCenter,
+    ServiceCenterPhone,
     UserProfile,
 )
 from .otp import generate_otp, hash_otp, verify_otp
@@ -111,7 +116,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
                 return render(
                     request,
                     "services/auth/register.html",
-                    {"form": form, "city_choices": get_city_choices()},
+                    {"form": form, "city_choices": get_top_city_choices()},
                 )
 
             messages.success(request, get_error_message("otp/sent"))
@@ -122,7 +127,7 @@ def register_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "services/auth/register.html",
-        {"form": form, "city_choices": get_city_choices()},
+        {"form": form, "city_choices": get_top_city_choices()},
     )
 
 
@@ -178,8 +183,16 @@ def verify_otp_view(request: HttpRequest) -> HttpResponse:
                     {"form": form, "phone": phone, "cooldown": cooldown},
                 )
 
+            if verification.failed_attempts >= PhoneVerification.MAX_FAILED_ATTEMPTS:
+                messages.error(request, get_error_message("otp/max-attempts"))
+                return render(
+                    request,
+                    "services/auth/verify_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
             otp_max_age = timedelta(
-                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 20)
             )
             if timezone.now() - verification.created_at > otp_max_age:
                 messages.error(request, get_error_message("otp/expired"))
@@ -190,6 +203,8 @@ def verify_otp_view(request: HttpRequest) -> HttpResponse:
                 )
 
             if not verify_otp(verification.otp_code, otp_code):
+                verification.failed_attempts += 1
+                verification.save(update_fields=["failed_attempts"])
                 messages.error(request, get_error_message("otp/invalid"))
                 return render(
                     request,
@@ -279,15 +294,12 @@ def resend_otp_view(request: HttpRequest) -> HttpResponse:
     return redirect("verify_otp")
 
 
-@ratelimit(key="ip", rate="2/m", method="POST", block=False)
+@ratelimit(key="ip", rate="2/m", method="POST", block=True)
 def resend_otp_api(request: HttpRequest) -> JsonResponse:
     """API endpoint for resending OTP codes via AJAX.
 
     POST: validates cooldown, generates a new OTP, sends it, and returns JSON
     with the remaining cooldown for the next resend.
-
-    Rate limiting is checked but does not block -- the response body reports
-    the error so the frontend can display it gracefully.
     """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -314,13 +326,6 @@ def resend_otp_api(request: HttpRequest) -> JsonResponse:
                 "error": get_error_message("otp/cooldown", seconds=str(remaining)),
                 "cooldown": remaining,
             },
-            status=429,
-        )
-
-    was_limited = getattr(request, "view_limited", False)
-    if was_limited:
-        return JsonResponse(
-            {"error": get_error_message("otp/too-many-resends")},
             status=429,
         )
 
@@ -384,8 +389,16 @@ def verify_profile_otp_view(request: HttpRequest) -> HttpResponse:
                     {"form": form, "phone": phone, "cooldown": cooldown},
                 )
 
+            if verification.failed_attempts >= PhoneVerification.MAX_FAILED_ATTEMPTS:
+                messages.error(request, get_error_message("otp/max-attempts"))
+                return render(
+                    request,
+                    "services/auth/verify_profile_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
             otp_max_age = timedelta(
-                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 20)
             )
             if timezone.now() - verification.created_at > otp_max_age:
                 messages.error(request, get_error_message("otp/expired"))
@@ -396,6 +409,8 @@ def verify_profile_otp_view(request: HttpRequest) -> HttpResponse:
                 )
 
             if not verify_otp(verification.otp_code, otp_code):
+                verification.failed_attempts += 1
+                verification.save(update_fields=["failed_attempts"])
                 messages.error(request, get_error_message("otp/invalid"))
                 return render(
                     request,
@@ -431,7 +446,7 @@ def verify_profile_otp_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-@ratelimit(key="ip", rate="2/m", method="POST", block=False)
+@ratelimit(key="ip", rate="2/m", method="POST", block=True)
 def resend_profile_otp_api(request: HttpRequest) -> JsonResponse:
     """API endpoint for resending OTP during profile phone change.
 
@@ -456,13 +471,6 @@ def resend_profile_otp_api(request: HttpRequest) -> JsonResponse:
                 "error": get_error_message("otp/cooldown", seconds=str(remaining)),
                 "cooldown": remaining,
             },
-            status=429,
-        )
-
-    was_limited = getattr(request, "view_limited", False)
-    if was_limited:
-        return JsonResponse(
-            {"error": get_error_message("otp/too-many-resends")},
             status=429,
         )
 
@@ -634,8 +642,16 @@ def verify_password_reset_otp_view(request: HttpRequest) -> HttpResponse:
                     {"form": form, "phone": phone, "cooldown": cooldown},
                 )
 
+            if verification.failed_attempts >= PhoneVerification.MAX_FAILED_ATTEMPTS:
+                messages.error(request, get_error_message("otp/max-attempts"))
+                return render(
+                    request,
+                    "services/auth/verify_password_reset_otp.html",
+                    {"form": form, "phone": phone, "cooldown": cooldown},
+                )
+
             otp_max_age = timedelta(
-                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 5)
+                minutes=getattr(django_settings, "OTP_EXPIRE_MINUTES", 20)
             )
             if timezone.now() - verification.created_at > otp_max_age:
                 messages.error(request, get_error_message("otp/expired"))
@@ -646,6 +662,8 @@ def verify_password_reset_otp_view(request: HttpRequest) -> HttpResponse:
                 )
 
             if not verify_otp(verification.otp_code, otp_code):
+                verification.failed_attempts += 1
+                verification.save(update_fields=["failed_attempts"])
                 messages.error(request, get_error_message("otp/invalid"))
                 return render(
                     request,
@@ -695,13 +713,6 @@ def resend_password_reset_otp_api(request: HttpRequest) -> JsonResponse:
                 "error": get_error_message("otp/cooldown", seconds=str(remaining)),
                 "cooldown": remaining,
             },
-            status=429,
-        )
-
-    was_limited = getattr(request, "view_limited", False)
-    if was_limited:
-        return JsonResponse(
-            {"error": get_error_message("otp/too-many-resends")},
             status=429,
         )
 
@@ -962,13 +973,35 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
     top_level_comments = (
         Comment.objects.filter(service=service, parent__isnull=True)
         .select_related("user", "deleted_by")
-        .prefetch_related("replies__user", "replies__deleted_by")
+        .prefetch_related(
+            "replies__user", "replies__deleted_by", "reactions", "replies__reactions"
+        )
     )
 
     comment_page = int(request.GET.get("comment_page", 1))
     comment_paginator = Paginator(top_level_comments, COMMENTS_PER_PAGE)
     comment_page_obj = comment_paginator.get_page(comment_page)
     has_more_comments = comment_page_obj.has_next()
+
+    from .models import CommentReaction
+
+    comment_reaction_data = {}
+    all_comments = list(comment_page_obj) + [
+        r for c in comment_page_obj for r in c.replies.all()
+    ]
+    for c in all_comments:
+        likes = 0
+        dislikes = 0
+        user_rx = None
+        user_id = request.user.id if request.user.is_authenticated else None
+        for rx in c.reactions.all():
+            if rx.value == CommentReaction.LIKE:
+                likes += 1
+            elif rx.value == CommentReaction.DISLIKE:
+                dislikes += 1
+            if user_rx is None and user_id and rx.user_id == user_id:
+                user_rx = rx.value
+        comment_reaction_data[c.id] = (likes, dislikes, user_rx)
 
     comment_form = None
     if request.user.is_authenticated:
@@ -993,6 +1026,7 @@ def service_detail(request: HttpRequest, service_id: int) -> HttpResponse:
             "has_more_comments": has_more_comments,
             "comment_page": comment_page,
             "comment_form": comment_form,
+            "comment_reaction_data": comment_reaction_data,
             "breadcrumbs": [
                 {"label": "خانه", "url": "/"},
                 {"label": "خدمات", "url": "/services/"},
@@ -1090,10 +1124,9 @@ def nearby_centers_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+@staff_member_required
 def show_users(request: HttpRequest) -> HttpResponse:
-    """List all users with their profile data."""
-    if not request.user.is_authenticated:
-        return redirect("login")
+    """List all users with their profile data (staff only)."""
     users: QuerySet = User.objects.select_related("profile").all().order_by("id")
     return render(
         request,
@@ -1136,9 +1169,13 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             }
         )
 
+    user_city = profile.city if profile else None
+
     if request.method == "POST":
         if "update_profile" in request.POST:
-            form = ProfileForm(request.POST, user_id=request.user.id)
+            form = ProfileForm(
+                request.POST, user_id=request.user.id, user_city=user_city
+            )
             password_form = PersianPasswordChangeForm(request.user)
             if form.is_valid():
                 new_phone = form.cleaned_data["phone"]
@@ -1174,7 +1211,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
                 messages.success(request, get_error_message("profile/updated"))
                 return redirect("profile")
         elif "change_password" in request.POST:
-            form = ProfileForm(initial=profile_initial)
+            form = ProfileForm(initial=profile_initial, user_city=user_city)
             password_form = PersianPasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
                 password_form.save()
@@ -1185,8 +1222,12 @@ def profile_view(request: HttpRequest) -> HttpResponse:
                     request, "خطا در تغییر رمز عبور. لطفاً خطوط قرمز را بررسی کنید."
                 )
     else:
-        form = ProfileForm(initial=profile_initial)
+        form = ProfileForm(initial=profile_initial, user_city=user_city)
         password_form = PersianPasswordChangeForm(request.user)
+
+    city_choices = get_top_city_choices()
+    if user_city and not any(v == user_city for v, _ in city_choices[1:]):
+        city_choices.insert(1, (user_city, user_city))
 
     return render(
         request,
@@ -1195,7 +1236,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
             "form": form,
             "password_form": password_form,
             "profile": profile,
-            "city_choices": get_city_choices(),
+            "city_choices": city_choices,
             "breadcrumbs": [
                 {"label": "خانه", "url": "/"},
                 {"label": "پروفایل"},
@@ -1255,7 +1296,8 @@ def toggle_bookmark(request: HttpRequest, service_id: int) -> HttpResponse:
     """Toggle bookmark on a service.
 
     GET: redirects to service detail.
-    POST: toggles bookmark for the given service.
+    POST (AJAX): toggles bookmark and returns JSON.
+    POST (regular): toggles bookmark and redirects to service detail.
     """
 
     if request.method != "POST":
@@ -1267,10 +1309,17 @@ def toggle_bookmark(request: HttpRequest, service_id: int) -> HttpResponse:
     )
     if not created:
         bookmark.delete()
-        messages.success(request, get_error_message("bookmark/removed"))
+        bookmarked = False
+        msg = get_error_message("bookmark/removed")
     else:
-        messages.success(request, get_error_message("bookmark/added"))
+        bookmarked = True
+        msg = get_error_message("bookmark/added")
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    if is_ajax:
+        return JsonResponse({"bookmarked": bookmarked, "message": msg})
+
+    messages.success(request, msg)
     return redirect("service_detail", service_id=service_id)
 
 
@@ -1422,13 +1471,35 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
     top_level_comments = (
         Comment.objects.filter(service_center=center, parent__isnull=True)
         .select_related("user", "deleted_by")
-        .prefetch_related("replies__user", "replies__deleted_by")
+        .prefetch_related(
+            "replies__user", "replies__deleted_by", "reactions", "replies__reactions"
+        )
     )
 
     comment_page = int(request.GET.get("comment_page", 1))
     comment_paginator = Paginator(top_level_comments, COMMENTS_PER_PAGE)
     comment_page_obj = comment_paginator.get_page(comment_page)
     has_more_comments = comment_page_obj.has_next()
+
+    from .models import CommentReaction
+
+    comment_reaction_data = {}
+    all_comments = list(comment_page_obj) + [
+        r for c in comment_page_obj for r in c.replies.all()
+    ]
+    for c in all_comments:
+        likes = 0
+        dislikes = 0
+        user_rx = None
+        user_id = request.user.id if request.user.is_authenticated else None
+        for rx in c.reactions.all():
+            if rx.value == CommentReaction.LIKE:
+                likes += 1
+            elif rx.value == CommentReaction.DISLIKE:
+                dislikes += 1
+            if user_rx is None and user_id and rx.user_id == user_id:
+                user_rx = rx.value
+        comment_reaction_data[c.id] = (likes, dislikes, user_rx)
 
     center_locations = get_center_locations(ServiceCenter.objects.filter(id=center.id))
 
@@ -1453,6 +1524,7 @@ def center_detail(request: HttpRequest, center_id: int) -> HttpResponse:
             "comment_page": comment_page,
             "comment_form": comment_form,
             "rating_form": rating_form,
+            "comment_reaction_data": comment_reaction_data,
             "breadcrumbs": [
                 {"label": "خانه", "url": "/"},
                 {"label": "خدمات", "url": "/services/"},
@@ -1740,17 +1812,35 @@ def load_comments(
     else:
         return JsonResponse({"error": "invalid target"}, status=400)
 
-    qs = qs.select_related("user").prefetch_related("replies__user")
+    qs = qs.select_related("user").prefetch_related(
+        "replies__user", "reactions", "replies__reactions"
+    )
 
     paginator = Paginator(qs, COMMENTS_PER_PAGE)
     page_obj = paginator.get_page(page)
 
+    from .models import CommentReaction
+
     html_parts = []
     for comment in page_obj:
+        likes_count = comment.reactions.filter(value=CommentReaction.LIKE).count()
+        dislikes_count = comment.reactions.filter(value=CommentReaction.DISLIKE).count()
+        user_reaction = None
+        if request.user.is_authenticated:
+            reaction = comment.reactions.filter(user=request.user).first()
+            user_reaction = reaction.value if reaction else None
+        comment_reaction_data = {
+            comment.id: (likes_count, dislikes_count, user_reaction),
+        }
         html_parts.append(
             render_to_string(
                 "services/partials/comment.html",
-                {"comment": comment, "depth": 0, "user": request.user},
+                {
+                    "comment": comment,
+                    "depth": 0,
+                    "user": request.user,
+                    "comment_reaction_data": comment_reaction_data,
+                },
                 request=request,
             )
         )
@@ -1759,6 +1849,54 @@ def load_comments(
         {
             "html": "".join(html_parts),
             "has_next": page_obj.has_next(),
+        }
+    )
+
+
+def cities_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint: return cities with service center counts.
+
+    GET ``/api/cities/`` returns the top cities ordered by center count.
+    Query params:
+
+    - ``page`` (default 1): page number
+    - ``per_page`` (default 20): results per page
+    - ``search``: filter cities by name (case-insensitive contains)
+    - ``city``: return a single city by exact name
+    """
+    page = int(request.GET.get("page", 1))
+    per_page = min(int(request.GET.get("per_page", 20)), 50)
+    search = request.GET.get("search", "").strip()
+    single_city = request.GET.get("city", "").strip()
+
+    qs = (
+        ServiceCenter.objects.values("city")
+        .annotate(center_count=Count("id"))
+        .order_by("-center_count")
+    )
+
+    if single_city:
+        qs = qs.filter(city__iexact=single_city)
+        cities_data = [
+            {"name": c["city"], "center_count": c["center_count"]} for c in qs[:1]
+        ]
+        return JsonResponse({"cities": cities_data, "has_next": False, "page": 1})
+
+    if search:
+        qs = qs.filter(city__icontains=search)
+
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page)
+
+    cities_data = [
+        {"name": c["city"], "center_count": c["center_count"]} for c in page_obj
+    ]
+
+    return JsonResponse(
+        {
+            "cities": cities_data,
+            "has_next": page_obj.has_next(),
+            "page": page,
         }
     )
 
@@ -1796,10 +1934,10 @@ def sitemap_xml(request: HttpRequest) -> HttpResponse:
             else site_url + reverse(name, args=[arg])
         )
         urls += f"<url><loc>{url}</loc><priority>{priority}</priority></url>\n"
-    for service in Service.objects.all():
+    for service in Service.objects.all().iterator():
         url = site_url + reverse("service_detail", args=[service.id])
         urls += f"<url><loc>{url}</loc><priority>0.6</priority></url>\n"
-    for center in ServiceCenter.objects.all():
+    for center in ServiceCenter.objects.all().iterator():
         url = site_url + reverse("center_detail", args=[center.id])
         urls += f"<url><loc>{url}</loc><priority>0.5</priority></url>\n"
     xml = (
@@ -1816,7 +1954,17 @@ def admin_stats(request: HttpRequest) -> HttpResponse:
 
     Displays model counts, recent activity, popular services,
     top-rated centers, and weekly trend charts.
+
+    The expensive aggregate queries are cached for 5 minutes to
+    avoid repeated full-table scans on every page load.
     """
+    STATS_CACHE_KEY = "admin_stats_data"
+    STATS_CACHE_TTL = 300  # 5 minutes
+
+    cached = cache.get(STATS_CACHE_KEY)
+    if cached is not None:
+        return render(request, "services/admin_stats.html", cached)
+
     now = timezone.now()
     twelve_weeks_ago = now - timedelta(weeks=12)
 
@@ -1898,21 +2046,21 @@ def admin_stats(request: HttpRequest) -> HttpResponse:
         [{"name": s.name, "count": s.comment_count} for s in popular_services]
     )
 
-    return render(
-        request,
-        "services/admin_stats.html",
-        {
-            "overview": overview,
-            "recent_users": recent_users,
-            "recent_comments": recent_comments,
-            "popular_services": popular_services,
-            "top_centers": top_centers,
-            "chart_reg": chart_reg,
-            "chart_comments": chart_comments,
-            "chart_ratings": chart_ratings,
-            "chart_services": chart_services,
-        },
-    )
+    context = {
+        "overview": overview,
+        "recent_users": recent_users,
+        "recent_comments": recent_comments,
+        "popular_services": popular_services,
+        "top_centers": top_centers,
+        "chart_reg": chart_reg,
+        "chart_comments": chart_comments,
+        "chart_ratings": chart_ratings,
+        "chart_services": chart_services,
+    }
+
+    cache.set(STATS_CACHE_KEY, context, STATS_CACHE_TTL)
+
+    return render(request, "services/admin_stats.html", context)
 
 
 NESHAN_SEARCH_URL = "https://api.neshan.org/v1/search"
@@ -1962,3 +2110,257 @@ def neshan_search(request: HttpRequest) -> JsonResponse:
             {"error": "Could not reach the Neshan search API."},
             status=502,
         )
+
+
+EXPORTABLE_MODELS = [
+    Service,
+    ServiceCenter,
+    ServiceCenterPhone,
+    FAQ,
+    UserProfile,
+    ContactMessage,
+    Comment,
+    CenterRating,
+    Bookmark,
+    InfoReport,
+]
+
+IMPORT_ORDER = [
+    Service,
+    FAQ,
+    UserProfile,
+    ContactMessage,
+    ServiceCenter,
+    ServiceCenterPhone,
+    Comment,
+    CenterRating,
+    Bookmark,
+    InfoReport,
+    PhoneVerification,
+]
+
+
+class _ExportEncoder(json.JSONEncoder):
+    """Handle datetime and other non-serializable types."""
+
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        if isinstance(o, Point):
+            return f"{o.y},{o.x}"
+        return super().default(o)
+
+
+def _model_to_dict(obj):
+    """Convert a model instance to a flat dictionary."""
+    data = {}
+    for field in obj._meta.get_fields():
+        if field.many_to_many and not field.auto_created:
+            data[field.attname] = list(
+                getattr(obj, field.attname).values_list("pk", flat=True)
+            )
+        elif hasattr(field, "attname"):
+            value = getattr(obj, field.attname, None)
+            if isinstance(value, Point):
+                value = f"{value.y},{value.x}"
+            data[field.attname] = value
+    if hasattr(obj, "pk"):
+        data["pk"] = obj.pk
+    return data
+
+
+@staff_member_required
+def admin_data_transfer(request: HttpRequest) -> HttpResponse:
+    """Admin page for bulk export/import of selected models.
+
+    Export: pick models and format, download a JSON/CSV file.
+    Import: upload a JSON file produced by export, optionally dry-run.
+    """
+    model_choices = []
+    for model in EXPORTABLE_MODELS:
+        label = model._meta.label
+        model_choices.append(
+            {
+                "value": label,
+                "label": model._meta.verbose_name.title(),
+                "count": model.objects.count(),
+            }
+        )
+
+    context = {
+        "model_choices": model_choices,
+        "title": "Bulk Data Export / Import",
+    }
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "export":
+            selected_labels = request.POST.getlist("models")
+            fmt = request.POST.get("format", "json")
+
+            selected_models = [
+                m for m in EXPORTABLE_MODELS if m._meta.label in selected_labels
+            ]
+            if not selected_models:
+                context["error"] = "No models selected."
+                return render(request, "services/admin_data_transfer.html", context)
+
+            if fmt == "json":
+                result = []
+                for model in selected_models:
+                    label = model._meta.label
+                    for obj in model.objects.all():
+                        record = _model_to_dict(obj)
+                        record["_model"] = label
+                        result.append(record)
+                content = json.dumps(
+                    result, ensure_ascii=False, indent=2, cls=_ExportEncoder
+                )
+                content_type = "application/json"
+                ext = "json"
+            else:
+                rows = []
+                for model in selected_models:
+                    label = model._meta.label
+                    for obj in model.objects.all():
+                        row = _model_to_dict(obj)
+                        row["_model"] = label
+                        rows.append(row)
+                if not rows:
+                    context["error"] = "No data to export."
+                    return render(request, "services/admin_data_transfer.html", context)
+                all_keys = []
+                seen = set()
+                for row in rows:
+                    for key in row:
+                        if key not in seen:
+                            all_keys.append(key)
+                            seen.add(key)
+                buf = io.StringIO()
+                writer = csv.DictWriter(buf, fieldnames=all_keys)
+                writer.writeheader()
+                for row in rows:
+                    writer.writerow(row)
+                content = buf.getvalue()
+                content_type = "text/csv"
+                ext = "csv"
+
+            response = HttpResponse(content, content_type=content_type)
+            filename = f"agahyar_export.{ext}"
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+
+        elif action == "import":
+            upload_file = request.FILES.get("import_file")
+            dry_run = request.POST.get("dry_run") == "on"
+
+            if not upload_file:
+                context["error"] = "No file uploaded."
+                return render(request, "services/admin_data_transfer.html", context)
+
+            max_import_size = 10 * 1024 * 1024  # 10 MB
+            if upload_file.size > max_import_size:
+                context["error"] = "File is too large. Maximum allowed size is 10 MB."
+                return render(request, "services/admin_data_transfer.html", context)
+
+            try:
+                raw = upload_file.read().decode("utf-8")
+                data = json.loads(raw)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                context["error"] = f"Invalid JSON file: {exc}"
+                return render(request, "services/admin_data_transfer.html", context)
+
+            if not isinstance(data, list):
+                context["error"] = "Expected a JSON array of records."
+                return render(request, "services/admin_data_transfer.html", context)
+
+            max_import_records = 10000
+            if len(data) > max_import_records:
+                context["error"] = (
+                    f"File contains {len(data):,} records. "
+                    f"Maximum allowed is {max_import_records:,}."
+                )
+                return render(request, "services/admin_data_transfer.html", context)
+
+            model_map = {m._meta.label: m for m in IMPORT_ORDER}
+            order_map = {m._meta.label: i for i, m in enumerate(IMPORT_ORDER)}
+            data.sort(
+                key=lambda r: order_map.get(r.get("_model", ""), len(IMPORT_ORDER))
+            )
+
+            created = 0
+            updated = 0
+            skipped = 0
+            errors = []
+            m2m_pending = []
+
+            for record in data:
+                model_label = record.get("_model")
+                if not model_label or model_label not in model_map:
+                    skipped += 1
+                    continue
+
+                model = model_map[model_label]
+                fields = {k: v for k, v in record.items() if k != "_model"}
+                pk = fields.pop("pk", None)
+
+                m2m_fields = {}
+                for field in model._meta.get_fields():
+                    if field.many_to_many and not field.auto_created:
+                        attname = field.attname
+                        if attname in fields:
+                            m2m_fields[attname] = fields.pop(attname)
+
+                if "coordinate" in fields and isinstance(fields["coordinate"], str):
+                    try:
+                        lat, lng = fields["coordinate"].split(",")
+                        fields["coordinate"] = Point(float(lng), float(lat), srid=4326)
+                    except (ValueError, AttributeError):
+                        fields["coordinate"] = None
+
+                if dry_run:
+                    created += 1
+                    continue
+
+                try:
+                    obj, is_new = model.objects.update_or_create(pk=pk, defaults=fields)
+                    if is_new:
+                        created += 1
+                    else:
+                        updated += 1
+                    if m2m_fields:
+                        m2m_pending.append((obj, m2m_fields, model_label))
+                except Exception as exc:
+                    errors.append(f"{model_label} pk={pk}: {exc}")
+                    skipped += 1
+
+            if not dry_run:
+                for obj, m2m_fields, model_label in m2m_pending:
+                    for attname, pk_list in m2m_fields.items():
+                        if not isinstance(pk_list, list):
+                            continue
+                        try:
+                            related_field = getattr(obj, attname)
+                            related_model = related_field.model
+                            valid_pks = related_model.objects.filter(
+                                pk__in=pk_list
+                            ).values_list("pk", flat=True)
+                            related_field.set(valid_pks)
+                        except Exception as exc:
+                            errors.append(
+                                f"M2M {model_label} pk={obj.pk} {attname}: {exc}"
+                            )
+                            skipped += 1
+
+            verb = "Previewed" if dry_run else "Imported"
+            context["import_result"] = {
+                "verb": verb,
+                "created": created,
+                "updated": updated,
+                "skipped": skipped,
+                "errors": errors,
+            }
+            return render(request, "services/admin_data_transfer.html", context)
+
+    return render(request, "services/admin_data_transfer.html", context)

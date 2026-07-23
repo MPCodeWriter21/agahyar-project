@@ -26,8 +26,9 @@ class Service(models.Model):
     organization_address = models.CharField(
         "آدرس سازمان", max_length=300, blank=True, null=True
     )
-    documents = models.TextField("مدارک مورد نیاز (با | جدا شود)")
-    steps = models.TextField("مراحل انجام (با | جدا شود)")
+    documents = models.TextField("مدارک مورد نیاز")
+    steps = models.TextField("مراحل انجام")
+    description = models.TextField("توضیحات", blank=True)
     cost = models.CharField("هزینه تقریبی", max_length=100, blank=True)
     duration = models.CharField("مدت زمان", max_length=100, blank=True)
     more_info_url = models.URLField("لینک اطلاعات بیشتر", blank=True, null=True)
@@ -42,11 +43,27 @@ class Service(models.Model):
 
     def get_documents_list(self) -> list:
         """Return documents as a list split by ``|``."""
-        return self.documents.split("|") if self.documents else []
+        return (
+            [d.strip() for d in self.documents.split("|") if d.strip()]
+            if self.documents
+            else []
+        )
 
     def get_steps_list(self) -> list:
         """Return steps as a list split by ``|``."""
-        return self.steps.split("|") if self.steps else []
+        return (
+            [s.strip() for s in self.steps.split("|") if s.strip()]
+            if self.steps
+            else []
+        )
+
+    def get_keywords_list(self) -> list:
+        """Return keywords as a list split by ``,``."""
+        return (
+            [k.strip() for k in self.keywords.split(",") if k.strip()]
+            if self.keywords
+            else []
+        )
 
 
 class UserProfile(models.Model):
@@ -73,6 +90,8 @@ class UserProfile(models.Model):
 class PhoneVerification(models.Model):
     """Stores OTP codes for phone number verification during registration."""
 
+    MAX_FAILED_ATTEMPTS = 5
+
     phone = models.CharField(
         "شماره تماس",
         max_length=11,
@@ -82,6 +101,9 @@ class PhoneVerification(models.Model):
     otp_code = models.CharField("کد OTP", max_length=128)
     created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
     is_used = models.BooleanField("استفاده شده", default=False, db_index=True)
+    failed_attempts = models.PositiveSmallIntegerField(
+        "تعداد تلاش‌های ناموفق", default=0
+    )
 
     class Meta:
         verbose_name = "احراز هویت شماره"
@@ -291,6 +313,34 @@ class Comment(models.Model):
         if self.is_deleted:
             return False
         return self.user_id == user.id or user.is_staff
+
+
+class CommentReaction(models.Model):
+    """A like (+1) or dislike (-1) on a comment by a user."""
+
+    LIKE = 1
+    DISLIKE = -1
+    VALUE_CHOICES = [(LIKE, "Like"), (DISLIKE, "Dislike")]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="comment_reactions"
+    )
+    comment = models.ForeignKey(
+        Comment, on_delete=models.CASCADE, related_name="reactions"
+    )
+    value = models.SmallIntegerField("امتیاز", choices=VALUE_CHOICES)
+    created_at = models.DateTimeField("تاریخ ایجاد", auto_now_add=True)
+    updated_at = models.DateTimeField("آخرین ویرایش", auto_now=True)
+
+    class Meta:
+        verbose_name = "واکنش نظر"
+        verbose_name_plural = "واکنش‌های نظرات"
+        unique_together = ("user", "comment")
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        label = "لایک" if self.value == self.LIKE == 1 else "دیس‌لایک"
+        return f"{self.user.username} - {label} - Comment#{self.comment_id}"
 
 
 class CenterRating(models.Model):

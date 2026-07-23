@@ -1,9 +1,9 @@
 {% extends 'services/base.html' %}
 {% load static jalali_tags %}
-{% block title %}جزئیات {{ service.name }} | آگاه‌یار{% endblock %}
-{% block meta_description %}مدارک، مراحل، هزینه و مدت زمان مورد نیاز برای {{ service.name }} - سامانه آگاه‌یار{% endblock %}
-{% block meta_keywords %}{{ service.name }}, {{ service.organization }}, خدمات دولتی{% endblock %}
-{% block og_title %}آگاه‌یار | {{ service.name }}{% endblock %}
+{% block title %}{{ service.name }} | آگاه‌یار{% endblock %}
+{% block meta_description %}{{ service.name }} — مدارک، مراحل، هزینه و شرایط دریافت{% endblock %}
+{% block meta_keywords %}{{ service.name }}, خدمات دولتی, آگاه‌یار{% endblock %}
+{% block og_title %}{{ service.name }} | آگاه‌یار{% endblock %}
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
 {% endblock %}
@@ -13,16 +13,13 @@
       <h1>{{ service.name }}</h1>
       <div class="detail-header-actions">
         {% if user.is_authenticated %}
-          <form method="post"
-                action="{% url 'toggle_bookmark' service.id %}"
-                class="bookmark-icon-form">
-            {% csrf_token %}
-            <button type="submit"
-                    class="btn-bookmark-icon"
-                    title="{% if is_bookmarked %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
-              <i class="{% if is_bookmarked %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
-            </button>
-          </form>
+          <button type="button"
+                  class="btn-bookmark-icon"
+                  data-service-id="{{ service.id }}"
+                  data-bookmarked="{% if is_bookmarked %}true{% else %}false{% endif %}"
+                  title="{% if is_bookmarked %}حذف از نشانک‌ها{% else %}افزودن به نشانک‌ها{% endif %}">
+            <i class="{% if is_bookmarked %}fas{% else %}far{% endif %} fa-bookmark fa-lg"></i>
+          </button>
         {% endif %}
         <button type="button"
                 class="btn-report"
@@ -45,34 +42,50 @@
     {% endif %}
     <button onclick="window.print()" class="btn-print">چاپ</button>
   </div>
-  <div class="info-card">
-    <h3>مدارک مورد نیاز</h3>
-    <ul class="doc-list">
-      {% for doc in documents %}
-        <li>{{ doc }}</li>
-      {% endfor %}
-    </ul>
-  </div>
-  <div class="info-card">
-    <h3>مراحل انجام (گام به گام)</h3>
-    <ol class="step-list">
-      {% for step in steps %}
-        <li>{{ step }}</li>
-      {% endfor %}
-    </ol>
-  </div>
-  <div class="meta-grid">
-    <div class="meta-item">
-      <strong>هزینه تقریبی</strong>
-      <br>
-      {{ service.cost }}
+  {% if service.description %}
+    <div class="info-card">
+      <h3>توضیحات</h3>
+      <div class="service-description">{{ service.description|linebreaksbr }}</div>
     </div>
-    <div class="meta-item">
-      <strong>مدت زمان تقریبی</strong>
-      <br>
-      {{ service.duration }}
+  {% endif %}
+  {% if documents %}
+    <div class="info-card">
+      <h3>مدارک مورد نیاز</h3>
+      <ul class="doc-list">
+        {% for doc in documents %}
+          <li>{{ doc }}</li>
+        {% endfor %}
+      </ul>
     </div>
-  </div>
+  {% endif %}
+  {% if steps %}
+    <div class="info-card">
+      <h3>مراحل انجام (گام به گام)</h3>
+      <ol class="step-list">
+        {% for step in steps %}
+          <li>{{ step }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+  {% endif %}
+  {% if service.cost or service.duration %}
+    <div class="meta-grid">
+      {% if service.cost %}
+        <div class="meta-item">
+          <strong>هزینه تقریبی</strong>
+          <br>
+          {{ service.cost }}
+        </div>
+      {% endif %}
+      {% if service.duration %}
+        <div class="meta-item">
+          <strong>مدت زمان تقریبی</strong>
+          <br>
+          {{ service.duration }}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
   <div class="info-card">
     <h3>مراکز ارائه خدمت</h3>
     {% if initial_centers %}
@@ -198,9 +211,9 @@
         <h3>گزارش اطلاعات</h3>
         <p>برای ثبت گزارش باید وارد شوید.</p>
         <div class="report-dialog-actions">
-          <a href="{% url 'login' %}?next={{ request.path }}"
+          <a href="{% url 'login' %}?next={{ request.path|urlencode }}"
              class="btn-report-submit">ورود</a>
-          <a href="{% url 'register' %}?next={{ request.path }}"
+          <a href="{% url 'register' %}?next={{ request.path|urlencode }}"
              class="btn-report-cancel">ثبت‌نام</a>
         </div>
       {% endif %}
@@ -219,20 +232,20 @@
 {% endblock %}
 {% block extra_js %}
   <script src="{% static 'libs/leaflet/leaflet.js' %}"></script>
-  <script src="{% static 'services/js/main.js' %}"></script>
   {% if initial_centers %}
     <script>
-        (function() {
+        document.addEventListener("DOMContentLoaded", function() {
             var dataEl = document.getElementById("center-locations-data");
             var cityEl = document.getElementById("city-center-data");
             var centerData = cityEl ? JSON.parse(cityEl.textContent) : {
                 lat: 35.6892,
                 lng: 51.3890
             };
-            window.serviceMap = L.map("service-map");
+            window.serviceMap = L.map("service-map", {
+                attributionControl: false
+            });
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                maxZoom: 18,
-                attribution: "&copy; OpenStreetMap contributors"
+                maxZoom: 18
             }).addTo(window.serviceMap);
             window.serviceMarkers = [];
             var locations = dataEl ? JSON.parse(dataEl.textContent) : [];
@@ -255,7 +268,7 @@
             } else {
                 window.serviceMap.setView([centerData.lat, centerData.lng], 13);
             }
-        })();
+        });
     </script>
   {% endif %}
 {% endblock %}

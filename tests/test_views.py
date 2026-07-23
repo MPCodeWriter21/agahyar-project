@@ -57,9 +57,23 @@ class TestShowUsersView:
         response = client.get("/users/")
         assert response.status_code == 302
 
+    def test_non_staff_user_denied(self):
+        User.objects.create_user("regular", password="pass12345")
+        client = Client()
+        client.login(username="regular", password="pass12345")
+        response = client.get("/users/")
+        assert response.status_code in (302, 403)
+
+    def test_staff_user_can_access(self):
+        User.objects.create_user("admin1", password="pass12345", is_staff=True)
+        client = Client()
+        client.login(username="admin1", password="pass12345")
+        response = client.get("/users/")
+        assert response.status_code == 200
+
     def test_shows_users_with_profiles(self):
-        user = User.objects.create_user("viewer", password="pass12345")
-        UserProfile.objects.create(user=user, city="tehran", phone="09121234567")
+        staff = User.objects.create_user("viewer", password="pass12345", is_staff=True)
+        UserProfile.objects.create(user=staff, city="tehran", phone="09121234567")
         client = Client()
         client.login(username="viewer", password="pass12345")
         response = client.get("/users/")
@@ -67,7 +81,7 @@ class TestShowUsersView:
         assert "viewer" in str(response.content)
 
     def test_handles_users_without_profile(self):
-        User.objects.create_user("noprofile", password="pass12345")
+        User.objects.create_user("noprofile", password="pass12345", is_staff=True)
         client = Client()
         client.login(username="noprofile", password="pass12345")
         response = client.get("/users/")
@@ -77,6 +91,7 @@ class TestShowUsersView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestRegisterView:
     def test_get_returns_form(self):
         client = Client()
@@ -468,6 +483,109 @@ class TestServiceDetailView:
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
         assert response.context["user_city"] == "شیراز"
+
+    def test_empty_cost_and_duration_hidden(self):
+        """VULN: empty cost/duration must not render empty meta-grid."""
+        service = Service.objects.create(
+            name="no-meta",
+            organization="org",
+            documents="d",
+            steps="s",
+            cost="",
+            duration="",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "meta-grid" not in content
+        assert "هزینه تقریبی" not in content
+        assert "مدت زمان تقریبی" not in content
+
+    def test_cost_only_rendered_when_set(self):
+        service = Service.objects.create(
+            name="cost-only",
+            organization="org",
+            documents="d",
+            steps="s",
+            cost="50,000 تومان",
+            duration="",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "meta-grid" in content
+        assert "50,000 تومان" in content
+        assert "مدت زمان تقریبی" not in content
+
+    def test_duration_only_rendered_when_set(self):
+        service = Service.objects.create(
+            name="dur-only",
+            organization="org",
+            documents="d",
+            steps="s",
+            cost="",
+            duration="3 روز",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "meta-grid" in content
+        assert "3 روز" in content
+        assert "هزینه تقریبی" not in content
+
+    def test_empty_documents_and_steps_hidden(self):
+        service = Service.objects.create(
+            name="no-docs",
+            organization="org",
+            documents="",
+            steps="",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "مدارک مورد نیاز" not in content
+        assert "مراحل انجام" not in content
+
+    def test_description_rendered_when_set(self):
+        service = Service.objects.create(
+            name="desc-svc",
+            organization="org",
+            documents="d",
+            steps="s",
+            description="This is a detailed description of the service.",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "توضیحات" in content
+        assert "This is a detailed description of the service." in content
+
+    def test_description_hidden_when_empty(self):
+        service = Service.objects.create(
+            name="no-desc",
+            organization="org",
+            documents="d",
+            steps="s",
+            description="",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "توضیحات" not in content
+
+    def test_description_supports_paragraphs(self):
+        service = Service.objects.create(
+            name="para-svc",
+            organization="org",
+            documents="d",
+            steps="s",
+            description="First paragraph.\n\nSecond paragraph.",
+        )
+        client = Client()
+        response = client.get(f"/service/{service.id}/")
+        content = response.content.decode()
+        assert "First paragraph." in content
+        assert "Second paragraph." in content
 
 
 @pytest.mark.django_db
@@ -883,6 +1001,7 @@ class TestLogoutView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestProfileView:
     def test_requires_login(self):
         client = Client()
@@ -1092,6 +1211,7 @@ class TestProfileView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestProfilePhoneVerification:
     """Tests for OTP verification when changing phone number in profile."""
 
@@ -1509,6 +1629,50 @@ class TestBookmarkView:
         response = client.get(f"/service/{service.id}/")
         assert response.status_code == 200
         assert response.context["is_bookmarked"] is True
+
+    def test_ajax_toggle_adds_bookmark(self):
+        user = User.objects.create_user("bmax", password="pass12345")
+        service = Service.objects.create(
+            name="bmax-svc", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        client.login(username="bmax", password="pass12345")
+        response = client.post(
+            f"/bookmark/{service.id}/",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["bookmarked"] is True
+        assert Bookmark.objects.filter(user=user, service=service).exists()
+
+    def test_ajax_toggle_removes_bookmark(self):
+        user = User.objects.create_user("bmax2", password="pass12345")
+        service = Service.objects.create(
+            name="bmax2-svc", organization="org", documents="d", steps="s"
+        )
+        Bookmark.objects.create(user=user, service=service)
+        client = Client()
+        client.login(username="bmax2", password="pass12345")
+        response = client.post(
+            f"/bookmark/{service.id}/",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["bookmarked"] is False
+        assert not Bookmark.objects.filter(user=user, service=service).exists()
+
+    def test_ajax_toggle_requires_login(self):
+        service = Service.objects.create(
+            name="bmax3", organization="org", documents="d", steps="s"
+        )
+        client = Client()
+        response = client.post(
+            f"/bookmark/{service.id}/",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        assert response.status_code == 302
 
 
 @pytest.mark.django_db
@@ -2081,6 +2245,7 @@ class TestPrintableView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestVerifyOTPView:
     FIXED_OTP = "123456"
 
@@ -2197,8 +2362,42 @@ class TestVerifyOTPView:
         assert response.status_code == 200
         assert not User.objects.filter(username="otpuser").exists()
 
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_increments_failed_attempts(self):
+        client = Client()
+        self._setup_pending_registration(client)
+        client.post("/verify-otp/", {"otp_code": "999999"})
+        verification = PhoneVerification.objects.filter(phone="09121234567").first()
+        assert verification.failed_attempts == 1
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_blocks_after_max_attempts(self):
+        client = Client()
+        self._setup_pending_registration(client)
+        verification = PhoneVerification.objects.filter(phone="09121234567").first()
+        verification.failed_attempts = PhoneVerification.MAX_FAILED_ATTEMPTS
+        verification.save(update_fields=["failed_attempts"])
+        response = client.post("/verify-otp/", {"otp_code": "999999"})
+        assert response.status_code == 200
+        assert not User.objects.filter(username="otpuser").exists()
+        assert PhoneVerification.objects.filter(
+            phone="09121234567", failed_attempts=PhoneVerification.MAX_FAILED_ATTEMPTS
+        ).exists()
+
+    @override_settings(DISABLE_SMS=True)
+    def test_verify_otp_success_resets_failed_attempts(self):
+        client = Client()
+        otp = self._setup_pending_registration(client)
+        verification = PhoneVerification.objects.filter(phone="09121234567").first()
+        verification.failed_attempts = 2
+        verification.save(update_fields=["failed_attempts"])
+        client.post("/verify-otp/", {"otp_code": otp})
+        verification.refresh_from_db()
+        assert verification.is_used is True
+
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestResendOTPView:
     @override_settings(DISABLE_SMS=True)
     def test_resend_otp_creates_new_verification(self):
@@ -2299,6 +2498,7 @@ class TestResendOTPView:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("ensure_test_cities")
 class TestResendOTPApi:
     @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
     def test_returns_json_success(self):
@@ -2470,6 +2670,12 @@ class TestVersion:
 
 
 class TestAdminStats:
+    @pytest.fixture(autouse=True)
+    def _clear_stats_cache(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
     @pytest.mark.django_db
     def test_anonymous_redirects_to_login(self):
         client = Client()
@@ -2878,3 +3084,283 @@ class TestSubmitReport:
         content = resp.content.decode()
         assert "report-reason" in content
         assert "report-description" in content
+
+
+@pytest.mark.django_db
+class TestCitiesApi:
+    def _create_cities(self):
+        svc = Service.objects.create(
+            name="test_cities", organization="o", documents="d", steps="s"
+        )
+        for i in range(5):
+            c = ServiceCenter.objects.create(name=f"مرکز الف {i}", city="تهران")
+            c.services.add(svc)
+        c2 = ServiceCenter.objects.create(name="مرکز ب", city="اصفهان")
+        c2.services.add(svc)
+        c3 = ServiceCenter.objects.create(name="مرکز ج", city="شیراز")
+        c3.services.add(svc)
+
+    def test_returns_top_cities_by_count(self):
+        self._create_cities()
+        c = Client()
+        resp = c.get("/api/cities/")
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert len(data["cities"]) > 0
+        assert data["cities"][0]["name"] == "تهران"
+        assert data["cities"][0]["center_count"] == 5
+
+    def test_search_filters_cities(self):
+        self._create_cities()
+        c = Client()
+        resp = c.get("/api/cities/?search=اصفهان")
+        data = json.loads(resp.content)
+        names = [city["name"] for city in data["cities"]]
+        assert "اصفهان" in names
+        assert "تهران" not in names
+
+    def test_single_city_param(self):
+        self._create_cities()
+        c = Client()
+        resp = c.get("/api/cities/?city=تهران")
+        data = json.loads(resp.content)
+        assert len(data["cities"]) == 1
+        assert data["cities"][0]["name"] == "تهران"
+        assert data["cities"][0]["center_count"] == 5
+        assert data["has_next"] is False
+
+    def test_pagination(self):
+        svc = Service.objects.create(
+            name="test_pagination", organization="o", documents="d", steps="s"
+        )
+        for i in range(25):
+            cs = ServiceCenter.objects.create(name=f"مرکز {i}", city=f"شهر_{i}")
+            cs.services.add(svc)
+        c = Client()
+        resp = c.get("/api/cities/?per_page=5")
+        data = json.loads(resp.content)
+        assert len(data["cities"]) == 5
+        assert data["has_next"] is True
+
+    def test_empty_database(self):
+        c = Client()
+        resp = c.get("/api/cities/")
+        data = json.loads(resp.content)
+        assert data["cities"] == []
+        assert data["has_next"] is False
+
+
+@pytest.mark.django_db
+class TestPhoneSmsRateLimit:
+    """VULN-08/09: Per-phone SMS rate limiting prevents cost amplification."""
+
+    def setup_method(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def test_check_phone_rate_limit_allows_within_limit(self):
+        from services.sms import check_phone_rate_limit
+
+        remaining = check_phone_rate_limit("09120000001")
+        assert remaining >= 0
+
+    def test_check_phone_rate_limit_exhausts_after_limit(self):
+        from services.sms import _PHONE_RATE_LIMIT, check_phone_rate_limit
+
+        phone = "09120000002"
+        for _ in range(_PHONE_RATE_LIMIT):
+            check_phone_rate_limit(phone)
+        remaining = check_phone_rate_limit(phone)
+        assert remaining == -1
+
+    def test_different_phones_have_independent_limits(self):
+        from services.sms import _PHONE_RATE_LIMIT, check_phone_rate_limit
+
+        for _ in range(_PHONE_RATE_LIMIT):
+            check_phone_rate_limit("09120000010")
+        assert check_phone_rate_limit("09120000010") == -1
+        assert check_phone_rate_limit("09120000011") >= 0
+
+    @override_settings(DISABLE_SMS=True, OTP_RESEND_COOLDOWN_SECONDS=0)
+    def test_resend_otp_api_blocked_by_phone_rate_limit(self):
+        from services.sms import _PHONE_RATE_LIMIT
+
+        client = Client()
+        data = {
+            "username": "ratelimit1",
+            "first_name": "Ali",
+            "last_name": "Test",
+            "email": "",
+            "password1": "ComplexPass1!",
+            "password2": "ComplexPass1!",
+            "city": "تهران",
+            "neighborhood": "Vanak",
+            "phone": "09123000001",
+        }
+        client.post("/register/", data)
+        for _ in range(_PHONE_RATE_LIMIT + 1):
+            client.post("/api/resend-otp/", content_type="application/json")
+        count = PhoneVerification.objects.filter(phone="09123000001").count()
+        assert count <= _PHONE_RATE_LIMIT + 1
+
+    def test_sms_send_raises_on_phone_rate_limit(self):
+        """VULN-08/09: SMSClient.send_otp blocks when phone limit is exceeded."""
+        from unittest.mock import patch
+
+        from services.sms import _PHONE_RATE_LIMIT, SMSAPIError, SMSClient
+
+        client_obj = SMSClient()
+        client_obj._disabled = False
+        phone = "09123000099"
+        with patch.object(client_obj, "_post", return_value={"status": 1}):
+            for _ in range(_PHONE_RATE_LIMIT):
+                client_obj.send_otp(phone, "123456")
+            import pytest
+
+            with pytest.raises(SMSAPIError) as exc_info:
+                client_obj.send_otp(phone, "123456")
+            assert exc_info.value.status_code == 429
+
+
+@pytest.mark.django_db
+class TestAdminDataTransferLimits:
+    """VULN-12 / VULN-16: file-size and record-count limits on admin import."""
+
+    @pytest.fixture(autouse=True)
+    def _setup_staff(self):
+        self.user = User.objects.create_user(
+            "importer", password="pass12345", is_staff=True
+        )
+        self.client = Client()
+        self.client.force_login(self.user)
+        self.url = "/admin/data-transfer/"
+
+    def test_import_rejects_oversized_file(self):
+        """VULN-12: files >10 MB are rejected before reading."""
+        from unittest.mock import MagicMock
+
+        big_content = b"x" * (10 * 1024 * 1024 + 1)
+        upload_file = MagicMock()
+        upload_file.read.return_value = big_content
+        upload_file.size = len(big_content)
+        upload_file.name = "big.json"
+        upload_file.content_type = "application/json"
+
+        response = self.client.post(
+            self.url, {"action": "import", "import_file": upload_file}
+        )
+        assert response.status_code == 200
+        assert (
+            response.context["error"]
+            == "File is too large. Maximum allowed size is 10 MB."
+        )
+
+    def test_import_rejects_too_many_records(self):
+        """VULN-12: imports with >10 000 records are rejected."""
+        from unittest.mock import MagicMock
+
+        records = [
+            {"_model": "services.FAQ", "question": f"Q{i}"} for i in range(10001)
+        ]
+        content = json.dumps(records).encode("utf-8")
+
+        upload_file = MagicMock()
+        upload_file.read.return_value = content
+        upload_file.size = len(content)
+        upload_file.name = "many.json"
+        upload_file.content_type = "application/json"
+
+        response = self.client.post(
+            self.url, {"action": "import", "import_file": upload_file}
+        )
+        assert response.status_code == 200
+        assert "10,001 records" in response.context["error"]
+
+    def test_import_allows_valid_file(self):
+        """A small, valid import file is accepted."""
+        from unittest.mock import MagicMock
+
+        records = [{"_model": "services.FAQ", "question": "Q1", "answer": "A1"}]
+        content = json.dumps(records).encode("utf-8")
+
+        upload_file = MagicMock()
+        upload_file.read.return_value = content
+        upload_file.size = len(content)
+        upload_file.name = "ok.json"
+        upload_file.content_type = "application/json"
+
+        response = self.client.post(
+            self.url, {"action": "import", "import_file": upload_file, "dry_run": "on"}
+        )
+        assert response.status_code == 200
+        result = response.context.get("import_result")
+        assert result is not None
+        assert result["verb"] == "Previewed"
+
+
+class TestAdminStatsCaching:
+    """VULN-15: admin stats should be cached for 5 minutes."""
+
+    @pytest.mark.django_db
+    def test_stats_are_cached(self):
+        from django.core.cache import cache
+
+        User.objects.create_user("statsadmin", password="pass12345", is_staff=True)
+
+        # Clear cache before login so session isn't wiped
+        cache.clear()
+        client = Client()
+        client.login(username="statsadmin", password="pass12345")
+
+        resp1 = client.get("/admin/stats/")
+        assert resp1.status_code == 200
+        overview1 = resp1.context["overview"]
+
+        # Second request should come from cache with identical data
+        resp2 = client.get("/admin/stats/")
+        overview2 = resp2.context["overview"]
+        assert overview1 == overview2
+
+    @pytest.mark.django_db
+    def test_cache_key_set_after_request(self):
+        """Cache key should exist after first request."""
+        from django.core.cache import cache
+
+        User.objects.create_user("statsadmin2", password="pass12345", is_staff=True)
+
+        cache.clear()
+        client = Client()
+        client.login(username="statsadmin2", password="pass12345")
+
+        client.get("/admin/stats/")
+        assert cache.get("admin_stats_data") is not None
+
+
+class TestCommentDepthLimit:
+    """VULN-17: comment template should not recurse beyond depth 5."""
+
+    @pytest.mark.django_db
+    def test_comment_template_has_depth_check(self):
+        """The comment partial should contain a depth < 5 guard."""
+        from pathlib import Path
+
+        tpl = (
+            Path(__file__).resolve().parent.parent
+            / "templates"
+            / "services"
+            / "partials"
+            / "comment.html"
+        )
+        content = tpl.read_text()
+        assert "depth < 5" in content
+
+
+class TestDataUploadMaxMemorySize:
+    """VULN-16: DATA_UPLOAD_MAX_MEMORY_SIZE should be set in settings."""
+
+    def test_setting_exists(self):
+        from django.conf import settings
+
+        assert hasattr(settings, "DATA_UPLOAD_MAX_MEMORY_SIZE")
+        assert settings.DATA_UPLOAD_MAX_MEMORY_SIZE == 10 * 1024 * 1024

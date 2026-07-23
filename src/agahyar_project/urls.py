@@ -120,6 +120,11 @@ urlpatterns: List[URLPattern] = [
         staff_member_required(services_views.neshan_search),
         name="neshan_search",
     ),
+    path(
+        "admin/data-transfer/",
+        staff_member_required(services_views.admin_data_transfer),
+        name="admin_data_transfer",
+    ),
     path(ADMIN_URL, admin.site.urls),
     path("api/v1/", include("services.api_urls")),
     path("", include("services.urls")),

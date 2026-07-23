@@ -45,6 +45,7 @@ ERROR_CODES: dict[str, str] = {
     "otp/no-pending-profile-update": "فرآیند تغییر شماره منقضی شده است. لطفاً دوباره از پروفایل اقدام کنید.",
     "otp/resend-success": "کد جدید به شماره موبایل شما ارسال شد.",
     "otp/cooldown": "لطفاً {seconds} ثانیه دیگر صبر کنید.",
+    "otp/max-attempts": "تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً کد جدیدی دریافت کنید.",
     # ---- Bookmark ----
     "bookmark/added": "خدمت مورد نظر به نشانک‌ها اضافه شد.",
     "bookmark/removed": "خدمت مورد نظر از نشانک‌ها حذف شد.",
@@ -58,6 +59,12 @@ ERROR_CODES: dict[str, str] = {
     "comment/edit-expired": "ویرایش نظر فقط تا ۲۴ ساعت پس از ارسال مجاز است.",
     "comment/cannot-reply-deleted": "امکان پاسخ به نظر حذف شده وجود ندارد.",
     "comment/cannot-edit-deleted": "امکان ویرایش نظر حذف شده وجود ندارد.",
+    # ---- Comment reactions ----
+    "reaction/added": "واکنش شما ثبت شد.",
+    "reaction/removed": "واکنش شما حذف شد.",
+    "reaction/login-required": "برای واکنش به نظر باید وارد شوید.",
+    "reaction/not-found": "نظر مورد نظر یافت نشد.",
+    "reaction/invalid-value": "مقدار واکنش نامعتبر است.",
     # ---- Center rating ----
     "center-rating/added": "امتیاز شما با موفقیت ثبت شد.",
     "center-rating/updated": "امتیاز شما با موفقیت به‌روزرسانی شد.",

@@ -1,0 +1,239 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block title %}انتقال داده | آگاه‌یار{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a> &rsaquo; Data Transfer
+  </div>
+{% endblock %}
+{% block extrastyle %}
+  <link rel="stylesheet" href="{% static 'services/css/admin-rtl.css' %}">
+  <style>
+      .transfer-section {
+          background: var(--darkened-bg, #fff);
+          border: 1px solid var(--hairline-color, #ddd);
+          border-radius: 8px;
+          padding: 24px;
+          margin-bottom: 24px;
+      }
+
+      .transfer-section h2 {
+          margin: 0 0 16px 0;
+          padding: 0 0 8px 0;
+          border-bottom: 2px solid var(--primary);
+          font-size: 1.1rem;
+      }
+
+      .model-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 8px;
+          margin-bottom: 16px;
+      }
+
+      .model-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border: 1px solid var(--hairline-color, #eee);
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background 0.15s;
+      }
+
+      .model-item:hover {
+          background: var(--selected-row, #f0f0f0);
+      }
+
+      .model-item input[type="checkbox"] {
+          margin: 0;
+      }
+
+      .model-label {
+          flex: 1;
+          font-size: 0.9rem;
+      }
+
+      .model-count {
+          font-size: 0.8rem;
+          color: var(--body-quiet-color, #666);
+          min-width: 40px;
+          text-align: left;
+      }
+
+      .format-select {
+          margin-bottom: 16px;
+      }
+
+      .format-select label {
+          display: inline-block;
+          margin-left: 16px;
+          font-size: 0.9rem;
+          cursor: pointer;
+      }
+
+      .format-select input[type="radio"] {
+          margin-left: 4px;
+      }
+
+      .transfer-actions {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+      }
+
+      .transfer-actions button {
+          padding: 8px 20px;
+          font-size: 0.9rem;
+      }
+
+      .import-section {
+          margin-top: 8px;
+      }
+
+      .file-upload-wrapper {
+          margin-bottom: 16px;
+      }
+
+      .file-upload-wrapper input[type="file"] {
+          font-size: 0.9rem;
+      }
+
+      .dry-run-toggle {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+          font-size: 0.9rem;
+      }
+
+      .result-box {
+          margin-top: 16px;
+          padding: 12px 16px;
+          border-radius: 4px;
+          font-size: 0.9rem;
+      }
+
+      .result-success {
+          background: #d4edda;
+          border: 1px solid #c3e6cb;
+          color: #155724;
+      }
+
+      .result-error {
+          background: #f8d7da;
+          border: 1px solid #f5c6cb;
+          color: #721c24;
+      }
+
+      .error-list {
+          margin: 8px 0 0 0;
+          padding: 0 0 0 20px;
+      }
+
+      .error-list li {
+          font-size: 0.85rem;
+          margin-bottom: 4px;
+      }
+
+      .select-all-bar {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 8px;
+          font-size: 0.85rem;
+      }
+
+      .select-all-bar a {
+          cursor: pointer;
+          text-decoration: underline;
+      }
+  </style>
+{% endblock %}
+{% block content %}
+  <div id="content-main">
+    {% block messages %}{{ block.super }}{% endblock %}
+    <h1 style="margin-bottom: 24px;">{% if title %}{{ title }}{% else %}Data Transfer{% endif %}</h1>
+    {% if error %}
+      <div class="result-box result-error">{{ error }}</div>
+    {% endif %}
+    {% if import_result %}
+      <div class="result-box {% if import_result.errors %}result-error{% else %}result-success{% endif %}">
+        <strong>{{ import_result.verb }}:</strong>
+        {{ import_result.created }} created,
+        {{ import_result.updated }} updated,
+        {{ import_result.skipped }} skipped.
+        {% if import_result.errors %}
+          <ul class="error-list">
+            {% for e in import_result.errors %}
+              <li>{{ e }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endif %}
+    <div class="transfer-section">
+      <h2><i class="fas fa-file-export"></i> Export</h2>
+      <form method="post" action="{% url 'admin_data_transfer' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="export">
+        <div class="select-all-bar">
+          <a onclick="toggleAll(this, true)">Select all</a>
+          <a onclick="toggleAll(this, false)">Deselect all</a>
+        </div>
+        <div class="model-grid">
+          {% for m in model_choices %}
+            <label class="model-item">
+              <input type="checkbox" name="models" value="{{ m.value }}">
+              <span class="model-label">{{ m.label }}</span>
+              <span class="model-count">{{ m.count }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        <div class="format-select">
+          <span style="font-size: 0.9rem; font-weight: 700; margin-left: 8px;">Format:</span>
+          <label>
+            <input type="radio" name="format" value="json" checked>
+            JSON
+          </label>
+          <label>
+            <input type="radio" name="format" value="csv">
+            CSV
+          </label>
+        </div>
+        <div class="transfer-actions">
+          <button type="submit" class="button">Export Selected</button>
+        </div>
+      </form>
+    </div>
+    <div class="transfer-section">
+      <h2><i class="fas fa-file-import"></i> Import</h2>
+      <form method="post"
+            action="{% url 'admin_data_transfer' %}"
+            enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="import">
+        <div class="file-upload-wrapper">
+          <p style="font-size: 0.9rem; margin-bottom: 8px;">Upload a JSON file exported from this page.</p>
+          <input type="file" name="import_file" accept=".json" required>
+        </div>
+        <div class="dry-run-toggle">
+          <input type="checkbox" name="dry_run" id="dry_run">
+          <label for="dry_run">Dry run (preview only, no changes)</label>
+        </div>
+        <div class="transfer-actions">
+          <button type="submit" class="button">Import</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+      function toggleAll(btn, checked) {
+          var checkboxes = btn.closest('.transfer-section')
+              .querySelectorAll('input[type="checkbox"][name="models"]');
+          for (var i = 0; i < checkboxes.length; i++) {
+              checkboxes[i].checked = checked;
+          }
+      }
+  </script>
+{% endblock %}

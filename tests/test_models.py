@@ -1,9 +1,9 @@
 """Tests for the Agahyar data models.
 
 Covers ``__str__`` representations, helper methods
-(``get_documents_list``, ``get_steps_list``, ``get_map_url``),
-unique-together constraints, score-range validation, and
-comment edit/delete flags.
+(``get_documents_list``, ``get_steps_list``, ``get_keywords_list``,
+``get_map_url``), unique-together constraints, score-range validation,
+and comment edit/delete flags.
 """
 
 import pytest
@@ -64,6 +64,82 @@ class TestServiceModel:
             name="test", organization="org", documents="doc1", steps=""
         )
         assert s.get_steps_list() == []
+
+    def test_get_documents_list_strips_whitespace(self):
+        s = Service.objects.create(
+            name="test",
+            organization="org",
+            documents="  doc1  |  doc2  |  doc3  ",
+            steps="step1",
+        )
+        assert s.get_documents_list() == ["doc1", "doc2", "doc3"]
+
+    def test_get_documents_list_filters_empty_items(self):
+        s = Service.objects.create(
+            name="test",
+            organization="org",
+            documents="doc1||doc2|",
+            steps="step1",
+        )
+        assert s.get_documents_list() == ["doc1", "doc2"]
+
+    def test_get_steps_list_strips_whitespace(self):
+        s = Service.objects.create(
+            name="test",
+            organization="org",
+            documents="doc1",
+            steps="  step1  |  step2  ",
+        )
+        assert s.get_steps_list() == ["step1", "step2"]
+
+    def test_get_steps_list_filters_empty_items(self):
+        s = Service.objects.create(
+            name="test",
+            organization="org",
+            documents="doc1",
+            steps="|step1||",
+        )
+        assert s.get_steps_list() == ["step1"]
+
+    def test_get_keywords_list(self):
+        s = Service.objects.create(
+            name="test",
+            organization="org",
+            documents="doc1",
+            steps="step1",
+            keywords="kw1, kw2, kw3",
+        )
+        assert s.get_keywords_list() == ["kw1", "kw2", "kw3"]
+
+    def test_get_keywords_list_empty(self):
+        s = Service.objects.create(
+            name="test",
+            organization="org",
+            documents="doc1",
+            steps="step1",
+            keywords="",
+        )
+        assert s.get_keywords_list() == []
+
+    def test_get_keywords_list_strips_whitespace(self):
+        s = Service.objects.create(
+            name="test",
+            organization="org",
+            documents="doc1",
+            steps="step1",
+            keywords="  kw1  ,  kw2  ",
+        )
+        assert s.get_keywords_list() == ["kw1", "kw2"]
+
+    def test_get_keywords_list_filters_empty_items(self):
+        s = Service.objects.create(
+            name="test",
+            organization="org",
+            documents="doc1",
+            steps="step1",
+            keywords="kw1,,kw2,",
+        )
+        assert s.get_keywords_list() == ["kw1", "kw2"]
 
 
 @pytest.mark.django_db

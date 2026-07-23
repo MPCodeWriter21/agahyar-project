@@ -12,14 +12,13 @@
         <div class="service-card">
           <div class="service-card-header">
             <h3>{{ bookmark.service.name }}</h3>
-            <form method="post"
-                  action="{% url 'toggle_bookmark' bookmark.service.id %}"
-                  class="bookmark-icon-form">
-              {% csrf_token %}
-              <button type="submit" class="btn-bookmark-icon" title="حذف از نشانک‌ها">
-                <i class="fas fa-bookmark fa-lg"></i>
-              </button>
-            </form>
+            <button type="button"
+                    class="btn-bookmark-icon"
+                    data-service-id="{{ bookmark.service.id }}"
+                    data-bookmarked="true"
+                    title="حذف از نشانک‌ها">
+              <i class="fas fa-bookmark fa-lg"></i>
+            </button>
           </div>
           <span class="org-badge">{{ bookmark.service.organization }}</span>
           <div class="docs-preview">

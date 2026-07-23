@@ -1,11 +1,14 @@
-"""Custom admin widgets for geometry fields with locally vendored OpenLayers.
+"""Custom admin widgets for the Agahyar services application.
 
 Provides ``LocalOpenLayersWidget`` with Neshan search and manual
-coordinate input for the admin map widget.
+coordinate input for the admin map widget, and ``TagListWidget``
+for editing pipe/comma-separated lists with add/remove/reorder.
 """
 
+import html as html_module
 import re
 
+from django import forms
 from django.contrib.gis.forms.widgets import OpenLayersWidget
 from django.forms.widgets import Media
 from django.utils.safestring import mark_safe
@@ -94,3 +97,66 @@ class LocalOpenLayersWidget(OpenLayersWidget):
         html = html.replace(textarea_marker, coord_inputs + "\n    " + textarea_marker)
 
         return mark_safe(html)  # nosec B308 B703
+
+
+class TagListWidget(forms.Widget):
+    """Widget for editing a separator-delimited list of items.
+
+    Renders each item as a separate input field with drag-and-drop
+    reordering, add, and remove buttons.  The hidden input holds the
+    serialized (separator-joined) value.
+
+    Args:
+        separator: The character used to join/split items (default ``"|"``).
+        attrs: Extra HTML attributes for the widget wrapper.
+    """
+
+    template_name = "admin/taglist_widget.html"
+
+    def __init__(self, separator="|", attrs=None):
+        self.separator = separator
+        super().__init__(attrs=attrs)
+
+    @property
+    def media(self):
+        return Media(
+            css={"all": ["services/css/admin-rtl.css"]},
+            js=["services/js/admin-taglist-widget.js"],
+        )
+
+    def value_from_datadict(self, data, files, name):
+        return data.get(name, "")
+
+    def value_omitted_from_data(self, data, files, name):
+        return name not in data
+
+    def render(self, name, value, attrs=None, renderer=None):
+        value = value or ""
+        widget_id = attrs.get("id", f"id_{name}") if attrs else f"id_{name}"
+        items = value.split(self.separator) if value else []
+
+        html_parts = [
+            f'<div class="tag-list-widget" id="{widget_id}_taglist"'
+            f' data-separator="{self.separator}">'
+            f'<input type="hidden" name="{name}" id="{widget_id}"'
+            f' value="{html_module.escape(value)}">'
+            f'<div class="tag-list-items">'
+        ]
+
+        for item in items:
+            escaped = html_module.escape(item.strip())
+            html_parts.append(
+                f'<div class="tag-list-item">'
+                f'<span class="tag-list-drag-handle" title="Drag to reorder">&#x2630;</span>'
+                f'<input type="text" class="tag-list-input" value="{escaped}">'
+                f'<button type="button" class="tag-list-remove-btn" title="Remove">&times;</button>'
+                f"</div>"
+            )
+
+        html_parts.append("</div>")
+        html_parts.append(
+            '<button type="button" class="tag-list-add-btn">+ Add</button>'
+        )
+        html_parts.append("</div>")
+
+        return mark_safe("\n".join(html_parts))  # nosec B308 B703

@@ -10,6 +10,7 @@ from .models import (
     Bookmark,
     CenterRating,
     Comment,
+    CommentReaction,
     Service,
     ServiceCenter,
     ServiceCenterPhone,
@@ -19,10 +20,11 @@ from .validators import iranian_phone_number_validator
 
 
 class ServiceSerializer(serializers.ModelSerializer):
-    """Serializer for :class:`Service` with computed document/step lists."""
+    """Serializer for :class:`Service` with computed document/step/keyword lists."""
 
     documents_list = serializers.SerializerMethodField()
     steps_list = serializers.SerializerMethodField()
+    keywords_list = serializers.SerializerMethodField()
     centers_count = serializers.IntegerField(read_only=True, default=None)
 
     class Meta:
@@ -40,6 +42,7 @@ class ServiceSerializer(serializers.ModelSerializer):
             "duration",
             "more_info_url",
             "keywords",
+            "keywords_list",
             "centers_count",
         ]
 
@@ -48,6 +51,9 @@ class ServiceSerializer(serializers.ModelSerializer):
 
     def get_steps_list(self, obj: Service) -> list[str]:
         return obj.get_steps_list()
+
+    def get_keywords_list(self, obj: Service) -> list[str]:
+        return obj.get_keywords_list()
 
 
 class ServiceCenterPhoneSerializer(serializers.ModelSerializer):
@@ -107,7 +113,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    """Serializer for :class:`Comment` with nested user and replies.
+    """Serializer for :class:`Comment` with nested user, replies, and reactions.
 
     Validates that exactly one target (service or service_center) is set,
     the parent (if given) belongs to the same target, and replies are
@@ -120,6 +126,9 @@ class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
     is_deleted = serializers.BooleanField(read_only=True)
+    likes_count = serializers.SerializerMethodField()
+    dislikes_count = serializers.SerializerMethodField()
+    user_reaction = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
@@ -135,6 +144,9 @@ class CommentSerializer(serializers.ModelSerializer):
             "edited_at",
             "is_deleted",
             "replies",
+            "likes_count",
+            "dislikes_count",
+            "user_reaction",
         ]
         read_only_fields = ["created_at", "updated_at", "edited_at", "is_deleted"]
 
@@ -200,6 +212,27 @@ class CommentSerializer(serializers.ModelSerializer):
         return CommentSerializer(
             obj.replies.select_related("user").all(), many=True
         ).data
+
+    def get_likes_count(self, obj: Comment) -> int:
+        if not hasattr(obj, "_likes_count"):
+            obj._likes_count = obj.reactions.filter(value=CommentReaction.LIKE).count()
+        return obj._likes_count
+
+    def get_dislikes_count(self, obj: Comment) -> int:
+        if not hasattr(obj, "_dislikes_count"):
+            obj._dislikes_count = obj.reactions.filter(
+                value=CommentReaction.DISLIKE
+            ).count()
+        return obj._dislikes_count
+
+    def get_user_reaction(self, obj: Comment) -> int | None:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+        if not hasattr(obj, "_user_reaction"):
+            reaction = obj.reactions.filter(user=request.user).first()
+            obj._user_reaction = reaction.value if reaction else None
+        return obj._user_reaction
 
 
 class CenterRatingSerializer(serializers.ModelSerializer):

@@ -70,6 +70,7 @@ urlpatterns: List[URLPattern] = [
         views.load_comments,
         name="load_comments",
     ),
+    path("api/cities/", views.cities_api, name="cities_api"),
     # ===== Supplementary pages =====
     path("profile/", views.profile_view, name="profile"),
     path("faq/", views.faq_view, name="faq"),

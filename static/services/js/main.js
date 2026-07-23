@@ -30,6 +30,130 @@ document.addEventListener("DOMContentLoaded", function () {
   updateThemeButton();
 });
 
+document.addEventListener("click", function (e) {
+  var reactionBtn = e.target.closest(".btn-reaction:not(.disabled)");
+  if (reactionBtn) {
+    var commentId = reactionBtn.getAttribute("data-comment-id");
+    var value = parseInt(reactionBtn.getAttribute("data-value"), 10);
+    if (!commentId) return;
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) return;
+
+    reactionBtn.disabled = true;
+    fetch("/api/v1/comments/" + commentId + "/react/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify({ value: value }),
+    })
+      .then(function (response) {
+        if (response.status === 401) {
+          window.location.href = "/auth/login/";
+          return;
+        }
+        if (!response.ok) {
+          reactionBtn.disabled = false;
+          return response.json().then(function (err) {
+            if (err.detail) showToast(err.detail, "error");
+          });
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data) return;
+        var likesEl = document.getElementById("likes-count-" + commentId);
+        var dislikesEl = document.getElementById("dislikes-count-" + commentId);
+        if (likesEl) likesEl.textContent = toPersianDigits(data.likes);
+        if (dislikesEl) dislikesEl.textContent = toPersianDigits(data.dislikes);
+
+        var parent = reactionBtn.closest(".comment-reactions");
+        if (parent) {
+          parent.querySelectorAll(".btn-reaction").forEach(function (btn) {
+            btn.classList.remove("active");
+          });
+        }
+        if (data.user_reaction) {
+          var activeBtn = parent
+            ? parent.querySelector('[data-value="' + data.user_reaction + '"]')
+            : null;
+          if (activeBtn) activeBtn.classList.add("active");
+        }
+        reactionBtn.disabled = false;
+      })
+      .catch(function () {
+        reactionBtn.disabled = false;
+      });
+    return;
+  }
+
+  var btn = e.target.closest(".btn-bookmark-icon");
+  if (!btn) {
+    return;
+  }
+  var serviceId = btn.getAttribute("data-service-id");
+  if (!serviceId) return;
+  var csrfToken = getCsrfToken();
+  if (!csrfToken) return;
+
+  btn.disabled = true;
+  fetch("/bookmark/" + serviceId + "/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrfToken,
+      "X-Requested-With": "XMLHttpRequest",
+    },
+  })
+    .then(function (response) {
+      if (response.status === 401) {
+        window.location.href = "/auth/login/";
+        return;
+      }
+      return response.json();
+    })
+    .then(function (data) {
+      if (!data) return;
+      btn.setAttribute("data-bookmarked", data.bookmarked ? "true" : "false");
+      var icon = btn.querySelector("i");
+      if (data.bookmarked) {
+        icon.classList.replace("far", "fas");
+      } else {
+        icon.classList.replace("fas", "far");
+      }
+      btn.title = data.bookmarked ? "حذف از نشانک‌ها" : "افزودن به نشانک‌ها";
+      if (
+        !data.bookmarked &&
+        btn.closest(".service-card") &&
+        window.location.pathname.indexOf("/bookmarks/") !== -1
+      ) {
+        var card = btn.closest(".service-card");
+        if (card) {
+          card.style.transition = "opacity 0.3s";
+          card.style.opacity = "0";
+          setTimeout(function () {
+            card.remove();
+            var grid = document.querySelector(".services-grid");
+            if (grid && grid.children.length === 0) {
+              var empty =
+                '<div class="no-results">' +
+                "<h3>نشانکی وجود ندارد</h3>" +
+                "<p>شما هنوز هیچ خدمتی را نشانک نکرده‌اید.</p>" +
+                '<a href="/services/" class="btn-back">مشاهده خدمات</a>' +
+                "</div>";
+              grid.insertAdjacentHTML("afterend", empty);
+            }
+          }, 300);
+        }
+      }
+      btn.disabled = false;
+    })
+    .catch(function () {
+      btn.disabled = false;
+    });
+});
+
 function toggleTheme() {
   var current = document.documentElement.getAttribute("data-theme");
   var next = current === "dark" ? "light" : "dark";
@@ -46,12 +170,7 @@ function updateThemeButton() {
       theme === "dark"
         ? '<i class="fas fa-sun"></i>'
         : '<i class="fas fa-moon"></i>';
-    btn.setAttribute(
-      "aria-label",
-      theme === "dark"
-        ? "\u062A\u0645 \u0631\u0648\u0632"
-        : "\u062A\u0645 \u0634\u0628",
-    );
+    btn.setAttribute("aria-label", theme === "dark" ? "تم روز" : "تم شب");
   }
 }
 
@@ -169,8 +288,7 @@ function loadMoreComments(btn) {
   var listEl = document.getElementById("comments-list");
 
   btn.disabled = true;
-  btn.textContent =
-    "\u062F\u0631 \u062D\u0627\u0644 \u0628\u0627\u0631\u06AF\u0630\u0627\u0631\u06CC...";
+  btn.textContent = "در حال بارگذاری...";
 
   fetch("/api/load-comments/" + target + "/" + targetId + "/?page=" + page, {
     method: "GET",
@@ -186,8 +304,7 @@ function loadMoreComments(btn) {
 
       if (data.has_next) {
         btn.disabled = false;
-        btn.textContent =
-          "\u0646\u0645\u0627\u06CC\u0634 \u0646\u0638\u0631\u0627\u062A \u0628\u06CC\u0634\u062A\u0631";
+        btn.textContent = "نمایش نظرات بیشتر";
         btn.setAttribute("data-page", page + 1);
       } else {
         btn.remove();
@@ -195,8 +312,7 @@ function loadMoreComments(btn) {
     })
     .catch(function () {
       btn.disabled = false;
-      btn.textContent =
-        "\u0646\u0645\u0627\u06CC\u0634 \u0646\u0638\u0631\u0627\u062A \u0628\u06CC\u0634\u062A\u0631";
+      btn.textContent = "نمایش نظرات بیشتر";
     });
 }
 
@@ -206,8 +322,7 @@ function loadMoreCenters(btn) {
   var listEl = document.getElementById("centers-list");
 
   btn.disabled = true;
-  btn.textContent =
-    "\u062F\u0631 \u062D\u0627\u0644 \u0628\u0627\u0631\u06AF\u0630\u0627\u0631\u06CC...";
+  btn.textContent = "در حال بارگذاری...";
 
   fetch("/api/load-centers/" + serviceId + "/?page=" + page, {
     method: "GET",
@@ -312,8 +427,7 @@ function loadMoreCenters(btn) {
 
       if (data.has_next) {
         btn.disabled = false;
-        btn.textContent =
-          "\u0646\u0645\u0627\u06CC\u0634 \u0645\u0631\u06A9\u0632\u0627\u0632 \u0628\u06CC\u0634\u062A\u0631";
+        btn.textContent = "نمایش مراکز بیشتر";
         btn.setAttribute("data-page", page + 1);
       } else {
         btn.remove();
@@ -321,8 +435,7 @@ function loadMoreCenters(btn) {
     })
     .catch(function () {
       btn.disabled = false;
-      btn.textContent =
-        "\u0646\u0645\u0627\u06CC\u0634 \u0645\u0631\u06A9\u0632\u0627\u0632 \u0628\u06CC\u0634\u062A\u0631";
+      btn.textContent = "نمایش مراکز بیشتر";
     });
 }
 
@@ -332,8 +445,7 @@ function suggestClosestCenter(btn) {
 
   if (!navigator.geolocation) {
     resultDiv.style.display = "block";
-    resultDiv.textContent =
-      "\u0627\u0645\u06A9\u0627\u0646 \u062F\u0631\u06CC\u0627\u0641\u062A \u0645\u0648\u0642\u0639\u06CC\u062A \u062C\u063A\u0631\u0627\u0641\u06CC\u0627\u0626\u06CC \u0648\u062C\u0648\u062F \u0646\u062F\u0627\u0631\u062F.";
+    resultDiv.textContent = "امکان دریافت موقعیت جغرافیائی وجود ندارد.";
     return;
   }
 
@@ -389,12 +501,12 @@ function suggestClosestCenter(btn) {
                   toPersianDigits(data.center.phones[0]) +
                   "</a>"
                 : "") +
-              "<br>\u0627\u0637\u0644\u0627\u0639\u0627\u062A: " +
+              "<br>اطلاعات: " +
               data.center.distance_km +
-              " \u06A9\u06CC\u0644\u0648\u0645\u062A\u0631 " +
+              " کیلومتر " +
               '<a href="/center/' +
               data.center.id +
-              '/">\u062C\u0632\u0626\u06CC\u0627\u062A \u0645\u0631\u06A9\u0632</a>';
+              '/">جزئیات مرکز</a>';
 
             if (window.serviceMap) {
               if (window._geoCircle) {
@@ -427,16 +539,14 @@ function suggestClosestCenter(btn) {
             }
           } else {
             resultDiv.style.display = "block";
-            resultDiv.textContent =
-              "\u0645\u0631\u06A9\u0632\u06CC \u062F\u0631 \u0645\u0648\u0642\u0639\u06CC\u062A \u062C\u063A\u0631\u0627\u0641\u06CC\u0627\u06CC \u0634\u0645\u0627 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F.";
+            resultDiv.textContent = "مرکزی در موقعیت جغرافیای شما یافت نشد.";
           }
         })
         .catch(function () {
           btn.disabled = false;
           btn.innerHTML = originalHtml;
           resultDiv.style.display = "block";
-          resultDiv.textContent =
-            "\u062E\u0637\u0627 \u062F\u0631 \u062F\u0631\u06CC\u0627\u0641\u062A \u0645\u0648\u0642\u0639\u06CC\u062A \u062C\u063A\u0631\u0627\u0641\u06CC\u0627\u06CC\u06CC \u0631\u062E \u062F\u0627\u062F.";
+          resultDiv.textContent = "خطا در دریافت موقعیت جغرافیایی رخ داد.";
         });
     },
     function () {
@@ -444,7 +554,7 @@ function suggestClosestCenter(btn) {
       btn.innerHTML = originalHtml;
       resultDiv.style.display = "block";
       resultDiv.textContent =
-        "\u0627\u0645\u06A9\u0627\u0646 \u062F\u0631\u06CC\u0627\u0641\u062A \u0645\u0648\u0642\u0639\u06CC\u062A \u062C\u063A\u0631\u0627\u0641\u06CC\u0627\u06CC \u062C\u0648\u0627\u0628\u0632 \u0646\u0634\u062F \u06CC\u0627 \u062E\u0637\u0627 \u062F\u0631 \u062F\u0631\u06CC\u0627\u0641\u062A \u0622\u0646 \u0631\u062E \u062F\u0627\u062F\u0647 \u0627\u0633\u062A.";
+        "امکان دریافت موقعیت جغرافیایی وجود ندارد یا خطا در دریافت آن رخ داده است.";
     },
   );
 }
@@ -482,8 +592,7 @@ function submitReport() {
 
   if (!reasonEl || !reasonEl.value) {
     if (errorEl) {
-      errorEl.textContent =
-        "\u0644\u0637\u0641\u0627 \u062F\u0644\u06CC\u0644 \u06AF\u0632\u0627\u0631\u0634 \u0631\u0627 \u0627\u0646\u062A\u062E\u0627\u0628 \u06A9\u0646\u06CC\u062F.";
+      errorEl.textContent = "لطفا دلیل گزارش را انتخاب کنید.";
       errorEl.style.display = "block";
     }
     return;
@@ -523,7 +632,7 @@ function submitReport() {
         showReportSuccess(result.data.message);
       } else {
         if (errorEl) {
-          errorEl.textContent = result.data.error || "\u062E\u0637\u0627";
+          errorEl.textContent = result.data.error || "خطا";
           errorEl.style.display = "block";
         }
       }
@@ -531,19 +640,17 @@ function submitReport() {
     .catch(function () {
       if (submitBtn) submitBtn.disabled = false;
       if (errorEl) {
-        errorEl.textContent =
-          "\u062E\u0637\u0627 \u062F\u0631 \u0627\u0631\u0633\u0627\u0644 \u06AF\u0632\u0627\u0631\u0634.";
+        errorEl.textContent = "خطا در ارسال گزارش.";
         errorEl.style.display = "block";
       }
     });
 }
 
-function showReportSuccess(message) {
+function showToast(message, variant) {
   var toast = document.createElement("div");
-  toast.className = "report-toast";
-  toast.textContent =
-    message ||
-    "\u06AF\u0632\u0627\u0631\u0634 \u0634\u0645\u0627 \u062B\u0628\u062A \u0634\u062F.";
+  toast.className =
+    "app-toast" + (variant === "error" ? " app-toast--error" : "");
+  toast.textContent = message;
   document.body.appendChild(toast);
   setTimeout(function () {
     toast.classList.add("show");
@@ -554,4 +661,8 @@ function showReportSuccess(message) {
       toast.remove();
     }, 300);
   }, 3000);
+}
+
+function showReportSuccess(message) {
+  showToast(message || "گزارش شما ثبت شد.");
 }

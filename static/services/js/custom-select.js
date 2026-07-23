@@ -7,6 +7,10 @@
       if (select.dataset.customSelect === "initialized") return;
       select.dataset.customSelect = "initialized";
 
+      var isSearchable = select.dataset.searchable === "true";
+      var apiUrl = select.dataset.apiUrl || "";
+      var searchOnly = select.dataset.searchOnly === "true";
+
       var wrapper = document.createElement("div");
       wrapper.className = "custom-select-wrapper";
 
@@ -30,8 +34,43 @@
       dropdown.className = "custom-select-dropdown";
       dropdown.setAttribute("role", "listbox");
 
+      var searchContainer = null;
+      var searchInput = null;
+      var loadMoreBtn = null;
+      var currentApiPage = 1;
+      var isLoading = false;
+      var searchDebounceTimer = null;
+
+      if (isSearchable) {
+        searchContainer = document.createElement("div");
+        searchContainer.className = "custom-select-search";
+
+        searchInput = document.createElement("input");
+        searchInput.type = "text";
+        searchInput.className = "custom-select-search-input";
+        searchInput.placeholder = "جستجو...";
+        searchInput.setAttribute("role", "searchbox");
+
+        searchContainer.appendChild(searchInput);
+        dropdown.appendChild(searchContainer);
+
+        if (!searchOnly) {
+          loadMoreBtn = document.createElement("div");
+          loadMoreBtn.className = "custom-select-load-more";
+          loadMoreBtn.textContent = "نمایش بیشتر";
+          loadMoreBtn.setAttribute("role", "button");
+        }
+      }
+
       function buildOptions() {
+        var searchVal = searchInput ? searchInput.value.trim() : "";
+        if (isSearchable && searchVal) {
+          return;
+        }
         dropdown.innerHTML = "";
+        if (searchContainer) {
+          dropdown.appendChild(searchContainer);
+        }
         var options = select.querySelectorAll("option");
         options.forEach(function (opt) {
           var optEl = document.createElement("div");
@@ -44,6 +83,92 @@
           optEl.setAttribute("aria-selected", opt.selected ? "true" : "false");
           dropdown.appendChild(optEl);
         });
+        if (loadMoreBtn) {
+          dropdown.appendChild(loadMoreBtn);
+        }
+        bindOptionEvents();
+      }
+
+      function bindOptionEvents() {
+        dropdown
+          .querySelectorAll(".custom-select-option")
+          .forEach(function (opt) {
+            opt.addEventListener("click", function (e) {
+              e.stopPropagation();
+              selectOption(this);
+            });
+          });
+      }
+
+      function appendApiOptions(cities, hasNext) {
+        cities.forEach(function (city) {
+          var existing = select.querySelector(
+            'option[value="' + city.name + '"]',
+          );
+          if (!existing) {
+            var opt = document.createElement("option");
+            opt.value = city.name;
+            opt.textContent = city.name;
+            select.appendChild(opt);
+          }
+
+          var optEl = document.createElement("div");
+          optEl.className = "custom-select-option";
+          optEl.dataset.value = city.name;
+          optEl.textContent = city.name;
+          optEl.setAttribute("role", "option");
+          optEl.setAttribute("aria-selected", "false");
+          dropdown.appendChild(optEl);
+        });
+
+        if (loadMoreBtn) {
+          if (hasNext) {
+            if (!loadMoreBtn.parentNode) {
+              dropdown.appendChild(loadMoreBtn);
+            }
+          } else {
+            loadMoreBtn.remove();
+          }
+        }
+
+        bindOptionEvents();
+        updateValue();
+      }
+
+      function fetchCities(page, search) {
+        if (isLoading || !apiUrl) return;
+        isLoading = true;
+
+        var url = apiUrl + "?page=" + page + "&per_page=20";
+        if (search) {
+          url += "&search=" + encodeURIComponent(search);
+        }
+
+        fetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+        })
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (data) {
+            appendApiOptions(data.cities, data.has_next);
+            currentApiPage = data.page || page;
+            isLoading = false;
+          })
+          .catch(function () {
+            isLoading = false;
+          });
+      }
+
+      function clearSearchResults() {
+        var opts = dropdown.querySelectorAll(".custom-select-option");
+        opts.forEach(function (o) {
+          o.remove();
+        });
+        if (loadMoreBtn) {
+          loadMoreBtn.remove();
+        }
       }
 
       function updateValue() {
@@ -61,9 +186,21 @@
         dropdown.classList.add("open");
         trigger.classList.add("open");
         trigger.setAttribute("aria-expanded", "true");
-        var selOpt = dropdown.querySelector(".custom-select-option.selected");
-        if (selOpt) {
-          selOpt.scrollIntoView({ block: "nearest" });
+        if (searchInput) {
+          searchInput.value = "";
+          if (isSearchable && apiUrl) {
+            clearSearchResults();
+            currentApiPage = 1;
+            fetchCities(1, "");
+          }
+          setTimeout(function () {
+            searchInput.focus();
+          }, 0);
+        } else {
+          var selOpt = dropdown.querySelector(".custom-select-option.selected");
+          if (selOpt) {
+            selOpt.scrollIntoView({ block: "nearest" });
+          }
         }
       }
 
@@ -71,6 +208,9 @@
         dropdown.classList.remove("open");
         trigger.classList.remove("open");
         trigger.setAttribute("aria-expanded", "false");
+        if (searchInput) {
+          searchInput.value = "";
+        }
       }
 
       function toggleDropdown() {
@@ -83,7 +223,15 @@
 
       function selectOption(optEl) {
         if (!optEl || optEl.classList.contains("disabled")) return;
-        select.value = optEl.dataset.value;
+        var val = optEl.dataset.value;
+        var existing = select.querySelector('option[value="' + val + '"]');
+        if (!existing) {
+          var opt = document.createElement("option");
+          opt.value = val;
+          opt.textContent = optEl.textContent;
+          select.appendChild(opt);
+        }
+        select.value = val;
         updateValue();
         closeDropdown();
         select.dispatchEvent(new Event("change", { bubbles: true }));
@@ -108,15 +256,6 @@
         toggleDropdown();
       });
 
-      dropdown
-        .querySelectorAll(".custom-select-option")
-        .forEach(function (opt) {
-          opt.addEventListener("click", function (e) {
-            e.stopPropagation();
-            selectOption(this);
-          });
-        });
-
       trigger.addEventListener("keydown", function (e) {
         var opts = dropdown.querySelectorAll(
           ".custom-select-option:not(.disabled)",
@@ -140,6 +279,9 @@
           case "Enter":
           case " ":
             e.preventDefault();
+            if (isSearchable && document.activeElement === searchInput) {
+              return;
+            }
             toggleDropdown();
             break;
           case "Escape":
@@ -154,6 +296,61 @@
           closeDropdown();
         }
       });
+
+      if (searchInput) {
+        searchInput.addEventListener("click", function (e) {
+          e.stopPropagation();
+        });
+
+        searchInput.addEventListener("input", function () {
+          var query = searchInput.value.trim();
+          clearTimeout(searchDebounceTimer);
+          searchDebounceTimer = setTimeout(function () {
+            clearSearchResults();
+            currentApiPage = 1;
+            if (apiUrl) {
+              fetchCities(1, query);
+            } else {
+              var opts = select.querySelectorAll("option");
+              var lowerQuery = query.toLowerCase();
+              opts.forEach(function (opt) {
+                if (opt.value === "") return;
+                var label = (opt.label || opt.textContent || "").toLowerCase();
+                if (!lowerQuery || label.indexOf(lowerQuery) !== -1) {
+                  var optEl = document.createElement("div");
+                  optEl.className = "custom-select-option";
+                  optEl.dataset.value = opt.value;
+                  optEl.textContent = opt.label || opt.textContent;
+                  optEl.setAttribute("role", "option");
+                  optEl.setAttribute("aria-selected", "false");
+                  dropdown.appendChild(optEl);
+                }
+              });
+              bindOptionEvents();
+            }
+          }, 300);
+        });
+
+        searchInput.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") {
+            closeDropdown();
+            trigger.focus();
+          }
+        });
+      }
+
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (!isLoading) {
+            currentApiPage++;
+            fetchCities(
+              currentApiPage,
+              searchInput ? searchInput.value.trim() : "",
+            );
+          }
+        });
+      }
 
       select.addEventListener("change", function () {
         updateValue();
