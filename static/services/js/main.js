@@ -345,14 +345,15 @@ function loadMoreCenters(btn) {
           var nameLink = document.createElement("a");
           nameLink.className = "center-item-name";
           nameLink.href = "/center/" + center.id + "/";
-          nameLink.textContent = center.name;
+          nameLink.textContent = toPersianDigits(center.name);
           header.appendChild(nameLink);
 
           if (center.avg_rating) {
             var rating = document.createElement("span");
             rating.className = "center-item-rating";
             rating.innerHTML =
-              '<i class="fas fa-star"></i> ' + center.avg_rating;
+              '<i class="fas fa-star"></i> ' +
+              toPersianDigits(center.avg_rating);
             header.appendChild(rating);
           }
 
@@ -398,7 +399,7 @@ function loadMoreCenters(btn) {
               .addTo(window.serviceMap)
               .bindPopup(
                 "<b>" +
-                  center.name +
+                  toPersianDigits(center.name) +
                   "</b><br>" +
                   center.address +
                   (phoneStr
@@ -491,7 +492,7 @@ function suggestClosestCenter(btn) {
             resultDiv.style.display = "block";
             resultDiv.innerHTML =
               "<strong>" +
-              data.center.name +
+              toPersianDigits(data.center.name) +
               "</strong><br>" +
               data.center.address +
               (data.center.phones && data.center.phones.length > 0
@@ -502,7 +503,7 @@ function suggestClosestCenter(btn) {
                   "</a>"
                 : "") +
               "<br>اطلاعات: " +
-              data.center.distance_km +
+              toPersianDigits(data.center.distance_km) +
               " کیلومتر " +
               '<a href="/center/' +
               data.center.id +
@@ -530,7 +531,10 @@ function suggestClosestCenter(btn) {
               window._geoMarker = L.marker(centerLatLng)
                 .addTo(window.serviceMap)
                 .bindPopup(
-                  "<b>" + data.center.name + "</b><br>" + data.center.address,
+                  "<b>" +
+                    toPersianDigits(data.center.name) +
+                    "</b><br>" +
+                    data.center.address,
                 )
                 .openPopup();
 

@@ -1,9 +1,9 @@
 {% extends 'services/base.html' %}
 {% load static jalali_tags %}
-{% block title %}{{ service.name }} | آگاه‌یار{% endblock %}
-{% block meta_description %}{{ service.name }} — مدارک، مراحل، هزینه و شرایط دریافت{% endblock %}
-{% block meta_keywords %}{{ service.name }}, خدمات دولتی, آگاه‌یار{% endblock %}
-{% block og_title %}{{ service.name }} | آگاه‌یار{% endblock %}
+{% block title %}{{ service.name|fa }} | آگاه‌یار{% endblock %}
+{% block meta_description %}{{ service.name|fa }} — مدارک، مراحل، هزینه و شرایط دریافت{% endblock %}
+{% block meta_keywords %}{{ service.name|fa }}, خدمات دولتی, آگاه‌یار{% endblock %}
+{% block og_title %}{{ service.name|fa }} | آگاه‌یار{% endblock %}
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
 {% endblock %}
@@ -37,7 +37,7 @@
         <strong>آدرس سازمان:</strong> {{ service.organization_address }}
         <a href="https://www.google.com/maps/search/{{ service.organization_address|urlencode }}"
            target="_blank"
-           class="btn-map">نقشه</a>
+           class="btn-map"><i class="fas fa-map-location-dot"></i></a>
       </div>
     {% endif %}
     <button onclick="window.print()" class="btn-print">چاپ</button>
@@ -93,7 +93,7 @@
         {% for center in initial_centers %}
           <div class="center-item" data-center-id="{{ center.id }}">
             <div class="center-item-header">
-              <a href="{% url 'center_detail' center.id %}" class="center-item-name">{{ center.name }}</a>
+              <a href="{% url 'center_detail' center.id %}" class="center-item-name">{{ center.name|fa }}</a>
               {% if center.avg_score %}
                 <span class="center-item-rating">
                   <i class="fas fa-star"></i> {{ center.avg_score|fa }}

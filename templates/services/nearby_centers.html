@@ -20,7 +20,8 @@
       {% for center in centers %}
         <div class="center-card {% if center.is_nearest %}nearest{% endif %}">
           <div class="center-name {% if center.is_nearest %}nearest-name{% endif %}">
-            {{ center.name }}
+            <a href="{% url 'center_detail' center.id %}"
+               class="center-name-link{% if center.is_nearest %} nearest-name{% endif %}">{{ center.name|fa }}</a>
             {% if center.is_nearest %}
               <span class="badge-nearest">نزدیک‌ترین</span>
             {% endif %}
@@ -30,7 +31,7 @@
             <div class="center-description">{{ center.description|linebreaksbr }}</div>
           {% endif %}
           {% if center.postal_code %}
-            <div class="center-postal">کد پستی: {{ center.postal_code }}</div>
+            <div class="center-postal">کد پستی: {{ center.postal_code|fa }}</div>
           {% endif %}
           {% with primary=center.phones.all.first %}
             {% if primary %}
@@ -40,10 +41,14 @@
           {% if center.working_hours %}
             <div class="center-hours">{{ center.working_hours|linebreaksbr }}</div>
           {% endif %}
-          <a href="{{ center.get_map_url }}" target="_blank" class="btn-map">مشاهده در نقشه</a>
-          {% if not center.is_nearest %}
-            <span class="badge-near badge-near-space">نزدیک</span>
-          {% endif %}
+          <div class="center-card-footer">
+            <a href="{{ center.get_map_url }}" target="_blank" class="btn-map"><i class="fas fa-map-location-dot"></i></a>
+            {% if center.is_nearest %}
+              <span class="badge-nearest">نزدیک‌ترین</span>
+            {% else %}
+              <span class="badge-near">نزدیک</span>
+            {% endif %}
+          </div>
         </div>
       {% empty %}
         <p class="empty-text">هیچ مرکزی برای این خدمت در شهر شما یافت نشد.</p>

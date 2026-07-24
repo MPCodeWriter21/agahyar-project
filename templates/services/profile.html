@@ -13,7 +13,7 @@
         <div class="info-row"><span class="info-label">نام کاربری</span><span class="info-value">{{ user.username }}</span></div>
         <div class="info-row"><span class="info-label">ایمیل</span><span class="info-value">{{ user.email|default:"-" }}</span></div>
         {% if profile %}
-          <div class="info-row"><span class="info-label">شماره تماس</span><span class="info-value" dir="ltr">{{ profile.phone }}</span></div>
+          <div class="info-row"><span class="info-label">شماره تماس</span><span class="info-value" dir="ltr">{{ profile.phone|fa }}</span></div>
           <div class="info-row"><span class="info-label">شهر</span><span class="info-value">{{ profile.city }}</span></div>
           <div class="info-row"><span class="info-label">محله</span><span class="info-value">{{ profile.neighborhood|default:"-" }}</span></div>
         {% else %}

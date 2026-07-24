@@ -1939,18 +1939,24 @@ button.muted-link:disabled {
 }
 
 .btn-map {
-  display: inline-block;
-  margin-right: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 10px;
   color: var(--color-accent);
-  font-weight: 600;
   text-decoration: none;
   background: var(--bg-light);
-  padding: var(--btn-padding-sm);
+  padding: 4px 10px;
   border-radius: var(--btn-radius);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-family: inherit;
   transition: var(--btn-transition);
   border: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.btn-map i {
+  font-size: 0.85em;
 }
 
 .btn-map:hover {
@@ -1961,10 +1967,6 @@ button.muted-link:disabled {
 .btn-map:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-}
-
-.btn-map:hover {
-  background: var(--border-light);
 }
 
 .org-address-box {
@@ -2196,43 +2198,84 @@ button.muted-link:disabled {
 
 .center-card {
   background: var(--bg-card);
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px var(--shadow-light);
-  border-right: 4px solid var(--color-accent);
-  transition: 0.2s;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px var(--shadow-light);
+  border-right: 3px solid var(--color-accent);
+  transition: box-shadow 0.2s;
 }
 
 .center-card:hover {
-  box-shadow: 0 4px 16px var(--shadow-card);
+  box-shadow: 0 4px 12px var(--shadow-card);
 }
 
 .center-card.nearest {
   border-right-color: var(--color-success);
-  background: #f0faf0;
 }
 
-.center-name {
-  font-size: 1.2rem;
+.center-card .center-name {
+  font-size: 1.05rem;
   font-weight: bold;
   color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.center-name.nearest-name {
+.center-card .center-name.nearest-name {
   color: var(--color-success);
 }
 
-.center-address {
-  color: var(--text-primary);
-  margin: 8px 0;
+.center-card .center-name-link {
+  color: inherit;
+  text-decoration: none;
 }
 
-.center-description {
-  color: var(--text-secondary);
+.center-card .center-name-link:hover {
+  text-decoration: underline;
+}
+
+.center-card .center-address {
+  color: var(--text-primary);
   font-size: 0.9rem;
   margin: 6px 0;
+}
+
+.center-card .center-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 4px 0;
   white-space: pre-line;
+}
+
+.center-card .center-postal {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 4px 0;
+}
+
+.center-card .center-phone {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 4px 0;
+}
+
+.center-card .center-hours {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 4px 0;
+  white-space: pre-line;
+}
+
+.center-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
 }
 
 .description-card {

@@ -1,16 +1,16 @@
 {% extends 'services/base.html' %}
 {% load static jalali_tags %}
-{% block title %}{{ center.name }} | آگاه‌یار{% endblock %}
-{% block meta_description %}{{ center.name }} — آدرس، ساعات کاری، شماره تلفن و خدمات قابل ارائه{% endblock %}
-{% block meta_keywords %}{{ center.name }}, مرکز دولتی, آگاه‌یار{% endblock %}
-{% block og_title %}{{ center.name }} | آگاه‌یار{% endblock %}
+{% block title %}{{ center.name|fa }} | آگاه‌یار{% endblock %}
+{% block meta_description %}{{ center.name|fa }} — آدرس، ساعات کاری، شماره تلفن و خدمات قابل ارائه{% endblock %}
+{% block meta_keywords %}{{ center.name|fa }}, مرکز دولتی, آگاه‌یار{% endblock %}
+{% block og_title %}{{ center.name|fa }} | آگاه‌یار{% endblock %}
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'libs/leaflet/leaflet.css' %}">
 {% endblock %}
 {% block content %}
   <div class="detail-header">
     <div class="detail-header-row">
-      <h1>{{ center.name }}</h1>
+      <h1>{{ center.name|fa }}</h1>
       <button type="button"
               class="btn-report"
               title="گزارش اطلاعات نادرست"
@@ -24,7 +24,7 @@
     </div>
     <div class="org-address-box">
       <strong>آدرس:</strong> {{ center.address }}
-      <a href="{{ center.get_map_url }}" target="_blank" class="btn-map">نقشه</a>
+      <a href="{{ center.get_map_url }}" target="_blank" class="btn-map"><i class="fas fa-map-location-dot"></i></a>
     </div>
     {% if center.city %}
       <div class="org-address-box">
@@ -51,7 +51,7 @@
       <div class="meta-item">
         <strong>کد پستی</strong>
         <br>
-        {{ center.postal_code }}
+        {{ center.postal_code|fa }}
       </div>
     {% endif %}
     {% if center.working_hours %}
@@ -162,7 +162,7 @@
     <div class="report-dialog-content">
       {% if user.is_authenticated %}
         <h3>گزارش اطلاعات نادرست یا قدیمی</h3>
-        <p class="report-dialog-target">{{ center.name }}</p>
+        <p class="report-dialog-target">{{ center.name|fa }}</p>
         <div class="report-form-group">
           <label for="report-reason">دلیل گزارش:</label>
           <select id="report-reason">

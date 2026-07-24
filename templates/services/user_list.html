@@ -24,7 +24,7 @@
           <td>{{ user.email|default:"-" }}</td>
           <td>{{ user.date_joined|jalali:"DD MN YYYY" }}</td>
           <td>{% if user.profile %}{{ user.profile.city }}{% else %}---{% endif %}</td>
-          <td>{% if user.profile %}{{ user.profile.phone }}{% else %}---{% endif %}</td>
+          <td>{% if user.profile %}{{ user.profile.phone|fa }}{% else %}---{% endif %}</td>
         </tr>
       {% empty %}
         <tr>

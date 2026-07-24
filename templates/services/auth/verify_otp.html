@@ -58,11 +58,19 @@
               if (parts.length === 2) return parts.pop().split(';').shift();
           }
 
+          function toPersianDigits(str) {
+              var e = '0123456789';
+              var p = '۰۱۲۳۴۵۶۷۸۹';
+              return String(str).replace(/[0-9]/g, function(d) {
+                  return p[e.indexOf(d)];
+              });
+          }
+
           function formatTime(sec) {
               var m = Math.floor(sec / 60);
               var s = sec % 60;
-              if (m > 0) return m + ':' + (s < 10 ? '0' : '') + s;
-              return s + ' ثانیه';
+              if (m > 0) return toPersianDigits(m) + ':' + (s < 10 ? '۰' : '') + toPersianDigits(s);
+              return toPersianDigits(s) + ' ثانیه';
           }
 
           function tick() {
