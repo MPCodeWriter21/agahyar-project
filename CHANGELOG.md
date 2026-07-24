@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.6.2] - 2026-07-24
+
+### Added
+- Matomo user ID tracking for authenticated users.
+- Center names on nearby centers page link to the center detail page.
+- Map icon buttons with `fa-map-location-dot` replace text buttons.
+
+### Changed
+- Nearby centers page redesigned with tighter card layout.
+- All user-visible numbers (center names, postal codes, phone numbers,
+  OTP countdown timers, titles, and meta tags) now display in Persian
+  digits (`۰۱۲۳۴۵۶۷۸۹`).
+
 ## [1.6.1] - 2026-07-23
 
 ### Fixed
