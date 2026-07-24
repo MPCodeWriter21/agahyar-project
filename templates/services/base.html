@@ -169,6 +169,9 @@
     {% if MATOMO_URL and MATOMO_SITE_ID %}
       <script>
           var _paq = window._paq = window._paq || [];
+          {% if MATOMO_USER_ID %}
+          _paq.push(["setUserId", "{{ MATOMO_USER_ID }}"]);
+          {% endif %}
           _paq.push(["trackPageView"]);
           _paq.push(["enableLinkTracking"]);
           _paq.push(["setTrackerUrl", "{{ MATOMO_URL }}/matomo.php"]);
